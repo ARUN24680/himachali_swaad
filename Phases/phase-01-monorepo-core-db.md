@@ -110,10 +110,10 @@ Project ka rock-solid foundation: pnpm + Turborepo monorepo, local infra (Docker
   > Evidence: ESLint + Prettier chose (Biome nahi); `eslint.config.js` import boundaries — 6 probe violations caught; `scripts/check-hardcoded-colors.mjs` + `scripts/tests/check-hardcoded-colors.test.mjs` (2/2).
 - [x] Pre-commit hook (lint-staged) for format + lint.
   > Evidence: `.husky/pre-commit` ran on commit `00109f8` — lint-staged (eslint --fix, prettier) ✔ + `✔ No hardcoded colours.`
-- [ ] **GitHub Actions CI** on every PR: install (pnpm cache) → typecheck → lint → unit tests → integration tests (Testcontainers) → **migrations `up` → `down` → `up` round-trip** on a fresh PostgreSQL 17 service.
-  > ⏳ `.github/workflows/ci.yml` likha (checks, integration, migrations round-trip, build, e2e) — **abhi GitHub par run nahi hua** (branch push pending).
-- [ ] Branch protection: CI green required on `main`.
-  > ⏳ GitHub repo settings — user action (CI ek baar green hone ke baad).
+- [x] **GitHub Actions CI** on every PR: install (pnpm cache) → typecheck → lint → unit tests → integration tests (Testcontainers) → **migrations `up` → `down` → `up` round-trip** on a fresh PostgreSQL 17 service.
+  > Evidence: PR #1 CI run https://github.com/ARUN24680/himachali_swaad/actions/runs/38090134794 — 5/5 jobs green (checks, integration 24/24, migrations round-trip, build, e2e 9/9 at 375/768/1440).
+- [x] Branch protection: CI green required on `main`.
+  > Evidence: `main` protection (2026-10-11): all 5 CI jobs required, strict (branch up to date), force-push + deletion blocked. `enforce_admins: false` — solo owner emergency bypass ke liye; team aane par true karna.
 
 ### 1.9 Design Tokens (Tailwind v4, D-12, D-13)
 - [x] `packages/ui/src/styles/globals.css`: Tailwind v4 CSS-first config (`@import "tailwindcss"`, `@theme inline` mapping) — tokens **exactly** `Rules/00-project-rules.md` §1.4 se: `background`, `foreground`, `card`, `popover`, `primary`, `secondary`, `muted`, `accent`, `border`, `input`, `ring`, `destructive`, **`success`, `warning`, `info`** (+ `*-foreground`), `radius`, font tokens (serif headings + sans body).
@@ -150,8 +150,8 @@ Project ka rock-solid foundation: pnpm + Turborepo monorepo, local infra (Docker
   > Evidence: `db.transaction.test.ts › rolls back every write…`, `› destroys a client whose ROLLBACK fails…`.
 - [x] Pool connection leak test: 100 sequential transactions (with thrown errors) ke baad `pool.totalCount <= DB_POOL_MAX` aur `waitingCount = 0`.
   > Evidence: `db.transaction.test.ts › does not leak connections over 100 failing transactions`.
-- [ ] Migration `0001` up → down → up CI me green.
-  > ⏳ Local round-trip green; CI job pending first push.
+- [x] Migration `0001` up → down → up CI me green.
+  > Evidence: CI job "Migrations up → down → up (PostgreSQL 17)" green — https://github.com/ARUN24680/himachali_swaad/actions/runs/38090134794
 - [x] `settings` seed rows exist; `users_staff_login` CHECK staff ko bina password reject karta hai (integration test).
   > Evidence: `migration-0001.test.ts › seeds the default settings`, `› rejects staff users without email + password`.
 - [x] `GET /readyz` DB/Redis down hone par `503` deta hai.
