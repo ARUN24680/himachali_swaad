@@ -21,13 +21,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      # pnpm (from packageManager) + Node (from .nvmrc) + store cache + frozen install, one step
+      - uses: pnpm/setup@v3
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          cache: true
+          require-lockfile: true
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm format:check
@@ -41,13 +40,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      # pnpm (from packageManager) + Node (from .nvmrc) + store cache + frozen install, one step
+      - uses: pnpm/setup@v3
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          cache: true
+          require-lockfile: true
       - run: pnpm test:integration
 
   migrations:
@@ -68,13 +66,12 @@ jobs:
     env:
       DATABASE_URL: postgres://pk:pk_ci@localhost:5432/pahadi_khatki?sslmode=disable
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      # pnpm (from packageManager) + Node (from .nvmrc) + store cache + frozen install, one step
+      - uses: pnpm/setup@v3
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          cache: true
+          require-lockfile: true
       - name: Round-trip every migration
         working-directory: packages/database
         run: |
@@ -94,13 +91,12 @@ jobs:
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       VITE_API_URL: http://localhost:4000
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      # pnpm (from packageManager) + Node (from .nvmrc) + store cache + frozen install, one step
+      - uses: pnpm/setup@v3
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          cache: true
+          require-lockfile: true
       - run: pnpm build
 
   e2e:
@@ -112,16 +108,15 @@ jobs:
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       VITE_API_URL: http://localhost:4000
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      # pnpm (from packageManager) + Node (from .nvmrc) + store cache + frozen install, one step
+      - uses: pnpm/setup@v3
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          cache: true
+          require-lockfile: true
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-results
