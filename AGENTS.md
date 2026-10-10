@@ -19,6 +19,7 @@ Jab bhi is repository me koi bhi task, feature, bug fix, ya phase execute karne 
 - **Status changes:** Sirf `transitionOrder()` se.
 - **Code organisation:** Backend `routes → controller → service → repository`; Frontend hybrid `@pk/ui → components/common → modules/<feature>` (D-43, D-44).
 - **Money:** Integer paise.
+- **Design Reference Policy (Rules §1.5):** Stitch/Figma design sirf reference hai — copy nahi, better UI/aesthetic bana sakte ho toh banao (tokens, compliance, scope ke andar). Har UI kaam **`ui-developer` agent** (`.claude/agents/ui-developer.md`) se.
 
 ## 🗺️ 3. Phase Execution Reference
 `Phases/00-phases-master.md` single source of truth hai. Phase files:

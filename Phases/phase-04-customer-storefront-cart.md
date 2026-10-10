@@ -2,6 +2,7 @@
 
 > [!IMPORTANT]
 > **Read first:** `Rules/00-project-rules.md` · `architecture/08-decisions-log.md` · `architecture/07-order-state-machine.md` · `architecture/01-database-schema-models.md` · `architecture/03-storefront-ux-customer.md`
+> **UI work:** `Rules/00-project-rules.md` §1.5 **Design Reference Policy** follow karo — Stitch design sirf reference hai, better bana sakte ho to banao. UI tasks **`ui-developer` agent** (`.claude/agents/ui-developer.md`) se.
 > **Depends on:** Phase 3  ·  **Migration:** —
 
 ---

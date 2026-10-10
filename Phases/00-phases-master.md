@@ -12,7 +12,8 @@
 2. **Saare checklists unchecked (`- [ ]`) se start hote hain.** Koi item tabhi tick hoga jab uska **evidence** ho: passing test ka naam, CI run link, screenshot (375/768/1440), ya PR link. Bina evidence ke `[x]` = review reject.
 3. Phase N tabhi start hoga jab uske **Depends on** phases ka **Definition of Done** poora ho. Phase 0 exception hai — woh non-code track hai aur **Day 1 se parallel** chalta hai.
 4. Har phase me jo migration bani hai woh **`packages/database/migrations/`** me commit hoti hai aur dobara kabhi edit nahi hoti.
-5. "🚫 Out of Scope" section batata hai kaunsa kaam kis phase me move hua — usse pehle mat banao.
+5. **UI wala har kaam** `Rules/00-project-rules.md` §1.5 (Design Reference Policy) ke hisaab se aur **`ui-developer` agent** (`.claude/agents/ui-developer.md`) se hoga — Stitch design reference hai, spec nahi; better ban sake toh better banao.
+6. "🚫 Out of Scope" section batata hai kaunsa kaam kis phase me move hua — usse pehle mat banao.
 
 ---
 

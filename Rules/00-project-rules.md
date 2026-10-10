@@ -178,6 +178,29 @@
   * Status → variant mapping ek hi jagah: `packages/ui/src/status-badge.tsx`.
 * **STRICT ENFORCEMENT:** Agar kisi ne `bg-yellow-500`, `text-gray-400`, `border-zinc-800` ya `bg-[#18231E]` jaise arbitrary hardcoded Tailwind colors likhe, toh code review **REJECT** ho jayega. Hamesha semantic tokens use honge! (ESLint rule / CI grep isko enforce karega.)
 
+### 1.5 🎨 Design Reference Policy (Stitch / Figma = Reference, NOT Spec)
+> **MANDATORY for every phase, feature ya new addition jisme UI ho.** UI ka kaam **`ui-developer` agent** (`.claude/agents/ui-developer.md`) karega, jo is section ko follow karta hai.
+
+* **Design source:** Stitch project **"New Project"** (ID `8514017347539119853`, design system "The Himalayan Pantry") — storefront, admin, partner desk, auth screens.
+* **Yeh design sirf REFERENCE hai, priority nahi.** Theek-thaak hai, final nahi. Agar UI ko aur better / zyada aesthetic / zyada usable banaya ja sakta hai — **toh banao.** Blindly copy mat karo.
+* **Priority order (conflict ho toh upar wala jeetega):**
+  1. Yeh Rules file + `architecture/08-decisions-log.md` (stack, tokens, accessibility, compliance).
+  2. Architecture docs + phase file (functional requirements — kya dikhana/karna hai).
+  3. Better UX & aesthetics (hamara judgement — mobile-first, premium artisanal feel).
+  4. Stitch / Figma screen (sirf reference — layout idea, mood, content hierarchy).
+* **Improve karna allowed / encouraged:** layout, spacing rhythm, typography hierarchy, imagery treatment, micro-interactions, loading skeletons, empty/error states, mobile thumb-reach, conversion flow, accessibility.
+* **Kabhi nahi:**
+  * ❌ Stitch ka exported HTML / hex colors / arbitrary Tailwind classes copy-paste — sirf semantic tokens (§1.4) + `@pk/ui` primitives.
+  * ❌ Compliance elements hatana (non-veg mark, FSSAI no., batch/expiry, MRP incl. taxes, legal links, consent checkboxes).
+  * ❌ Phase scope se bahar features add karna (e.g. COD, reviews, coupons — v2 backlog) sirf kyunki design me dikh rahe hain.
+  * ❌ Brand palette ad-hoc badalna — color change sirf `globals.css` tokens (§1.4) + decisions log entry se.
+* **Process har UI task par:**
+  1. Us page/flow ka Stitch screen dekho (reference), phir phase file + architecture doc ke requirements se compare karo.
+  2. Gaps aur improvements identify karo (missing states, compliance, mobile UX, accessibility).
+  3. Hybrid structure me build karo (`architecture/09-codebase-structure.md` §3).
+  4. **Design deviation note** PR / phase evidence me likho: *"Stitch se alag: X — kyunki Y"*.
+  5. Evidence: 375 / 768 / 1440 screenshots, light + dark dono.
+
 ---
 
 ## ⚙️ 2. Backend & Database Architecture Rules
