@@ -1,0 +1,25 @@
+{
+  "name": "@pk/storefront",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@pk/shared": "workspace:*",
+    "@pk/ui": "workspace:*",
+    "@sentry/nextjs": "^11.6.0",
+    "next": "^16.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@pk/tsconfig": "workspace:*",
+    "@types/react": "19.3.0"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@pk/database",
+  "private": true,
+  "scripts": {
+    "db:new": "dbmate --migrations-dir ./migrations new",
+    "db:up": "dbmate --migrations-dir ./migrations up",
+    "db:down": "dbmate --migrations-dir ./migrations down",
+    "db:status": "dbmate --migrations-dir ./migrations status"
+  }
+}

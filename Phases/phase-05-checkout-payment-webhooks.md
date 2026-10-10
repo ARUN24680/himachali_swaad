@@ -18,7 +18,7 @@
 - [ ] Copy exactly from `architecture/01`: enums (`order_status`, `payment_status`, `payment_attempt_status`, `allocation_status`, `refund_status`, `actor_type`), `addresses`, `orders`, `order_items`, `order_item_allocations`, `order_status_logs`, `payments`, `refunds`, `webhook_events`, `invoice_sequences`, `inventory_movements.order_id` FK.
 - [ ] Row Zod schemas in `packages/shared`.
 
-### 5.2 State Machine Core (`packages/shared` + api-server)
+### 5.2 State Machine Core (`packages/shared` + backend)
 - [ ] `packages/shared/src/order/transitions.ts` — allowed map **exactly** 07 §1.2 (from, to, allowed actors) + `canTransition(from, to, actor)`; payment status map 07 §2.
 - [ ] `transitionOrder()` (07 §4.5) — guarded `UPDATE ... WHERE status = $from`, whitelisted timestamp column, `order_status_logs` row. Lint/grep CI check: `UPDATE orders SET status` sirf is function me.
 - [ ] Unit test: har (from, to, actor) combination ka allowed/denied table snapshot.

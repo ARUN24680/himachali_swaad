@@ -221,7 +221,7 @@
 * **Authentication (D-20):** Access token (JWT, 15 min) + refresh token (opaque, 30 din, rotating + reuse detection) — **dono httpOnly cookies** (`Secure`, `SameSite=Lax`, `Domain=.pahadikhatki.in`). Cookie names `pk_at` / `pk_rt`. Mutating requests par `Origin` check (CSRF) — `/webhooks/*` exempt (signature-auth). Tokens localStorage me kabhi nahi.
 * **RBAC:** Roles `CUSTOMER`, `ADMIN`, `KITCHEN_PARTNER` (D-17). Har protected route par `requireRole([...])`.
 * **Webhooks Idempotency:** Har webhook pehle `webhook_events (provider, event_id)` me insert hoga (UNIQUE) — duplicate = no-op. Signature verification raw body par.
-* **Background Jobs:** Heavy/External calls (Shiprocket booking, WhatsApp/SMS, PDF invoice/label) **BullMQ + Redis** workers (`apps/api-server/src/worker.ts`, alag process, D-06) ke through. Deterministic `jobId` taaki duplicate jobs na banein. API p95 response time < 200ms.
+* **Background Jobs:** Heavy/External calls (Shiprocket booking, WhatsApp/SMS, PDF invoice/label) **BullMQ + Redis** workers (`apps/backend/src/worker.ts`, alag process, D-06) ke through. Deterministic `jobId` taaki duplicate jobs na banein. API p95 response time < 200ms.
 * **Logging:** pino structured logs. **PII (phone, address, email, OTP, tokens, payment payloads) kabhi log nahi hoga** — redact paths configure karo.
 * **Files:** Product images → public R2 bucket. **Shipping labels, invoices, settlement statements → PRIVATE R2 bucket + 5-min signed URLs** (D-11).
 
@@ -230,14 +230,17 @@
 ## 🏗️ 3. Code Quality, Modularity & Monorepo Rules
 
 ### 3.1 Monorepo Separation of Concerns (pnpm + Turborepo, D-04)
-* Monorepo mein boundaries strictly separated honge:
-  * `apps/storefront`: Next.js 16 (App Router) + React 19 (Public customer facing). **DB se direct baat nahi — sirf `api-server` call** (D-05).
-  * `apps/admin-portal`: React 19 + Vite SPA (Admin operations + Kitchen Partner Packing Desk PWA).
-  * `apps/api-server`: Fastify 5 + TS. Do entrypoints: `src/server.ts` (HTTP) aur `src/worker.ts` (BullMQ workers + cron) — alag process me deploy (D-06).
+* Monorepo mein boundaries strictly separated honge (packages scope `@pk/*`, D-45):
+  * `apps/storefront`: Next.js 16 (App Router) + React 19 (Public customer facing). **DB se direct baat nahi — sirf `backend` call** (D-05).
+  * `apps/admin`: React 19 + Vite SPA (Admin operations + Kitchen Partner Packing Desk PWA).
+  * `apps/backend`: Fastify 5 + TS. Do entrypoints: `src/server.ts` (HTTP) aur `src/worker.ts` (BullMQ workers + cron) — alag process me deploy (D-06).
   * `packages/shared`: Shared types, Zod schemas, order transitions map, constants.
   * `packages/database`: `dbmate` migrations (`migrations/*.sql`) + seed scripts.
   * `packages/ui`: Theme tokens (`globals.css`), shadcn components, `StatusBadge`.
   * `packages/tsconfig`: Shared TypeScript configs.
+* **Code organisation (D-43, D-44):** `architecture/09-codebase-structure.md` follow karna mandatory hai.
+  * **Backend (Nexus pattern):** har module `routes → controller → service → repository (+ validation)`. SQL sirf repository me, `db.transaction()` sirf service me, external APIs sirf `src/integrations/` me (transaction ke bahar). Doosre module ki repository direct import nahi — uski service use karo.
+  * **Frontend (Hybrid):** primitives `packages/ui` → reusable composites `src/components/common` → features `src/modules/<feature>/` (components, hooks, api, store, pages, `index.ts`). Ek module doosre module ke internals import nahi karega — sirf `index.ts`. Storefront `app/` sirf routing (thin pages).
 * Shared business logic ya validation contracts ko copy-paste nahi karna — hamesha `packages/shared` se import karna hai.
 * Environment variables Zod se validate (`env.ts`); `.env.example` hamesha updated.
 

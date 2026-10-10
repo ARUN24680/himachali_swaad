@@ -15,7 +15,7 @@ Order `CONFIRMED` hote hi delivery pipeline poori tarah automatic chalni chahiye
 
 ### 6.1 Migration & Worker Infrastructure
 - [ ] `0004_logistics.sql` apply karo (`shipments`, `tracking_events`) — `dbmate up` + `dbmate down` round-trip CI me.
-- [ ] `apps/api-server/src/worker.ts` entrypoint (D-06) — HTTP server se alag process.
+- [ ] `apps/backend/src/worker.ts` entrypoint (D-06) — HTTP server se alag process.
 - [ ] BullMQ queues (shared Redis connection, `maxRetriesPerRequest: null`):
   | Queue | Jobs |
   | :--- | :--- |
@@ -29,7 +29,7 @@ Order `CONFIRMED` hote hi delivery pipeline poori tarah automatic chalni chahiye
 - [ ] **Dead-letter handling:** final failure par `orders.ops_issue = '<JOB>: <error>'`, `shipments.last_error` update, `booking_attempts++`, admin alert enqueue. Admin "Retry booking" button (Phase 9) same `jobId` se re-enqueue karega.
 - [ ] Worker graceful shutdown (`SIGTERM` → `worker.close()`), concurrency config env se.
 
-### 6.2 Shiprocket API Client (`apps/api-server/src/integrations/shiprocket/client.ts`)
+### 6.2 Shiprocket API Client (`apps/backend/src/integrations/shiprocket/client.ts`)
 - [ ] Base URL `https://apiv2.shiprocket.in/v1/external/` — ⚠️ endpoint paths aur payload fields Shiprocket ke **current official API docs** se verify karke likhna (yahan sirf method contract hai).
 - [ ] Token management: `SHIPROCKET_EMAIL` / `SHIPROCKET_PASSWORD` (API user) se login, token Redis me (`shiprocket:token`) TTL ke saath, **expiry se pehle refresh**. Concurrent refresh ke liye Redis lock (`SET NX PX`). `401` aaye toh ek baar force-refresh + retry.
 - [ ] Typed methods (har response Zod se parse):

@@ -1,0 +1,19 @@
+{
+  "name": "@pk/ui",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./globals.css": "./src/styles/globals.css",
+    "./components/*": "./src/components/*.tsx",
+    "./status-badge": "./src/status-badge.tsx",
+    "./nonveg-mark": "./src/nonveg-mark.tsx",
+    "./lib/*": "./src/lib/*.ts",
+    "./hooks/*": "./src/hooks/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@pk/tsconfig": "workspace:*"
+  }
+}

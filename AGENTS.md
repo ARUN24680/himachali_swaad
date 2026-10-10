@@ -7,7 +7,8 @@ Jab bhi is repository me koi bhi task, feature, bug fix, ya phase execute karne 
 2. **`architecture/08-decisions-log.md`** — Saare final decisions (D-xx). **Docs me conflict ho toh yeh file jeetegi** — conflict ko user ko report karo.
 3. **`architecture/07-order-state-machine.md`** — Order/payment statuses, transitions, stock reservation, canonical transaction code.
 4. **`architecture/01-database-schema-models.md`** — Schema v2 + migrations.
-5. **Specific phase file** jo execute karna hai (`Phases/`), aur us phase me referenced architecture docs.
+5. **`architecture/09-codebase-structure.md`** — Folder structure, backend Nexus module pattern, hybrid frontend rules. Koi bhi file/folder banane se pehle.
+6. **Specific phase file** jo execute karna hai (`Phases/`), aur us phase me referenced architecture docs.
 
 ## 📜 2. Non-Negotiable Rules (summary — details Rules file me)
 - **Responsiveness:** Mobile, Tablet, Desktop teeno par perfect; zero horizontal overflow.
@@ -16,6 +17,7 @@ Jab bhi is repository me koi bhi task, feature, bug fix, ya phase execute karne 
 - **Zero-ORM & Pure Raw SQL:** `pg` pool + parameterized SQL, migrations `dbmate`. No Prisma, No Sequelize.
 - **Transactions:** Inventory aur payments `db.transaction()` + `SELECT ... FOR UPDATE` (sorted lock order). External API calls transaction ke andar kabhi nahi.
 - **Status changes:** Sirf `transitionOrder()` se.
+- **Code organisation:** Backend `routes → controller → service → repository`; Frontend hybrid `@pk/ui → components/common → modules/<feature>` (D-43, D-44).
 - **Money:** Integer paise.
 
 ## 🗺️ 3. Phase Execution Reference

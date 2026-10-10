@@ -24,7 +24,7 @@
 
 ---
 
-## 🛠️ Database Client (`apps/api-server/src/config/db.ts`)
+## 🛠️ Database Client (`apps/backend/src/config/db.ts`)
 
 ```typescript
 import pg from 'pg';

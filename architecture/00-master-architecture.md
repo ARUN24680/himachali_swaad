@@ -16,23 +16,26 @@
 
 ## 📦 Monorepo Workspace Structure (pnpm + Turborepo, D-04)
 
+> Folder-level detail, backend module pattern (Nexus) aur hybrid frontend rules: **[`09-codebase-structure.md`](./09-codebase-structure.md)** (D-43, D-44, D-45).
+
 ```text
 pahadi-khatki/
 ├── apps/
-│   ├── storefront/             # Next.js 16 (App Router, React 19) - Customer Store
-│   ├── admin-portal/           # React 19 + Vite SPA - Admin Ops + Kitchen Partner PWA
-│   └── api-server/             # Fastify 5 + TS - Pure Raw SQL REST API
-│       └── src/
-│           ├── server.ts       # HTTP entrypoint
-│           ├── worker.ts       # BullMQ workers + repeat/cron jobs (separate process)
-│           ├── config/         # env.ts (Zod), db.ts (pg pool), logger.ts (pino), redis.ts
-│           └── modules/        # auth, catalog, cart, checkout, payments, orders, logistics,
-│                               # notifications, partner, admin, settlements, webhooks
+│   ├── backend/                # @pk/backend — Fastify 5 + TS, Pure Raw SQL REST API
+│   │   └── src/
+│   │       ├── server.ts       # HTTP entrypoint
+│   │       ├── worker.ts       # BullMQ workers + repeat/cron jobs (separate process, D-06)
+│   │       ├── app.ts          # buildApp(): plugins + module routes
+│   │       ├── config/         # env.ts (Zod), db.ts (pg pool), logger.ts (pino), redis.ts
+│   │       ├── plugins/  middleware/  utils/  integrations/  jobs/
+│   │       └── modules/        # <module>/{routes,controller,service,repository,validation}.ts
+│   ├── storefront/             # @pk/storefront — Next.js 16 (App Router, React 19), hybrid: app/ + modules/ + components/
+│   └── admin/                  # @pk/admin — React 19 + Vite SPA, Admin Ops + Kitchen Partner PWA, hybrid
 ├── packages/
-│   ├── shared/                 # Zod schemas, types, order transitions map, constants
-│   ├── database/               # dbmate migrations (migrations/*.sql) & seed scripts
-│   ├── ui/                     # globals.css theme tokens, shadcn components, StatusBadge
-│   └── tsconfig/               # Shared TypeScript configurations
+│   ├── shared/                 # @pk/shared — Zod contracts, types, order transitions map, permissions, errors, money
+│   ├── database/               # @pk/database — dbmate migrations (migrations/*.sql) & seed scripts
+│   ├── ui/                     # @pk/ui — globals.css theme tokens, shadcn components, StatusBadge, NonVegMark
+│   └── tsconfig/               # @pk/tsconfig — base / node / nextjs / vite / library presets
 ├── docker-compose.yml          # Local PostgreSQL 17 + Redis
 ├── .env.example
 ├── turbo.json                  # Turborepo task pipeline

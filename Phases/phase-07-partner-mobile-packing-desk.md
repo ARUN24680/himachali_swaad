@@ -22,7 +22,7 @@ Kahin bhi technical complexity nahi, aur partner ko confidential business data n
 
 ### 7.1 Migration & Access Scope
 - [ ] `0005_notifications.sql` apply (`push_subscriptions`, `notifications_log`).
-- [ ] Partner routes `apps/admin-portal` me `/desk/*`, `requireRole(['KITCHEN_PARTNER', 'ADMIN'])`.
+- [ ] Partner routes `apps/admin` me `/desk/*`, `requireRole(['KITCHEN_PARTNER', 'ADMIN'])`.
 - [ ] **Data scoping:** har partner query `user_pickup_locations` se filter — partner sirf apne kitchen ke orders/batches dekhe. API: `/api/v1/partner/*`.
 - [ ] Partner ko **kabhi nahi** dikhega: revenue dashboard, customer list, settings, expenses edit, ad data. Order card par sirf: order code, items, customer **first name + city** (label par full address already printed hai).
 

@@ -1,6 +1,6 @@
 # 🎨 03. Customer Storefront UX & Architecture (Next.js 16 + React 19)
 
-> Storefront sirf `api-server` ko call karta hai (D-05). Colors sirf semantic tokens se (`Rules/00-project-rules.md` §1.4).
+> Storefront sirf `backend` ko call karta hai (D-05). Colors sirf semantic tokens se (`Rules/00-project-rules.md` §1.4).
 
 ---
 
@@ -21,6 +21,8 @@
 ---
 
 ## 📱 Page Map & Component Breakdown
+
+> **Hybrid structure (D-44, `09-codebase-structure.md` §3.2):** `app/` = sirf routing (thin pages). Feature UI `src/modules/<feature>/` me (home, catalog, cart, checkout, orders, tracking, account, content), reusable composites `src/components/common/`, primitives `@pk/ui`. E.g. `CartDrawer` → `src/modules/cart/components/CartDrawer.tsx`, cart store → `src/modules/cart/store/cart.store.ts`.
 
 ```text
 apps/storefront/src/app/
@@ -48,7 +50,7 @@ apps/storefront/src/app/
 │   └── grievance/page.tsx               # Consumer Protection (E-Commerce) Rules 2020
 ├── not-found.tsx · error.tsx
 ├── sitemap.ts · robots.ts               # SEO
-└── (components)/cart/CartDrawer.tsx     # Global Radix Dialog drawer
+└── layout.tsx                         # Root layout: providers, Header/Footer, global <CartDrawer /> (from modules/cart)
 ```
 
 > Legal pages + contact **launch blockers** hain (Razorpay activation ke liye bhi zaroori).
@@ -62,7 +64,7 @@ apps/storefront/src/app/
 * Live "Small-Batch" counter: *"Batch PK-2610-CHK250-01: Only 34 jars remaining"* — sellable stock (D-24) se, `low_stock_threshold` setting se badge. Genuine scarcity, no fake timers.
 * Product/stock data Server Components me `fetch` + cache tags; order/stock change par API revalidate trigger karta hai.
 
-### 2. Fast Cart Drawer (`CartDrawer.tsx`) — D-15
+### 2. Fast Cart Drawer (`modules/cart/components/CartDrawer.tsx`) — D-15
 * Slide-out drawer built with Radix Dialog primitive (mobile par bottom sheet).
 * **Zustand + `localStorage`** guest cart → quantity change instantly UI me reflect (local state, koi network roundtrip nahi). `useOptimistic` use **nahi** hoga.
 * Drawer open hone par aur checkout par **`POST /api/v1/cart/quote`**: server-side price, stock aur shipping revalidate. Agar price/stock badla → item par "updated" notice + quantity auto-adjust.

@@ -59,7 +59,7 @@ Har message `notifications_log` me traceable hoga.
 - [ ] `GET /api/v1/me/orders` (paginated) + `GET /api/v1/me/orders/:orderCode` — `requireAuth`, `user_id` **ya** verified phone = `customer_phone` (guest orders bhi OTP login ke baad dikhein).
 - [ ] Storefront `/account/orders` list + detail (same timeline component).
 
-### 8.4 Notification Service (`apps/api-server/src/modules/notifications/`)
+### 8.4 Notification Service (`apps/backend/src/modules/notifications/`)
 - [ ] Provider interface:
   ```typescript
   interface MessageProvider {

@@ -19,18 +19,18 @@ Project ka rock-solid foundation: pnpm + Turborepo monorepo, local infra (Docker
 - [ ] Pinned versions ki list `architecture/00-master-architecture.md` stack table me update karne ke liye PR note.
 
 ### 1.2 Monorepo Workspace (pnpm + Turborepo, D-04)
-- [ ] Structure:
+- [ ] Structure (folder skeleton + workspace configs already created — `architecture/09-codebase-structure.md`, D-43/D-44/D-45; is phase me deps install + entry files):
   ```text
   pahadi-khatki/
   ├── apps/
-  │   ├── storefront/      # Next.js 16 (App Router, React 19) — calls api-server only (D-05)
-  │   ├── admin-portal/    # Vite + React 19 SPA — Admin + Kitchen Partner desk
-  │   └── api-server/      # Fastify 5 + TS — src/server.ts (HTTP) + src/worker.ts (BullMQ + cron) (D-06)
+  │   ├── backend/         # Fastify 5 + TS — src/server.ts (HTTP) + src/worker.ts (BullMQ + cron) (D-06), Nexus module pattern
+  │   ├── storefront/      # Next.js 16 (App Router, React 19) — calls backend only (D-05), hybrid frontend
+  │   └── admin/           # Vite + React 19 SPA — Admin + Kitchen Partner desk, hybrid frontend
   ├── packages/
   │   ├── shared/          # Zod schemas, types, constants, order transitions map, error codes
   │   ├── database/        # dbmate migrations (.sql), seed scripts
-  │   ├── ui/              # Tailwind v4 theme tokens (globals.css), shadcn primitives
-  │   └── tsconfig/        # base / nextjs / vite / node tsconfig presets
+  │   ├── ui/              # Tailwind v4 theme tokens (src/styles/globals.css), shadcn primitives
+  │   └── tsconfig/        # base / node / nextjs / vite / library tsconfig presets
   ├── docker-compose.yml
   ├── turbo.json
   ├── pnpm-workspace.yaml
@@ -43,12 +43,12 @@ Project ka rock-solid foundation: pnpm + Turborepo monorepo, local infra (Docker
 
 ### 1.3 Local Infra & Configuration
 - [ ] `docker-compose.yml`: PostgreSQL 17 + Redis 7 (named volumes, healthchecks).
-- [ ] `apps/api-server/src/config/env.ts`: **Zod-validated env** — app boot par missing/invalid var = crash with clear message. Vars: `DATABASE_URL`, `DB_POOL_MAX` (default 10), `SLOW_QUERY_MS`, `PROCESS_NAME`, `REDIS_URL`, `NODE_ENV`, `APP_ORIGINS`, `COOKIE_DOMAIN`, `JWT_SECRET`, `SENTRY_DSN` (optional in dev); baaki integration vars apne phase me add honge.
+- [ ] `apps/backend/src/config/env.ts`: **Zod-validated env** — app boot par missing/invalid var = crash with clear message. Vars: `DATABASE_URL`, `DB_POOL_MAX` (default 10), `SLOW_QUERY_MS`, `PROCESS_NAME`, `REDIS_URL`, `NODE_ENV`, `APP_ORIGINS`, `COOKIE_DOMAIN`, `JWT_SECRET`, `SENTRY_DSN` (optional in dev); baaki integration vars apne phase me add honge.
 - [ ] `.env.example` har app ke liye (koi real secret nahi). `.env*` gitignored.
 - [ ] Storefront & admin env bhi Zod se validated (`NEXT_PUBLIC_*`, `VITE_*` sirf public values).
 
 ### 1.4 Database Client & Migrations (D-01)
-- [ ] `apps/api-server/src/config/db.ts` — **exactly** `architecture/01` wala client: pool (`statement_timeout`, `application_name`, SSL in prod), `db.query` with slow-query log (params never logged), `db.transaction` with isolation option + broken-client release.
+- [ ] `apps/backend/src/config/db.ts` — **exactly** `architecture/01` wala client: pool (`statement_timeout`, `application_name`, SSL in prod), `db.query` with slow-query log (params never logged), `db.transaction` with isolation option + broken-client release.
 - [ ] `dbmate` setup in `packages/database` (`pnpm db:new`, `db:up`, `db:down`, `db:status`), migrations dir `packages/database/migrations/`.
 - [ ] Migration **`0001_foundation.sql`** (copy from `architecture/01`): `citext`, `set_updated_at()`, `forbid_mutation()`, `user_role` (`CUSTOMER`, `ADMIN`, `KITCHEN_PARTNER`), `users`, `refresh_tokens`, `settings` (+ seed defaults), `pickup_locations`, `user_pickup_locations`, `admin_audit_log`.
 - [ ] `settings` read helper `getSetting<T>(client, key)` with Zod parse + short in-memory cache (invalidate on update).
@@ -56,7 +56,7 @@ Project ka rock-solid foundation: pnpm + Turborepo monorepo, local infra (Docker
 
 ### 1.5 API Server Skeleton (Fastify 5, D-02)
 - [ ] `fastify-type-provider-zod` — har route ka body/query/params Zod schema se validate.
-- [ ] **Response envelope** (`Rules` §2.2): `{ success, data, error, timestamp }` via a reply helper.
+- [ ] **Response envelope** (`Rules` §2.2): `{ success, data, error, requestId, timestamp }` via a reply helper (`apps/backend/src/utils/response.ts`).
 - [ ] `AppError(code, httpStatus, details?)` + **error code registry** in `packages/shared/src/errors.ts` (e.g. `VALIDATION_FAILED`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `RATE_LIMITED`, `OUT_OF_STOCK`, `ILLEGAL_TRANSITION`, `STALE_STATE`, `INTERNAL`). Global error handler → envelope; unknown errors → `INTERNAL` + Sentry, stack trace kabhi client ko nahi.
 - [ ] **Request ID**: incoming `X-Request-Id` ya generated UUID → pino child logger + response header.
 - [ ] Health endpoints: `GET /healthz` (process alive), `GET /readyz` (DB `SELECT 1` + Redis `PING`).
@@ -66,7 +66,7 @@ Project ka rock-solid foundation: pnpm + Turborepo monorepo, local infra (Docker
 
 ### 1.6 Logging & Error Tracking (D-09)
 - [ ] **pino** structured JSON logs (pretty in dev), PII redaction paths (`phone`, `email`, `address`, `authorization`, `cookie`).
-- [ ] **Sentry** in api-server, storefront, admin-portal (release + environment tags).
+- [ ] **Sentry** in backend, storefront, admin (release + environment tags).
 
 ### 1.7 Testing Harness (D-08)
 - [ ] **Vitest** across workspaces.
@@ -75,13 +75,13 @@ Project ka rock-solid foundation: pnpm + Turborepo monorepo, local infra (Docker
 - [ ] **Playwright** setup (projects: 375px, 768px, 1440px) — Phase 4 se real specs.
 
 ### 1.8 Code Quality & CI
-- [ ] ESLint + Prettier (ya Biome — ek choose karo, dono nahi). Lint rule/script jo **hardcoded Tailwind colors** (`bg-yellow-500`, `text-gray-400`, `bg-[#...]`) ko fail kare (Rules §1.4).
+- [ ] ESLint + Prettier (ya Biome — ek choose karo, dono nahi). Lint rule/script jo **hardcoded Tailwind colors** (`bg-yellow-500`, `text-gray-400`, `bg-[#...]`) ko fail kare (Rules §1.4). Import-boundary rules (`no-restricted-imports`) — `architecture/09-codebase-structure.md` §3 (layer direction, module public API only).
 - [ ] Pre-commit hook (lint-staged) for format + lint.
 - [ ] **GitHub Actions CI** on every PR: install (pnpm cache) → typecheck → lint → unit tests → integration tests (Testcontainers) → **migrations `up` → `down` → `up` round-trip** on a fresh PostgreSQL 17 service.
 - [ ] Branch protection: CI green required on `main`.
 
 ### 1.9 Design Tokens (Tailwind v4, D-12, D-13)
-- [ ] `packages/ui/src/globals.css`: Tailwind v4 CSS-first config (`@import "tailwindcss"`, `@theme inline` mapping) — tokens **exactly** `Rules/00-project-rules.md` §1.4 se: `background`, `foreground`, `card`, `popover`, `primary`, `secondary`, `muted`, `accent`, `border`, `input`, `ring`, `destructive`, **`success`, `warning`, `info`** (+ `*-foreground`), `radius`, font tokens (serif headings + sans body).
+- [ ] `packages/ui/src/styles/globals.css`: Tailwind v4 CSS-first config (`@import "tailwindcss"`, `@theme inline` mapping) — tokens **exactly** `Rules/00-project-rules.md` §1.4 se: `background`, `foreground`, `card`, `popover`, `primary`, `secondary`, `muted`, `accent`, `border`, `input`, `ring`, `destructive`, **`success`, `warning`, `info`** (+ `*-foreground`), `radius`, font tokens (serif headings + sans body).
 - [ ] `.dark` me **har** token override (popover, accent, destructive, success/warning/info included).
 - [ ] shadcn/ui (Tailwind v4 compatible) initialised in both apps, consuming `packages/ui` tokens.
 - [ ] Token preview page (`/dev/tokens` in admin dev build): har token + Button/Card/Badge/Input variants light & dark me.
@@ -101,8 +101,8 @@ Project ka rock-solid foundation: pnpm + Turborepo monorepo, local infra (Docker
 ---
 
 ## 🔍 Verification Checklist
-- [ ] `docker compose up` + `pnpm dev` se teeno apps + api-server + worker start hote hain (fresh clone par README steps follow karke).
-- [ ] Invalid/missing env var par api-server boot fail hota hai with readable error (unit test `env.test.ts`).
+- [ ] `docker compose up` + `pnpm dev` se teeno apps (backend + worker, storefront, admin) start hote hain (fresh clone par README steps follow karke).
+- [ ] Invalid/missing env var par backend boot fail hota hai with readable error (unit test `env.test.ts`).
 - [ ] `db.transaction` rollback test: simulated error ke baad koi row persist nahi; failing ROLLBACK par client destroy hota hai (integration test `db.transaction.test.ts`).
 - [ ] Pool connection leak test: 100 sequential transactions (with thrown errors) ke baad `pool.totalCount <= DB_POOL_MAX` aur `waitingCount = 0`.
 - [ ] Migration `0001` up → down → up CI me green.
