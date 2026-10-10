@@ -35,6 +35,7 @@
 | **D-14** | Theme: dono apps **system preference follow** karenge + manual toggle (`next-themes` storefront me). | PROPOSED | Brand imagery dono modes me kaam kare. |
 | **D-15** | **Cart = Zustand + `localStorage`** (guest cart). `useOptimistic` cart ke liye **use nahi hoga** (koi server round-trip nahi hai). Cart drawer khulne par aur checkout par `POST /api/v1/cart/quote` server-side price + stock revalidate karega. | ACCEPTED | Local state already instant hai; asli risk stale price/stock hai. |
 | **D-16** | Partner Packing Desk ek **PWA** hoga (installable, push notifications, Hindi + English i18n). | ACCEPTED | Partner phone par kaam karta hai; naye order ka alert zaroori. |
+| **D-46** | **Theme palette = Stitch "The Himalayan Pantry" se derived**, WCAG AA contrast-checked (light + dark). Changes vs purane Rules tokens: `--primary-foreground` **charcoal** (white on gold ≈ 2.3:1 fail tha); `--secondary` = **Deep Pine** CTA (pehle sandstone); naya **`--tertiary`** (Terracotta), **`--overlay`**, **`--shadow-float`**; `--input` hairline se alag (form boundary ≥ 3:1); `--ring` darker gold; gold text ke liye `text-accent-foreground` (`text-primary` light bg par banned). Dark mode alag design kiya (pine-night), inverted nahi. Values: `packages/ui/src/styles/globals.css`. | PROPOSED | Stitch design ka mood rakhte hue accessibility pass karna; purane tokens me CTA text contrast fail tha. User preview approval ke baad ACCEPTED. |
 
 ---
 

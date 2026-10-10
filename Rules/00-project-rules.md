@@ -39,135 +39,42 @@
 ### 1.4 🎨 Generic Global Theme Palette System (Single Source of Truth — Tailwind v4)
 > **MANDATORY RULE:** Kisi bhi component (Button, Card, Badge, Modal, Input, Text, Border, Background) me color hardcode nahi kiya jayega. Poore project ka rang-roop ek single file (`packages/ui/src/styles/globals.css`) se control hoga. Palette me ek variable change karte hi poore project ke buttons, cards, headings aur accents instant update ho jayenge.
 
-* **CSS Variable Tokens Architecture (Tailwind v4 CSS-first, `globals.css`):**
-  ```css
-  @import "tailwindcss";
+* **Token values ka single source:** [`packages/ui/src/styles/globals.css`](../packages/ui/src/styles/globals.css) (Tailwind v4 CSS-first, `@theme inline` mapping, `.dark` overrides). Palette = Stitch "The Himalayan Pantry" se derived, **har pair WCAG AA contrast-checked** light + dark dono me (D-46). Values yahan copy mat karo — wahi file padho.
+* **Token map (intent → utility):**
 
-  @custom-variant dark (&:where(.dark, .dark *));
+  | Token | Light | Dark | Kahan use |
+  | :--- | :--- | :--- | :--- |
+  | `background` / `foreground` | Warm Ivory `#F8F5EF` / Charcoal `#211D1A` | Pine-night `#0E1411` / `#F1ECE2` | Page canvas, body text |
+  | `card` / `popover` | White `#FFFFFF` | `#161E1A` | Cards, drawers, modals, dropdowns |
+  | `primary` / `-foreground` | Mountain Gold `#D4A359` / **Charcoal** | `#D9AA62` / `#1A1510` | Main CTA (Add to cart, Pay), verified seals |
+  | `secondary` / `-foreground` | Deep Pine `#121A16` / Ivory | `#2C3B34` / `#F1ECE2` | Secondary CTA, editorial bands, nav shell |
+  | `tertiary` / `-foreground` | Terracotta `#964824` / White | `#D98560` / `#1A1510` | Harvest/batch stamps, highlight badges |
+  | `muted` / `muted-foreground` | Sandstone `#EAE3D2` / Granite `#5F574F` | `#202A25` / `#B3AA9D` | Nested sections, chips, steppers / metadata text |
+  | `accent` / `accent-foreground` | `#F3EBDC` / Dark gold `#7A5414` | `#26302B` / `#E6BC74` | Hover/selected bg / **gold-coloured text** |
+  | `border` | Hairline `#E5DED2` | `#2A3530` | Dividers, card strokes (decorative) |
+  | `input` | `#8E8478` | `#6F7A73` | Form control borders (≥ 3:1) |
+  | `ring` | `#9A6B1F` | `#D9AA62` | Focus ring (≥ 3:1) |
+  | `success` · `warning` · `info` · `destructive` | `#2F6B4A` · `#8F5A0B` · `#2B5F86` · `#B3261E` | `#6CC395` · `#E9B05A` · `#7DB6E0` · `#F08A80` | Status (D-13) |
+  | `nonveg` | Madder brown `#7B2C1C` | `#C2664D` | FSSAI non-veg mark only |
+  | `overlay`, `shadow-float` | Pine dim 45% / mist shadow | Black 60% / deeper shadow | Modal backdrop / drawers, sticky bars |
+  | `radius` | `0.75rem` → `rounded-lg` 12px (cards, inputs), `rounded-md` 10px (buttons), `rounded-sm` 6px (badges, batch tags) | | |
+  | `font-serif` / `font-sans` | Playfair Display (headings) / Inter (body, prices) | | |
 
-  :root {
-    /* 1. Base Canvas & Surfaces */
-    --background: hsl(40 25% 97%);          /* Main page background */
-    --foreground: hsl(24 10% 12%);          /* Main text body */
-    --card: hsl(0 0% 100%);                 /* Card, Container & Modal background */
-    --card-foreground: hsl(24 10% 12%);
-    --popover: hsl(0 0% 100%);              /* Dropdowns, Tooltips */
-    --popover-foreground: hsl(24 10% 12%);
-
-    /* 2. Brand & Primary Action */
-    --primary: hsl(38 72% 52%);             /* Mountain Gold / Brand CTA */
-    --primary-foreground: hsl(0 0% 100%);
-
-    /* 3. Secondary & Subtle Actions */
-    --secondary: hsl(40 20% 92%);
-    --secondary-foreground: hsl(24 10% 15%);
-
-    /* 4. Muted & De-emphasized */
-    --muted: hsl(40 15% 90%);
-    --muted-foreground: hsl(24 6% 45%);
-
-    /* 5. Accents, Borders & Inputs */
-    --accent: hsl(38 65% 92%);
-    --accent-foreground: hsl(38 75% 35%);
-    --border: hsl(40 15% 85%);
-    --input: hsl(40 15% 85%);
-    --ring: hsl(38 72% 52%);
-
-    /* 6. Semantic Status (D-13) */
-    --destructive: hsl(0 72% 51%);          /* Error, Delete, Cancelled */
-    --destructive-foreground: hsl(0 0% 100%);
-    --success: hsl(150 45% 36%);            /* Delivered, Paid, Fresh batch */
-    --success-foreground: hsl(0 0% 100%);
-    --warning: hsl(32 90% 46%);             /* Awaiting packing, Aging batch, NDR */
-    --warning-foreground: hsl(24 10% 10%);
-    --info: hsl(205 65% 42%);               /* In transit, informational */
-    --info-foreground: hsl(0 0% 100%);
-    --nonveg: hsl(20 60% 28%);              /* FSSAI non-veg mark (brown) */
-    --nonveg-foreground: hsl(0 0% 100%);
-
-    /* 7. Shape & Typography */
-    --radius: 0.75rem;
-    --font-serif: "Playfair Display", ui-serif, Georgia, serif;   /* Headings */
-    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;   /* Body */
-  }
-
-  .dark {
-    /* Pure Dark Mountain Palette */
-    --background: hsl(160 12% 8%);          /* Dark Forest Pine / Charcoal base */
-    --foreground: hsl(40 20% 96%);
-    --card: hsl(160 10% 11%);
-    --card-foreground: hsl(40 20% 96%);
-    --popover: hsl(160 10% 11%);
-    --popover-foreground: hsl(40 20% 96%);
-    --primary: hsl(38 75% 54%);             /* Radiant gold CTA */
-    --primary-foreground: hsl(160 12% 8%);
-    --secondary: hsl(160 8% 16%);
-    --secondary-foreground: hsl(40 20% 90%);
-    --muted: hsl(160 8% 16%);
-    --muted-foreground: hsl(40 10% 65%);
-    --accent: hsl(160 8% 18%);
-    --accent-foreground: hsl(38 75% 60%);
-    --border: hsl(160 8% 18%);
-    --input: hsl(160 8% 18%);
-    --ring: hsl(38 75% 54%);
-    --destructive: hsl(0 65% 55%);
-    --destructive-foreground: hsl(0 0% 100%);
-    --success: hsl(150 40% 48%);
-    --success-foreground: hsl(160 12% 8%);
-    --warning: hsl(36 90% 55%);
-    --warning-foreground: hsl(160 12% 8%);
-    --info: hsl(205 70% 60%);
-    --info-foreground: hsl(160 12% 8%);
-    --nonveg: hsl(20 55% 42%);              /* Brown stays recognisable on dark bg */
-    --nonveg-foreground: hsl(0 0% 100%);
-  }
-
-  /* Map CSS variables → Tailwind utilities (bg-primary, text-success, font-serif, ...) */
-  @theme inline {
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --color-card: var(--card);
-    --color-card-foreground: var(--card-foreground);
-    --color-popover: var(--popover);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-primary: var(--primary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-secondary: var(--secondary);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-muted: var(--muted);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-border: var(--border);
-    --color-input: var(--input);
-    --color-ring: var(--ring);
-    --color-destructive: var(--destructive);
-    --color-destructive-foreground: var(--destructive-foreground);
-    --color-success: var(--success);
-    --color-success-foreground: var(--success-foreground);
-    --color-warning: var(--warning);
-    --color-warning-foreground: var(--warning-foreground);
-    --color-info: var(--info);
-    --color-info-foreground: var(--info-foreground);
-    --color-nonveg: var(--nonveg);
-    --color-nonveg-foreground: var(--nonveg-foreground);
-    --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-sm: calc(var(--radius) - 4px);
-    --font-serif: var(--font-serif);
-    --font-sans: var(--font-sans);
-  }
-  ```
-  > Fonts `next/font` (storefront) / `@fontsource` (admin) se self-host honge — Google Fonts runtime link nahi.
+  > Hex values sirf documentation ke liye — components me kabhi nahi.
+  > Fonts `next/font` (storefront) / `@fontsource` (admin) se self-host honge — Google Fonts runtime link nahi. Prices, weights, quantities aur batch numbers par `tabular-nums`.
 
 * **Standard Usage Rule for Developers/Agents:**
-  * **Buttons:** `bg-primary text-primary-foreground hover:bg-primary/90`
-  * **Secondary Buttons:** `bg-secondary text-secondary-foreground hover:bg-secondary/80`
-  * **Cards & Containers:** `bg-card text-card-foreground border border-border rounded-xl shadow-sm`
+  * **Buttons:** `bg-primary text-primary-foreground hover:bg-primary/90 rounded-md active:scale-[0.98]`
+  * **Secondary Buttons (Deep Pine):** `bg-secondary text-secondary-foreground hover:bg-secondary/90`
+  * **Outline / Subtle Buttons:** `border border-border bg-transparent text-foreground hover:bg-accent`
+  * **Gold text (links, highlights):** `text-accent-foreground` — ❌ `text-primary` light background par text ke liye banned (gold on ivory ≈ 2:1 contrast, AA fail).
+  * **Batch / harvest tags:** `bg-tertiary/15 text-tertiary border border-tertiary/30 rounded-sm`
+  * **Cards & Containers:** `bg-card text-card-foreground border border-border rounded-lg` (depth tonal layers + hairline se — heavy shadows nahi)
   * **Headings:** `text-foreground font-serif`
   * **Subtitles & Helpers:** `text-muted-foreground text-sm`
   * **Borders & Dividers:** `border-border`
-  * **Input Fields:** `bg-background text-foreground border-input focus-visible:ring-ring`
+  * **Input Fields:** `bg-background text-foreground border border-input rounded-lg focus-visible:ring-2 focus-visible:ring-ring` (`border-input`, `border-border` nahi — input boundary ≥ 3:1 chahiye)
+  * **Floating surfaces (drawer, sticky ATC):** `bg-card border border-border shadow-float` · **Modal backdrop:** `bg-overlay`
   * **Status Badges (order/batch status):**
     * Success (`DELIVERED`, `PAID`, `FRESH`): `bg-success/15 text-success border border-success/30`
     * Warning (`AWAITING_PACKING`, `DELIVERY_FAILED`, `AGING`): `bg-warning/15 text-warning border border-warning/30`

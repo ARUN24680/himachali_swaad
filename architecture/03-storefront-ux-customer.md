@@ -8,13 +8,16 @@
 * **Theme:** Deep mountain moody atmosphere meets premium artisanal craft. System preference + toggle (D-14).
 * **Palette (design reference → token mapping):** Hex values sirf designer reference ke liye hain — code me **sirf tokens**.
 
-| Design intent | Reference hex | Token |
+| Design intent | Reference (light) | Token |
 | :--- | :--- | :--- |
-| Slate Charcoal / Dark Forest Pine base | `#121619` / `#18231E` | `--background` (dark) |
-| Elevated dark surface | `#1E2522` | `--card` (dark) |
-| Warm Sandstone surface | `#EAE3D2` | `--secondary` / `--muted` (light) |
-| Sunlit Mountain Gold accent / CTA | `#D4A359` / `#C59B27` | `--primary`, `--ring` |
-| Crisp Off-White & Cream text | — | `--foreground` (dark), `--primary-foreground` |
+| Warm Ivory paper canvas | `#F8F5EF` | `--background` |
+| Mountain Gold CTA (charcoal text) | `#D4A359` | `--primary` / `--primary-foreground` |
+| Deep Pine secondary CTA, nav shell, editorial bands | `#121A16` | `--secondary` |
+| Terracotta harvest / batch stamps | `#964824` | `--tertiary` |
+| Sandstone nested surfaces, chips | `#EAE3D2` | `--muted` |
+| Pine-night dark mode base | `#0E1411` | `--background` (dark) |
+
+> Full token map + usage rules: `Rules/00-project-rules.md` §1.4 · values: `packages/ui/src/styles/globals.css` (D-46).
 
 * **Typography:** `font-serif` (Playfair Display) for headings + `font-sans` (Inter) for body — `next/font` se self-hosted.
 
