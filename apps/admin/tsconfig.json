@@ -1,0 +1,10 @@
+{
+  "extends": "@pk/tsconfig/vite.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "types": ["vite/client", "node"]
+  },
+  "include": ["playwright.config.ts", "src", "tests"]
+}

@@ -1,0 +1,56 @@
+{
+  "name": "pahadi-khatki",
+  "private": true,
+  "description": "Pahadi Khatki — Himachali non-veg pickle e-commerce & operations monorepo",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "dev": "turbo run dev dev:worker",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "dev:backend": "turbo run dev --filter=@pk/backend",
+    "dev:storefront": "turbo run dev --filter=@pk/storefront",
+    "dev:admin": "turbo run dev --filter=@pk/admin",
+    "db:new": "pnpm --filter @pk/database db:new",
+    "db:up": "pnpm --filter @pk/database db:up",
+    "db:down": "pnpm --filter @pk/database db:down",
+    "db:status": "pnpm --filter @pk/database db:status",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check:colors": "node scripts/check-hardcoded-colors.mjs",
+    "test:scripts": "node --test scripts/tests/*.test.mjs",
+    "prepare": "husky",
+    "test:e2e": "turbo run test:e2e"
+  },
+  "packageManager": "pnpm@12.10.1",
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@next/eslint-plugin-next": "16.3.8",
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.19.1",
+    "eslint": "10.12.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0",
+    "prettier": "3.9.9",
+    "prettier-plugin-tailwindcss": "0.8.1",
+    "turbo": "2.11.7",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.0"
+  },
+  "type": "module"
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "@pk/tsconfig/nextjs.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [".next/types/**/*.ts", "next-env.d.ts", "playwright.config.ts", "src", "tests"],
+  "exclude": ["node_modules"]
+}

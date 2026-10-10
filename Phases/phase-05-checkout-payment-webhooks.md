@@ -2,6 +2,7 @@
 
 > [!IMPORTANT]
 > **Read first:** `Rules/00-project-rules.md` · `architecture/08-decisions-log.md` · `architecture/07-order-state-machine.md` · `architecture/01-database-schema-models.md`
+> **UI work:** `Rules/00-project-rules.md` §1.5 **Design Reference Policy** follow karo — Stitch design sirf reference hai, better bana sakte ho to banao. UI tasks **`ui-developer` agent** (`.claude/agents/ui-developer.md`) se.
 > **Depends on:** Phase 2, 3, 4  ·  **Migration:** `0003_orders_payments.sql`
 > **Yeh phase `architecture/07-order-state-machine.md` §4 ka exact implementation hai.** Wahan ka reference code canonical hai — deviate karna ho toh pehle 07 update karo.
 
@@ -18,7 +19,7 @@
 - [ ] Copy exactly from `architecture/01`: enums (`order_status`, `payment_status`, `payment_attempt_status`, `allocation_status`, `refund_status`, `actor_type`), `addresses`, `orders`, `order_items`, `order_item_allocations`, `order_status_logs`, `payments`, `refunds`, `webhook_events`, `invoice_sequences`, `inventory_movements.order_id` FK.
 - [ ] Row Zod schemas in `packages/shared`.
 
-### 5.2 State Machine Core (`packages/shared` + api-server)
+### 5.2 State Machine Core (`packages/shared` + backend)
 - [ ] `packages/shared/src/order/transitions.ts` — allowed map **exactly** 07 §1.2 (from, to, allowed actors) + `canTransition(from, to, actor)`; payment status map 07 §2.
 - [ ] `transitionOrder()` (07 §4.5) — guarded `UPDATE ... WHERE status = $from`, whitelisted timestamp column, `order_status_logs` row. Lint/grep CI check: `UPDATE orders SET status` sirf is function me.
 - [ ] Unit test: har (from, to, actor) combination ka allowed/denied table snapshot.

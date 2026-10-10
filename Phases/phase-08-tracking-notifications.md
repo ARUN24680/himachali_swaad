@@ -2,6 +2,7 @@
 
 > [!IMPORTANT]
 > **Read first:** `Rules/00-project-rules.md` · `architecture/08-decisions-log.md` · `architecture/07-order-state-machine.md` · `architecture/01-database-schema-models.md`
+> **UI work:** `Rules/00-project-rules.md` §1.5 **Design Reference Policy** follow karo — Stitch design sirf reference hai, better bana sakte ho to banao. UI tasks **`ui-developer` agent** (`.claude/agents/ui-developer.md`) se.
 > **Depends on:** Phase 0 (WhatsApp templates approved), Phase 5, Phase 6, Phase 7  ·  **Migration:** — (uses `0005_notifications.sql`)
 
 ---
@@ -59,7 +60,7 @@ Har message `notifications_log` me traceable hoga.
 - [ ] `GET /api/v1/me/orders` (paginated) + `GET /api/v1/me/orders/:orderCode` — `requireAuth`, `user_id` **ya** verified phone = `customer_phone` (guest orders bhi OTP login ke baad dikhein).
 - [ ] Storefront `/account/orders` list + detail (same timeline component).
 
-### 8.4 Notification Service (`apps/api-server/src/modules/notifications/`)
+### 8.4 Notification Service (`apps/backend/src/modules/notifications/`)
 - [ ] Provider interface:
   ```typescript
   interface MessageProvider {

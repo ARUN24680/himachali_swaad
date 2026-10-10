@@ -1,6 +1,6 @@
 # 🎨 03. Customer Storefront UX & Architecture (Next.js 16 + React 19)
 
-> Storefront sirf `api-server` ko call karta hai (D-05). Colors sirf semantic tokens se (`Rules/00-project-rules.md` §1.4).
+> Storefront sirf `backend` ko call karta hai (D-05). Colors sirf semantic tokens se (`Rules/00-project-rules.md` §1.4).
 
 ---
 
@@ -8,19 +8,24 @@
 * **Theme:** Deep mountain moody atmosphere meets premium artisanal craft. System preference + toggle (D-14).
 * **Palette (design reference → token mapping):** Hex values sirf designer reference ke liye hain — code me **sirf tokens**.
 
-| Design intent | Reference hex | Token |
+| Design intent | Reference (light) | Token |
 | :--- | :--- | :--- |
-| Slate Charcoal / Dark Forest Pine base | `#121619` / `#18231E` | `--background` (dark) |
-| Elevated dark surface | `#1E2522` | `--card` (dark) |
-| Warm Sandstone surface | `#EAE3D2` | `--secondary` / `--muted` (light) |
-| Sunlit Mountain Gold accent / CTA | `#D4A359` / `#C59B27` | `--primary`, `--ring` |
-| Crisp Off-White & Cream text | — | `--foreground` (dark), `--primary-foreground` |
+| Warm Ivory paper canvas | `#F8F5EF` | `--background` |
+| Mountain Gold CTA (charcoal text) | `#D4A359` | `--primary` / `--primary-foreground` |
+| Deep Pine secondary CTA, nav shell, editorial bands | `#121A16` | `--secondary` |
+| Terracotta harvest / batch stamps | `#964824` | `--tertiary` |
+| Sandstone nested surfaces, chips | `#EAE3D2` | `--muted` |
+| Pine-night dark mode base | `#0E1411` | `--background` (dark) |
+
+> Full token map + usage rules: `Rules/00-project-rules.md` §1.4 · values: `packages/ui/src/styles/globals.css` (D-46).
 
 * **Typography:** `font-serif` (Playfair Display) for headings + `font-sans` (Inter) for body — `next/font` se self-hosted.
 
 ---
 
 ## 📱 Page Map & Component Breakdown
+
+> **Hybrid structure (D-44, `09-codebase-structure.md` §3.2):** `app/` = sirf routing (thin pages). Feature UI `src/modules/<feature>/` me (home, catalog, cart, checkout, orders, tracking, account, content), reusable composites `src/components/common/`, primitives `@pk/ui`. E.g. `CartDrawer` → `src/modules/cart/components/CartDrawer.tsx`, cart store → `src/modules/cart/store/cart.store.ts`.
 
 ```text
 apps/storefront/src/app/
@@ -48,7 +53,7 @@ apps/storefront/src/app/
 │   └── grievance/page.tsx               # Consumer Protection (E-Commerce) Rules 2020
 ├── not-found.tsx · error.tsx
 ├── sitemap.ts · robots.ts               # SEO
-└── (components)/cart/CartDrawer.tsx     # Global Radix Dialog drawer
+└── layout.tsx                         # Root layout: providers, Header/Footer, global <CartDrawer /> (from modules/cart)
 ```
 
 > Legal pages + contact **launch blockers** hain (Razorpay activation ke liye bhi zaroori).
@@ -62,7 +67,7 @@ apps/storefront/src/app/
 * Live "Small-Batch" counter: *"Batch PK-2610-CHK250-01: Only 34 jars remaining"* — sellable stock (D-24) se, `low_stock_threshold` setting se badge. Genuine scarcity, no fake timers.
 * Product/stock data Server Components me `fetch` + cache tags; order/stock change par API revalidate trigger karta hai.
 
-### 2. Fast Cart Drawer (`CartDrawer.tsx`) — D-15
+### 2. Fast Cart Drawer (`modules/cart/components/CartDrawer.tsx`) — D-15
 * Slide-out drawer built with Radix Dialog primitive (mobile par bottom sheet).
 * **Zustand + `localStorage`** guest cart → quantity change instantly UI me reflect (local state, koi network roundtrip nahi). `useOptimistic` use **nahi** hoga.
 * Drawer open hone par aur checkout par **`POST /api/v1/cart/quote`**: server-side price, stock aur shipping revalidate. Agar price/stock badla → item par "updated" notice + quantity auto-adjust.

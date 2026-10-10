@@ -12,43 +12,45 @@ Following the **Project Nexus frontend layout standard**:
 
 ---
 
-## 🧭 Portal Page Hierarchy (`apps/admin-portal/src/pages/`)
+## 🧭 Portal Page Hierarchy (`apps/admin/src/modules/<feature>/pages/`)
+
+> Hybrid frontend (D-44, `09-codebase-structure.md` §3.3): har feature ek module hai — `pages/` (route-level), `components/`, `hooks/` (TanStack Query), `api/`. Common UI (`PageHeader`, `KpiCard`, `DataTable`) `src/components/common/` me.
 
 ```text
-apps/admin-portal/src/pages/
-├── auth/Login.tsx                  # Email + password (+ TOTP for ADMIN, D-19)
-├── Dashboard.tsx                   # ADMIN: KPIs (to pack, in transit, revenue, ops issues, low stock)
-├── Orders/
-│   ├── OrdersList.tsx              # ADMIN: master table, status tabs, search (code/phone/AWB)
-│   └── OrderDetail.tsx             # ADMIN: items + batch allocations, payments, refunds, shipment,
-│                                   #        tracking, notifications, status log, actions
-├── OpsIssues.tsx                   # ADMIN: orders with ops_issue (booking failed, amount mismatch, NDR, RTO)
-├── PackingDesk/                    # KITCHEN_PARTNER (+ ADMIN) — installable PWA, Hindi/English (D-16)
-│   ├── PackingQueue.tsx
-│   └── MobileBatchLogger.tsx
-├── Inventory/
-│   ├── BatchesList.tsx             # Batches, sellable/aging/expired badges, jars left
-│   ├── CreateBatchModal.tsx        # Product + quantity + total cost (D-42)
-│   └── StockLedger.tsx             # ADMIN: inventory_movements + adjustments (wastage/breakage)
-├── Products/
-│   ├── ProductsList.tsx            # ADMIN
-│   └── ProductEditor.tsx           # ADMIN: pricing (paise), GST, shelf life, dims, images, publish
-├── Customers/
-│   ├── CustomersList.tsx           # ADMIN
-│   └── CustomerDetail.tsx
-├── Settlements/
-│   ├── SettlementsList.tsx         # ADMIN: generate/finalize/mark paid · PARTNER: read-only
-│   └── SettlementDetail.tsx        # Line items, expenses, PDF, partner acknowledge
-├── Expenses/ExpensesList.tsx       # ADMIN: ads, packaging, software, compliance
-├── Settings/Settings.tsx           # ADMIN: settings table (shipping threshold, TTL, shelf-life buffer…)
-├── Staff/StaffList.tsx             # ADMIN: create partner/admin, assign pickup locations
-├── AuditLog.tsx                    # ADMIN
-└── Queues.tsx                      # ADMIN: bull-board embed
+apps/admin/src/modules/
+├── auth/pages/LoginPage.tsx                    # Email + password (+ TOTP for ADMIN, D-19)
+├── dashboard/pages/DashboardPage.tsx           # ADMIN: KPIs (to pack, in transit, revenue, ops issues, low stock)
+├── orders/pages/
+│   ├── OrdersListPage.tsx                      # ADMIN: master table, status tabs, search (code/phone/AWB)
+│   └── OrderDetailPage.tsx                     # ADMIN: items + batch allocations, payments, refunds, shipment,
+│                                               #        tracking, notifications, status log, actions
+├── ops-issues/pages/OpsIssuesPage.tsx          # ADMIN: orders with ops_issue (booking failed, amount mismatch, NDR, RTO)
+├── packing-desk/pages/                         # KITCHEN_PARTNER (+ ADMIN) — installable PWA, Hindi/English (D-16), routes /desk/*
+│   ├── PackingQueuePage.tsx
+│   └── MobileBatchLoggerPage.tsx
+├── inventory/
+│   ├── pages/BatchesListPage.tsx               # Batches, sellable/aging/expired badges, jars left
+│   ├── pages/StockLedgerPage.tsx               # ADMIN: inventory_movements + adjustments (wastage/breakage)
+│   └── components/CreateBatchModal.tsx         # Product + quantity + total cost (D-42)
+├── products/pages/
+│   ├── ProductsListPage.tsx                    # ADMIN
+│   └── ProductEditorPage.tsx                   # ADMIN: pricing (paise), GST, shelf life, dims, images, publish
+├── customers/pages/
+│   ├── CustomersListPage.tsx                   # ADMIN
+│   └── CustomerDetailPage.tsx
+├── settlements/pages/
+│   ├── SettlementsListPage.tsx                 # ADMIN: generate/finalize/mark paid · PARTNER: read-only
+│   └── SettlementDetailPage.tsx                # Line items, expenses, PDF, partner acknowledge
+├── expenses/pages/ExpensesListPage.tsx         # ADMIN: ads, packaging, software, compliance
+├── settings/pages/SettingsPage.tsx             # ADMIN: settings table (shipping threshold, TTL, shelf-life buffer…)
+├── staff/pages/StaffListPage.tsx               # ADMIN: create partner/admin, assign pickup locations
+├── audit-log/pages/AuditLogPage.tsx            # ADMIN
+└── queues/pages/QueuesPage.tsx                 # ADMIN: bull-board embed
 ```
 
 ---
 
-## 📱 The Kitchen Partner Mobile Experience (`PackingQueue.tsx`)
+## 📱 The Kitchen Partner Mobile Experience (`PackingQueuePage.tsx`)
 
 Partner computer par nahi, phone par kaam karega. Isliye Packing Queue ultra-simple hai:
 

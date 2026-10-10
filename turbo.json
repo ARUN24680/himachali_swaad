@@ -1,0 +1,28 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "agentGuidance": false,
+  "globalDependencies": [".env", "tsconfig*.json"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "typecheck": {},
+    "lint": {},
+    "test": {},
+    "test:integration": {
+      "cache": false
+    },
+    "test:e2e": {
+      "cache": false
+    },
+    "dev:worker": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

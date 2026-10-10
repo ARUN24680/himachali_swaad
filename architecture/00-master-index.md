@@ -9,7 +9,8 @@ Yeh directory **Pahadi Khatki** (Himachali Non-Veg Pickle E-Commerce & Operation
 2. [`08-decisions-log.md`](./08-decisions-log.md) — Final decisions (conflict me yahi jeetega)
 3. [`07-order-state-machine.md`](./07-order-state-machine.md) — Order lifecycle + reservation
 4. [`01-database-schema-models.md`](./01-database-schema-models.md) — Schema v2
-5. [`../Phases/00-phases-master.md`](../Phases/00-phases-master.md) — Build roadmap, phir specific phase file
+5. [`09-codebase-structure.md`](./09-codebase-structure.md) — Folder structure + code organisation (koi bhi file banane se pehle)
+6. [`../Phases/00-phases-master.md`](../Phases/00-phases-master.md) — Build roadmap, phir specific phase file
 
 ---
 
@@ -26,7 +27,8 @@ Yeh directory **Pahadi Khatki** (Himachali Non-Veg Pickle E-Commerce & Operation
 | **[05-logistics-packaging-sop.md](./05-logistics-packaging-sop.md)** | **Physical Operations & Packaging SOP** | Zero-leakage protocol, QC, FSSAI label contents, procurement. |
 | **[06-step-by-step-build-roadmap.md](./06-step-by-step-build-roadmap.md)** | **Roadmap Summary** | Phase 0–10 one-line summary (details in `Phases/`). |
 | **[07-order-state-machine.md](./07-order-state-machine.md)** | **Order State Machine** | Statuses, allowed transitions, stock reservation, payment confirmation, Shiprocket mapping, notifications. |
-| **[08-decisions-log.md](./08-decisions-log.md)** | **Architecture Decisions Log** | D-01 … D-42 decisions + open business questions (Q-01 … Q-07). |
+| **[08-decisions-log.md](./08-decisions-log.md)** | **Architecture Decisions Log** | D-01 … D-47 decisions + open business questions (Q-01 … Q-07). |
+| **[09-codebase-structure.md](./09-codebase-structure.md)** | **Codebase Structure** | Monorepo folders, backend Nexus module pattern (routes → controller → service → repository), hybrid frontend (ui → common → modules), naming conventions. |
 | **[Phases/00-phases-master.md](../Phases/00-phases-master.md)** | **Execution Phases** | Phase 0–10 detailed checklists — **roadmap ka single source of truth**. |
 
 ---

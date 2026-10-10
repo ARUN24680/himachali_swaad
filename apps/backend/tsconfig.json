@@ -1,0 +1,4 @@
+{
+  "extends": "@pk/tsconfig/node.json",
+  "include": ["src", "tests", "scripts", "vitest.config.ts"]
+}

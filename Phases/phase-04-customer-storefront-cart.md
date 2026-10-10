@@ -2,12 +2,13 @@
 
 > [!IMPORTANT]
 > **Read first:** `Rules/00-project-rules.md` · `architecture/08-decisions-log.md` · `architecture/07-order-state-machine.md` · `architecture/01-database-schema-models.md` · `architecture/03-storefront-ux-customer.md`
+> **UI work:** `Rules/00-project-rules.md` §1.5 **Design Reference Policy** follow karo — Stitch design sirf reference hai, better bana sakte ho to banao. UI tasks **`ui-developer` agent** (`.claude/agents/ui-developer.md`) se.
 > **Depends on:** Phase 3  ·  **Migration:** —
 
 ---
 
 ## 🎯 Objective
-High-converting, mountain-aesthetic **Next.js 16** storefront jo sirf `api-server` se data leta hai (D-05): storytelling home, product pages with full food-compliance info, instant Zustand cart with **server quote revalidation** (D-15), pincode serviceability, **legal pages jo Razorpay live KYC ke liye zaroori hain**, SEO aur consent-based analytics (Instagram traffic ke liye Meta Pixel + Conversions API). Mobile, tablet, desktop teeno par perfect.
+High-converting, mountain-aesthetic **Next.js 16** storefront jo sirf `backend` se data leta hai (D-05): storytelling home, product pages with full food-compliance info, instant Zustand cart with **server quote revalidation** (D-15), pincode serviceability, **legal pages jo Razorpay live KYC ke liye zaroori hain**, SEO aur consent-based analytics (Instagram traffic ke liye Meta Pixel + Conversions API). Mobile, tablet, desktop teeno par perfect.
 
 ---
 
@@ -19,6 +20,7 @@ High-converting, mountain-aesthetic **Next.js 16** storefront jo sirf `api-serve
 - [ ] Theme: `next-themes` (system default + toggle, D-14); sirf semantic tokens.
 
 ### 4.2 Page Map
+> `app/` sirf routing hai (thin `page.tsx`) — UI sections `src/modules/<feature>/components/` me, reusable composites `src/components/common/` me (hybrid, D-44, `architecture/09-codebase-structure.md` §3.2).
 ```text
 apps/storefront/src/app/
 ├── (shop)/
@@ -55,7 +57,7 @@ apps/storefront/src/app/
 ### 4.5 Cart (D-15)
 - [ ] Zustand store `useCartStore` with `persist` (localStorage, versioned key `pk-cart-v1`): items `{ productId, quantity }` only — **prices store nahi** (stale ho jaate hain).
 - [ ] Cart drawer: Radix Dialog — mobile bottom sheet, desktop right drawer; qty +/- (max `settings.max_qty_per_item`), remove with undo toast.
-- [ ] **`POST /api/v1/cart/quote`** (new endpoint, `api-server`): input `{ items: [{ productId, quantity }], pincode? }` → `{ items: [{ productId, title, unitPricePaise, quantity, availableQuantity, lineTotalPaise, issue?: 'OUT_OF_STOCK' | 'QTY_REDUCED' | 'INACTIVE' }], subtotalPaise, shippingFeePaise, discountPaise, totalPaise, freeShippingRemainingPaise }`. Same pricing function Phase 5 `createOrder` use karega (`quoteCart`).
+- [ ] **`POST /api/v1/cart/quote`** (new endpoint, `backend`): input `{ items: [{ productId, quantity }], pincode? }` → `{ items: [{ productId, title, unitPricePaise, quantity, availableQuantity, lineTotalPaise, issue?: 'OUT_OF_STOCK' | 'QTY_REDUCED' | 'INACTIVE' }], subtotalPaise, shippingFeePaise, discountPaise, totalPaise, freeShippingRemainingPaise }`. Same pricing function Phase 5 `createOrder` use karega (`quoteCart`).
 - [ ] Drawer open + checkout entry par quote call (TanStack Query); issues inline dikhao ("Only 2 left — quantity updated").
 - [ ] **No `useOptimistic`** for cart — local state already instant hai.
 - [ ] Free-shipping progress bar from `freeShippingRemainingPaise` (Q-03 settings).
@@ -73,7 +75,7 @@ apps/storefront/src/app/
 ### 4.8 Analytics & Consent
 - [ ] Cookie/consent banner (DPDP-aligned): analytics/marketing scripts **sirf consent ke baad** load.
 - [ ] GA4 + Meta Pixel events: `view_item`, `add_to_cart`, `begin_checkout` (purchase Phase 5 me).
-- [ ] **Meta Conversions API** server-side endpoint scaffold (`api-server`, hashed identifiers, event_id dedup with Pixel) — `Purchase` event Phase 5 me fire hoga.
+- [ ] **Meta Conversions API** server-side endpoint scaffold (`backend`, hashed identifiers, event_id dedup with Pixel) — `Purchase` event Phase 5 me fire hoga.
 
 ### 4.9 Quality
 - [ ] Skeleton loaders, empty states, error boundaries.

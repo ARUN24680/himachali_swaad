@@ -2,6 +2,7 @@
 
 > [!IMPORTANT]
 > **Read first:** `Rules/00-project-rules.md` · `architecture/08-decisions-log.md` · `architecture/07-order-state-machine.md` · `architecture/01-database-schema-models.md`
+> **UI work:** `Rules/00-project-rules.md` §1.5 **Design Reference Policy** follow karo — Stitch design sirf reference hai, better bana sakte ho to banao. UI tasks **`ui-developer` agent** (`.claude/agents/ui-developer.md`) se.
 > **Depends on:** Phase 1, 2  ·  **Migration:** `0002_catalog_inventory.sql`
 
 ---
@@ -61,7 +62,7 @@ Traceable non-veg pickle catalog: products (250g/500g groups) with compliance da
 - [ ] Storefront stock query **exactly** `architecture/01` "Storefront Stock (sellable only)" — same `$1` buffer jo Phase 5 allocation use karega.
 - [ ] Stock badge: `sellable_stock = 0` → `SOLD_OUT` ("Batch sold out — next batch bottling in progress"); `< settings.low_stock_threshold` → `LOW_STOCK` ("Only X jars left").
 
-### 3.7 Minimal Admin Catalog UI (`apps/admin-portal`)
+### 3.7 Minimal Admin Catalog UI (`apps/admin`)
 - [ ] Admin shell: sidebar/bottom-nav, role-aware routes, 3-tier page layout (Header → KPI cards → Table card) as per `Rules`.
 - [ ] **Products**: list (status, price, sellable stock), create/edit form (all compliance fields, paise input as ₹ with conversion), image upload, publish/unpublish.
 - [ ] **Batches**: list with `shelfStatus` badges (`success` / `warning` / `muted` / `destructive` tokens), create batch form (3 fields: product, quantity, total cost ₹), adjust stock dialog, movements drawer.

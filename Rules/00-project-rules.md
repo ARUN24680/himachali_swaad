@@ -39,135 +39,42 @@
 ### 1.4 🎨 Generic Global Theme Palette System (Single Source of Truth — Tailwind v4)
 > **MANDATORY RULE:** Kisi bhi component (Button, Card, Badge, Modal, Input, Text, Border, Background) me color hardcode nahi kiya jayega. Poore project ka rang-roop ek single file (`packages/ui/src/styles/globals.css`) se control hoga. Palette me ek variable change karte hi poore project ke buttons, cards, headings aur accents instant update ho jayenge.
 
-* **CSS Variable Tokens Architecture (Tailwind v4 CSS-first, `globals.css`):**
-  ```css
-  @import "tailwindcss";
+* **Token values ka single source:** [`packages/ui/src/styles/globals.css`](../packages/ui/src/styles/globals.css) (Tailwind v4 CSS-first, `@theme inline` mapping, `.dark` overrides). Palette = Stitch "The Himalayan Pantry" se derived, **har pair WCAG AA contrast-checked** light + dark dono me (D-46). Values yahan copy mat karo — wahi file padho.
+* **Token map (intent → utility):**
 
-  @custom-variant dark (&:where(.dark, .dark *));
+  | Token | Light | Dark | Kahan use |
+  | :--- | :--- | :--- | :--- |
+  | `background` / `foreground` | Warm Ivory `#F8F5EF` / Charcoal `#211D1A` | Pine-night `#0E1411` / `#F1ECE2` | Page canvas, body text |
+  | `card` / `popover` | White `#FFFFFF` | `#161E1A` | Cards, drawers, modals, dropdowns |
+  | `primary` / `-foreground` | Mountain Gold `#D4A359` / **Charcoal** | `#D9AA62` / `#1A1510` | Main CTA (Add to cart, Pay), verified seals |
+  | `secondary` / `-foreground` | Deep Pine `#121A16` / Ivory | `#2C3B34` / `#F1ECE2` | Secondary CTA, editorial bands, nav shell |
+  | `tertiary` / `-foreground` | Terracotta `#964824` / White | `#D98560` / `#1A1510` | Harvest/batch stamps, highlight badges |
+  | `muted` / `muted-foreground` | Sandstone `#EAE3D2` / Granite `#5F574F` | `#202A25` / `#B3AA9D` | Nested sections, chips, steppers / metadata text |
+  | `accent` / `accent-foreground` | `#F3EBDC` / Dark gold `#7A5414` | `#26302B` / `#E6BC74` | Hover/selected bg / **gold-coloured text** |
+  | `border` | Hairline `#E5DED2` | `#2A3530` | Dividers, card strokes (decorative) |
+  | `input` | `#8E8478` | `#6F7A73` | Form control borders (≥ 3:1) |
+  | `ring` | `#9A6B1F` | `#D9AA62` | Focus ring (≥ 3:1) |
+  | `success` · `warning` · `info` · `destructive` | `#2F6B4A` · `#8F5A0B` · `#2B5F86` · `#B3261E` | `#6CC395` · `#E9B05A` · `#7DB6E0` · `#F08A80` | Status (D-13) |
+  | `nonveg` | Madder brown `#7B2C1C` | `#C2664D` | FSSAI non-veg mark only |
+  | `overlay`, `shadow-float` | Pine dim 45% / mist shadow | Black 60% / deeper shadow | Modal backdrop / drawers, sticky bars |
+  | `radius` | `0.75rem` → `rounded-lg` 12px (cards, inputs), `rounded-md` 10px (buttons), `rounded-sm` 6px (badges, batch tags) | | |
+  | `font-serif` / `font-sans` | Playfair Display (headings) / Inter (body, prices) | | |
 
-  :root {
-    /* 1. Base Canvas & Surfaces */
-    --background: hsl(40 25% 97%);          /* Main page background */
-    --foreground: hsl(24 10% 12%);          /* Main text body */
-    --card: hsl(0 0% 100%);                 /* Card, Container & Modal background */
-    --card-foreground: hsl(24 10% 12%);
-    --popover: hsl(0 0% 100%);              /* Dropdowns, Tooltips */
-    --popover-foreground: hsl(24 10% 12%);
-
-    /* 2. Brand & Primary Action */
-    --primary: hsl(38 72% 52%);             /* Mountain Gold / Brand CTA */
-    --primary-foreground: hsl(0 0% 100%);
-
-    /* 3. Secondary & Subtle Actions */
-    --secondary: hsl(40 20% 92%);
-    --secondary-foreground: hsl(24 10% 15%);
-
-    /* 4. Muted & De-emphasized */
-    --muted: hsl(40 15% 90%);
-    --muted-foreground: hsl(24 6% 45%);
-
-    /* 5. Accents, Borders & Inputs */
-    --accent: hsl(38 65% 92%);
-    --accent-foreground: hsl(38 75% 35%);
-    --border: hsl(40 15% 85%);
-    --input: hsl(40 15% 85%);
-    --ring: hsl(38 72% 52%);
-
-    /* 6. Semantic Status (D-13) */
-    --destructive: hsl(0 72% 51%);          /* Error, Delete, Cancelled */
-    --destructive-foreground: hsl(0 0% 100%);
-    --success: hsl(150 45% 36%);            /* Delivered, Paid, Fresh batch */
-    --success-foreground: hsl(0 0% 100%);
-    --warning: hsl(32 90% 46%);             /* Awaiting packing, Aging batch, NDR */
-    --warning-foreground: hsl(24 10% 10%);
-    --info: hsl(205 65% 42%);               /* In transit, informational */
-    --info-foreground: hsl(0 0% 100%);
-    --nonveg: hsl(20 60% 28%);              /* FSSAI non-veg mark (brown) */
-    --nonveg-foreground: hsl(0 0% 100%);
-
-    /* 7. Shape & Typography */
-    --radius: 0.75rem;
-    --font-serif: "Playfair Display", ui-serif, Georgia, serif;   /* Headings */
-    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;   /* Body */
-  }
-
-  .dark {
-    /* Pure Dark Mountain Palette */
-    --background: hsl(160 12% 8%);          /* Dark Forest Pine / Charcoal base */
-    --foreground: hsl(40 20% 96%);
-    --card: hsl(160 10% 11%);
-    --card-foreground: hsl(40 20% 96%);
-    --popover: hsl(160 10% 11%);
-    --popover-foreground: hsl(40 20% 96%);
-    --primary: hsl(38 75% 54%);             /* Radiant gold CTA */
-    --primary-foreground: hsl(160 12% 8%);
-    --secondary: hsl(160 8% 16%);
-    --secondary-foreground: hsl(40 20% 90%);
-    --muted: hsl(160 8% 16%);
-    --muted-foreground: hsl(40 10% 65%);
-    --accent: hsl(160 8% 18%);
-    --accent-foreground: hsl(38 75% 60%);
-    --border: hsl(160 8% 18%);
-    --input: hsl(160 8% 18%);
-    --ring: hsl(38 75% 54%);
-    --destructive: hsl(0 65% 55%);
-    --destructive-foreground: hsl(0 0% 100%);
-    --success: hsl(150 40% 48%);
-    --success-foreground: hsl(160 12% 8%);
-    --warning: hsl(36 90% 55%);
-    --warning-foreground: hsl(160 12% 8%);
-    --info: hsl(205 70% 60%);
-    --info-foreground: hsl(160 12% 8%);
-    --nonveg: hsl(20 55% 42%);              /* Brown stays recognisable on dark bg */
-    --nonveg-foreground: hsl(0 0% 100%);
-  }
-
-  /* Map CSS variables → Tailwind utilities (bg-primary, text-success, font-serif, ...) */
-  @theme inline {
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --color-card: var(--card);
-    --color-card-foreground: var(--card-foreground);
-    --color-popover: var(--popover);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-primary: var(--primary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-secondary: var(--secondary);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-muted: var(--muted);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-border: var(--border);
-    --color-input: var(--input);
-    --color-ring: var(--ring);
-    --color-destructive: var(--destructive);
-    --color-destructive-foreground: var(--destructive-foreground);
-    --color-success: var(--success);
-    --color-success-foreground: var(--success-foreground);
-    --color-warning: var(--warning);
-    --color-warning-foreground: var(--warning-foreground);
-    --color-info: var(--info);
-    --color-info-foreground: var(--info-foreground);
-    --color-nonveg: var(--nonveg);
-    --color-nonveg-foreground: var(--nonveg-foreground);
-    --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-sm: calc(var(--radius) - 4px);
-    --font-serif: var(--font-serif);
-    --font-sans: var(--font-sans);
-  }
-  ```
-  > Fonts `next/font` (storefront) / `@fontsource` (admin) se self-host honge — Google Fonts runtime link nahi.
+  > Hex values sirf documentation ke liye — components me kabhi nahi.
+  > Fonts `next/font` (storefront) / `@fontsource` (admin) se self-host honge — Google Fonts runtime link nahi. Prices, weights, quantities aur batch numbers par `tabular-nums`.
 
 * **Standard Usage Rule for Developers/Agents:**
-  * **Buttons:** `bg-primary text-primary-foreground hover:bg-primary/90`
-  * **Secondary Buttons:** `bg-secondary text-secondary-foreground hover:bg-secondary/80`
-  * **Cards & Containers:** `bg-card text-card-foreground border border-border rounded-xl shadow-sm`
+  * **Buttons:** `bg-primary text-primary-foreground hover:bg-primary/90 rounded-md active:scale-[0.98]`
+  * **Secondary Buttons (Deep Pine):** `bg-secondary text-secondary-foreground hover:bg-secondary/90`
+  * **Outline / Subtle Buttons:** `border border-border bg-transparent text-foreground hover:bg-accent`
+  * **Gold text (links, highlights):** `text-accent-foreground` — ❌ `text-primary` light background par text ke liye banned (gold on ivory ≈ 2:1 contrast, AA fail).
+  * **Batch / harvest tags:** `bg-tertiary/15 text-tertiary border border-tertiary/30 rounded-sm`
+  * **Cards & Containers:** `bg-card text-card-foreground border border-border rounded-lg` (depth tonal layers + hairline se — heavy shadows nahi)
   * **Headings:** `text-foreground font-serif`
   * **Subtitles & Helpers:** `text-muted-foreground text-sm`
   * **Borders & Dividers:** `border-border`
-  * **Input Fields:** `bg-background text-foreground border-input focus-visible:ring-ring`
+  * **Input Fields:** `bg-background text-foreground border border-input rounded-lg focus-visible:ring-2 focus-visible:ring-ring` (`border-input`, `border-border` nahi — input boundary ≥ 3:1 chahiye)
+  * **Floating surfaces (drawer, sticky ATC):** `bg-card border border-border shadow-float` · **Modal backdrop:** `bg-overlay`
   * **Status Badges (order/batch status):**
     * Success (`DELIVERED`, `PAID`, `FRESH`): `bg-success/15 text-success border border-success/30`
     * Warning (`AWAITING_PACKING`, `DELIVERY_FAILED`, `AGING`): `bg-warning/15 text-warning border border-warning/30`
@@ -177,6 +84,29 @@
   * **Non-Veg Mark:** `border-2 border-nonveg` square + `bg-nonveg` circle — component `packages/ui/src/nonveg-mark.tsx` (sirf yahi use karo).
   * Status → variant mapping ek hi jagah: `packages/ui/src/status-badge.tsx`.
 * **STRICT ENFORCEMENT:** Agar kisi ne `bg-yellow-500`, `text-gray-400`, `border-zinc-800` ya `bg-[#18231E]` jaise arbitrary hardcoded Tailwind colors likhe, toh code review **REJECT** ho jayega. Hamesha semantic tokens use honge! (ESLint rule / CI grep isko enforce karega.)
+
+### 1.5 🎨 Design Reference Policy (Stitch / Figma = Reference, NOT Spec)
+> **MANDATORY for every phase, feature ya new addition jisme UI ho.** UI ka kaam **`ui-developer` agent** (`.claude/agents/ui-developer.md`) karega, jo is section ko follow karta hai.
+
+* **Design source:** Stitch project **"New Project"** (ID `8514017347539119853`, design system "The Himalayan Pantry") — storefront, admin, partner desk, auth screens.
+* **Yeh design sirf REFERENCE hai, priority nahi.** Theek-thaak hai, final nahi. Agar UI ko aur better / zyada aesthetic / zyada usable banaya ja sakta hai — **toh banao.** Blindly copy mat karo.
+* **Priority order (conflict ho toh upar wala jeetega):**
+  1. Yeh Rules file + `architecture/08-decisions-log.md` (stack, tokens, accessibility, compliance).
+  2. Architecture docs + phase file (functional requirements — kya dikhana/karna hai).
+  3. Better UX & aesthetics (hamara judgement — mobile-first, premium artisanal feel).
+  4. Stitch / Figma screen (sirf reference — layout idea, mood, content hierarchy).
+* **Improve karna allowed / encouraged:** layout, spacing rhythm, typography hierarchy, imagery treatment, micro-interactions, loading skeletons, empty/error states, mobile thumb-reach, conversion flow, accessibility.
+* **Kabhi nahi:**
+  * ❌ Stitch ka exported HTML / hex colors / arbitrary Tailwind classes copy-paste — sirf semantic tokens (§1.4) + `@pk/ui` primitives.
+  * ❌ Compliance elements hatana (non-veg mark, FSSAI no., batch/expiry, MRP incl. taxes, legal links, consent checkboxes).
+  * ❌ Phase scope se bahar features add karna (e.g. COD, reviews, coupons — v2 backlog) sirf kyunki design me dikh rahe hain.
+  * ❌ Brand palette ad-hoc badalna — color change sirf `globals.css` tokens (§1.4) + decisions log entry se.
+* **Process har UI task par:**
+  1. Us page/flow ka Stitch screen dekho (reference), phir phase file + architecture doc ke requirements se compare karo.
+  2. Gaps aur improvements identify karo (missing states, compliance, mobile UX, accessibility).
+  3. Hybrid structure me build karo (`architecture/09-codebase-structure.md` §3).
+  4. **Design deviation note** PR / phase evidence me likho: *"Stitch se alag: X — kyunki Y"*.
+  5. Evidence: 375 / 768 / 1440 screenshots, light + dark dono.
 
 ---
 
@@ -221,7 +151,7 @@
 * **Authentication (D-20):** Access token (JWT, 15 min) + refresh token (opaque, 30 din, rotating + reuse detection) — **dono httpOnly cookies** (`Secure`, `SameSite=Lax`, `Domain=.pahadikhatki.in`). Cookie names `pk_at` / `pk_rt`. Mutating requests par `Origin` check (CSRF) — `/webhooks/*` exempt (signature-auth). Tokens localStorage me kabhi nahi.
 * **RBAC:** Roles `CUSTOMER`, `ADMIN`, `KITCHEN_PARTNER` (D-17). Har protected route par `requireRole([...])`.
 * **Webhooks Idempotency:** Har webhook pehle `webhook_events (provider, event_id)` me insert hoga (UNIQUE) — duplicate = no-op. Signature verification raw body par.
-* **Background Jobs:** Heavy/External calls (Shiprocket booking, WhatsApp/SMS, PDF invoice/label) **BullMQ + Redis** workers (`apps/api-server/src/worker.ts`, alag process, D-06) ke through. Deterministic `jobId` taaki duplicate jobs na banein. API p95 response time < 200ms.
+* **Background Jobs:** Heavy/External calls (Shiprocket booking, WhatsApp/SMS, PDF invoice/label) **BullMQ + Redis** workers (`apps/backend/src/worker.ts`, alag process, D-06) ke through. Deterministic `jobId` taaki duplicate jobs na banein. API p95 response time < 200ms.
 * **Logging:** pino structured logs. **PII (phone, address, email, OTP, tokens, payment payloads) kabhi log nahi hoga** — redact paths configure karo.
 * **Files:** Product images → public R2 bucket. **Shipping labels, invoices, settlement statements → PRIVATE R2 bucket + 5-min signed URLs** (D-11).
 
@@ -230,14 +160,17 @@
 ## 🏗️ 3. Code Quality, Modularity & Monorepo Rules
 
 ### 3.1 Monorepo Separation of Concerns (pnpm + Turborepo, D-04)
-* Monorepo mein boundaries strictly separated honge:
-  * `apps/storefront`: Next.js 16 (App Router) + React 19 (Public customer facing). **DB se direct baat nahi — sirf `api-server` call** (D-05).
-  * `apps/admin-portal`: React 19 + Vite SPA (Admin operations + Kitchen Partner Packing Desk PWA).
-  * `apps/api-server`: Fastify 5 + TS. Do entrypoints: `src/server.ts` (HTTP) aur `src/worker.ts` (BullMQ workers + cron) — alag process me deploy (D-06).
+* Monorepo mein boundaries strictly separated honge (packages scope `@pk/*`, D-45):
+  * `apps/storefront`: Next.js 16 (App Router) + React 19 (Public customer facing). **DB se direct baat nahi — sirf `backend` call** (D-05).
+  * `apps/admin`: React 19 + Vite SPA (Admin operations + Kitchen Partner Packing Desk PWA).
+  * `apps/backend`: Fastify 5 + TS. Do entrypoints: `src/server.ts` (HTTP) aur `src/worker.ts` (BullMQ workers + cron) — alag process me deploy (D-06).
   * `packages/shared`: Shared types, Zod schemas, order transitions map, constants.
   * `packages/database`: `dbmate` migrations (`migrations/*.sql`) + seed scripts.
   * `packages/ui`: Theme tokens (`globals.css`), shadcn components, `StatusBadge`.
   * `packages/tsconfig`: Shared TypeScript configs.
+* **Code organisation (D-43, D-44):** `architecture/09-codebase-structure.md` follow karna mandatory hai.
+  * **Backend (Nexus pattern):** har module `routes → controller → service → repository (+ validation)`. SQL sirf repository me, `db.transaction()` sirf service me, external APIs sirf `src/integrations/` me (transaction ke bahar). Doosre module ki repository direct import nahi — uski service use karo.
+  * **Frontend (Hybrid):** primitives `packages/ui` → reusable composites `src/components/common` → features `src/modules/<feature>/` (components, hooks, api, store, pages, `index.ts`). Ek module doosre module ke internals import nahi karega — sirf `index.ts`. Storefront `app/` sirf routing (thin pages).
 * Shared business logic ya validation contracts ko copy-paste nahi karna — hamesha `packages/shared` se import karna hai.
 * Environment variables Zod se validate (`env.ts`); `.env.example` hamesha updated.
 

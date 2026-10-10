@@ -137,7 +137,7 @@
 ### 4.1 Create Order + Reserve Stock — `POST /api/v1/checkout/create-order`
 
 ```typescript
-// apps/api-server/src/modules/checkout/createOrder.ts
+// apps/backend/src/modules/checkout/checkout.service.ts — createOrder()
 export async function createOrder(input: CreateOrderInput, ctx: RequestCtx) {
   // 0. Idempotency: same Idempotency-Key header → return existing order (no double reservation)
   const existing = await db.query(
@@ -222,7 +222,7 @@ async function reserveForItem(client: PoolClient, orderId: string, orderItemId: 
 ### 4.2 Confirm Payment — verify endpoint **aur** webhook dono yahi call karte hain
 
 ```typescript
-// apps/api-server/src/modules/payments/confirmPayment.ts
+// apps/backend/src/modules/payments/payments.service.ts — confirmPayment()
 export async function confirmPayment(p: {
   gatewayOrderId: string; gatewayPaymentId: string; amountPaise: number;
   method?: string; source: 'CLIENT_VERIFY' | 'WEBHOOK';

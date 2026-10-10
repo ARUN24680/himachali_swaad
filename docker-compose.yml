@@ -1,0 +1,37 @@
+# Local infra (Phase 1): PostgreSQL 17 + Redis 7. `docker compose up -d`
+name: pahadi-khatki
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: pk
+      POSTGRES_PASSWORD: pk_local_only
+      POSTGRES_DB: pahadi_khatki
+      TZ: UTC
+    ports:
+      - '5433:5432'
+    volumes:
+      - pk_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U pk -d pahadi_khatki']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    ports:
+      - '6380:6379'
+    volumes:
+      - pk_redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pk_pgdata:
+  pk_redisdata:

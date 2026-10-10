@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: 'true'
+
+jobs:
+  checks:
+    name: Typecheck · Lint · Unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      # pnpm (from packageManager) + Node (from .nvmrc) + store cache + frozen install, one step
+      - uses: pnpm/setup@v3
+        with:
+          cache: true
+          require-lockfile: true
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - name: Hardcoded colour check (Rules §1.4)
+        run: pnpm check:colors
+      - run: pnpm test:scripts
+      - run: pnpm test
+
+  integration:
+    name: Integration tests (Testcontainers PG 17 + Redis)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      # pnpm (from packageManager) + Node (from .nvmrc) + store cache + frozen install, one step
+      - uses: pnpm/setup@v3
+        with:
+          cache: true
+          require-lockfile: true
+      - run: pnpm test:integration
+
+  migrations:
+    name: Migrations up → down → up (PostgreSQL 17)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: pk
+          POSTGRES_PASSWORD: pk_ci
+          POSTGRES_DB: pahadi_khatki
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U pk -d pahadi_khatki"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://pk:pk_ci@localhost:5432/pahadi_khatki?sslmode=disable
+    steps:
+      - uses: actions/checkout@v7
+      # pnpm (from packageManager) + Node (from .nvmrc) + store cache + frozen install, one step
+      - uses: pnpm/setup@v3
+        with:
+          cache: true
+          require-lockfile: true
+      - name: Round-trip every migration
+        working-directory: packages/database
+        run: |
+          DBMATE="pnpm exec dbmate --migrations-dir ./migrations --no-dump-schema"
+          $DBMATE up
+          # roll back ALL migrations, newest first
+          while $DBMATE status | grep -q '^\[X\]'; do $DBMATE down; done
+          $DBMATE up
+          $DBMATE status
+
+  build:
+    name: Build all apps
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      VITE_API_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v7
+      # pnpm (from packageManager) + Node (from .nvmrc) + store cache + frozen install, one step
+      - uses: pnpm/setup@v3
+        with:
+          cache: true
+          require-lockfile: true
+      - run: pnpm build
+
+  e2e:
+    name: E2E smoke (375 / 768 / 1440)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      VITE_API_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v7
+      # pnpm (from packageManager) + Node (from .nvmrc) + store cache + frozen install, one step
+      - uses: pnpm/setup@v3
+        with:
+          cache: true
+          require-lockfile: true
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-results
+          path: apps/*/test-results/
+          retention-days: 7

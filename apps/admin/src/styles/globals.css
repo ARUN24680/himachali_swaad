@@ -1,0 +1,3 @@
+/* Admin app styles: theme tokens come from @pk/ui (single source, Rules §1.4). App-only additions go below. */
+@import '@pk/ui/globals.css';
+@source '../';
