@@ -108,8 +108,8 @@ Project ka rock-solid foundation: pnpm + Turborepo monorepo, local infra (Docker
 ### 1.8 Code Quality & CI
 - [x] ESLint + Prettier (ya Biome — ek choose karo, dono nahi). Lint rule/script jo **hardcoded Tailwind colors** (`bg-yellow-500`, `text-gray-400`, `bg-[#...]`) ko fail kare (Rules §1.4). Import-boundary rules (`no-restricted-imports`) — `architecture/09-codebase-structure.md` §3 (layer direction, module public API only).
   > Evidence: ESLint + Prettier chose (Biome nahi); `eslint.config.js` import boundaries — 6 probe violations caught; `scripts/check-hardcoded-colors.mjs` + `scripts/tests/check-hardcoded-colors.test.mjs` (2/2).
-- [ ] Pre-commit hook (lint-staged) for format + lint.
-  > ⏳ `.husky/pre-commit` (lint-staged + colour check) — pehle commit par verify hoga.
+- [x] Pre-commit hook (lint-staged) for format + lint.
+  > Evidence: `.husky/pre-commit` ran on commit `00109f8` — lint-staged (eslint --fix, prettier) ✔ + `✔ No hardcoded colours.`
 - [ ] **GitHub Actions CI** on every PR: install (pnpm cache) → typecheck → lint → unit tests → integration tests (Testcontainers) → **migrations `up` → `down` → `up` round-trip** on a fresh PostgreSQL 17 service.
   > ⏳ `.github/workflows/ci.yml` likha (checks, integration, migrations round-trip, build, e2e) — **abhi GitHub par run nahi hua** (branch push pending).
 - [ ] Branch protection: CI green required on `main`.
