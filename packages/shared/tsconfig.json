@@ -1,7 +1,4 @@
 {
   "extends": "@pk/tsconfig/node.json",
-  "compilerOptions": {
-    "noEmit": true
-  },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }

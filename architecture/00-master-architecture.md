@@ -73,6 +73,38 @@ pahadi-khatki/
 
 ---
 
+## 📌 Pinned Versions (Phase 1, 2026-10-11)
+
+> Exact pins (`savePrefix: ""`). **Supply-chain guard:** `pnpm-workspace.yaml` me `minimumReleaseAge: 10080` — 7 din se naya version install nahi hota; isliye har package ka "latest stable jo ≥ 7 din purana hai" liya gaya (D-03, D-47). Upgrade = Renovate/Dependabot PR + CI green.
+
+| Layer | Package | Version |
+| :--- | :--- | :--- |
+| Runtime | `Node.js` | 24.14 (`.nvmrc` 24) |
+| Package manager | `pnpm` | 12.10.1 |
+| Monorepo | `turbo` | 2.11.7 |
+| Language | `typescript` | 6.0.3 (7.x blocked: typescript-eslint <6.1) |
+| API | `fastify` | 5.12.5 |
+| API | `fastify-type-provider-zod` | 7.0.0 |
+| API | `@fastify/helmet · cors · rate-limit` | 13.1.1 · 11.3.0 · 11.2.0 |
+| Validation | `zod` | 4.6.5 |
+| DB driver | `pg` | 8.23.1 |
+| Migrations | `dbmate` | 2.36.0 |
+| Queue | `bullmq · ioredis` | 6.3.11 · 5.11.1 |
+| Logging | `pino` | 10.4.0 |
+| Errors | `@sentry/node · nextjs · react` | 11.4.0 |
+| Storefront | `next` | 16.3.8 |
+| UI runtime | `react · react-dom` | 19.3.0 |
+| Admin | `vite · @vitejs/plugin-react` | 8.3.2 · 6.1.1 |
+| Admin | `react-router` | 8.4.0 |
+| Styling | `tailwindcss (+ @tailwindcss/vite, /postcss)` | 4.3.3 |
+| UI primitives | `radix-ui · lucide-react` | 1.6.7 · 1.51.0 |
+| State | `@tanstack/react-query · zustand` | 5.104.1 · 5.0.15 |
+| Testing | `vitest · testcontainers · @playwright/test` | 5.0.3 · 12.2.0 · 1.63.0 |
+| Quality | `eslint · typescript-eslint · prettier` | 10.12.0 · 8.71.0 · 3.9.9 |
+| Infra (local) | `PostgreSQL · Redis images` | postgres:17-alpine · redis:7.4-alpine |
+
+---
+
 ## 🌐 Deployment Topology (D-10, PROPOSED vendors)
 
 ```text

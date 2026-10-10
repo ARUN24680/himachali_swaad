@@ -24,3 +24,6 @@ coverage/
 *.tsbuildinfo
 playwright-report/
 test-results/
+
+# Next.js generated
+next-env.d.ts

@@ -2,9 +2,13 @@
   "name": "@pk/database",
   "private": true,
   "scripts": {
-    "db:new": "dbmate --migrations-dir ./migrations new",
-    "db:up": "dbmate --migrations-dir ./migrations up",
-    "db:down": "dbmate --migrations-dir ./migrations down",
-    "db:status": "dbmate --migrations-dir ./migrations status"
+    "db:new": "dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema new",
+    "db:up": "dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema up",
+    "db:down": "dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema down",
+    "db:status": "dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema status",
+    "db:wait": "dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema wait"
+  },
+  "devDependencies": {
+    "dbmate": "2.36.0"
   }
 }

@@ -43,13 +43,13 @@ apps/admin ───────┼──▶ packages/ui ──▶ (tokens only)
 ```text
 apps/backend/
 ├── src/
-│   ├── server.ts              # HTTP entrypoint: buildApp() → listen, graceful shutdown (D-06)
+│   ├── server.ts              # HTTP entrypoint: env → logger → db/redis → buildApp(deps) → listen, graceful shutdown (D-06)
 │   ├── worker.ts              # Worker entrypoint: BullMQ processors + repeat jobs (alag process, D-06)
 │   ├── app.ts                 # buildApp(): Fastify instance, plugins register, modules ke routes mount
 │   ├── config/                # env.ts (Zod), db.ts (pg pool + transaction), redis.ts, logger.ts (pino), sentry.ts
 │   ├── plugins/               # Fastify plugins (app-wide): helmet, cors, rate-limit, raw-body, request-id, error-handler
 │   ├── middleware/            # Route-level preHandlers: requireAuth, requireRole, requireOrigin (CSRF), idempotency
-│   ├── utils/                 # app-error.ts, response.ts (envelope), request-context.ts, pagination.ts
+│   ├── utils/                 # app-error.ts, response.ts (envelope ok/fail), request-id.ts, with-timeout.ts
 │   ├── integrations/          # External APIs ke thin clients (Nexus ka `services/`): razorpay, shiprocket,
 │   │                          #   whatsapp, sms, storage (R2), pdf — koi DB access nahi, koi business rule nahi
 │   ├── jobs/                  # queues.ts (queue names + deterministic jobId), schedules.ts (repeat jobs),
@@ -58,8 +58,9 @@ apps/backend/
 │       ├── health/  auth/  users/  catalog/  inventory/  cart/  checkout/  payments/
 │       ├── orders/  account/  logistics/  notifications/  partner/  admin/
 │       └── settlements/  settings/  webhooks/
+├── scripts/build.mjs          # esbuild production bundle (inlines @pk/*, npm deps external) → dist/server.js, dist/worker.js
 └── tests/
-    ├── helpers/               # createTestDb(), factories (Testcontainers, D-08)
+    ├── helpers/               # global-setup (PG 17 + Redis containers, migrated template DB), createTestDb(), factories (D-08)
     ├── unit/
     └── integration/
 ```
@@ -86,6 +87,7 @@ modules/orders/
 | `repository` | parameterized SQL, `FOR UPDATE` (sorted lock order, D-23), `SKIP LOCKED` | business decisions, external calls, string-interpolated SQL |
 | `integrations/*` | HTTP call, signature verify, retry/backoff | DB access |
 
+* **Dependency injection:** `config/*` factories (`createDb`, `createRedis`, `createLogger`, `initSentry`) sirf entrypoints (`server.ts`, `worker.ts`) me bante hain; services `createXService(deps)` factories hain aur routes plugin options se service lete hain — tests real DB ke saath `buildApp(deps)` + `app.inject` use karte hain.
 * Ek module doosre module ki **repository** directly import nahi karega — doosre module ki **service** ka exported function use karo (e.g. `checkout.service` → `inventory.service.reserveStock()`).
 * Canonical flows ka location: `createOrder()` → `modules/checkout/checkout.service.ts`, `confirmPayment()` → `modules/payments/payments.service.ts`, `transitionOrder()` → `modules/orders/orders.service.ts` (allowed map `@pk/shared/order/transitions.ts`).
 * Routes prefix: `/api/v1/<module>`; webhooks `/api/v1/webhooks/<provider>` (raw body, Origin check exempt).
@@ -108,6 +110,7 @@ modules/orders/
 3. Koi component 2+ features me chahiye → `components/common` me promote karo. 2+ apps me chahiye aur presentational hai → `packages/ui` me.
 4. Server data sirf **TanStack Query** hooks (`modules/<f>/hooks`) se; client UI state sirf **Zustand** (Rules §3.2). API data Zustand me copy nahi.
 5. Colors sirf semantic tokens (Rules §1.4) — har layer par.
+6. **Exception — router lazy pages:** `app/router` (admin) code-splitting ke liye `lazy(() => import('@/modules/<f>/pages/XPage'))` deep path use kar sakta hai. Static imports hamesha module `index.ts` se.
 
 ### 3.1 Feature module anatomy
 
@@ -153,6 +156,7 @@ apps/admin/src/
 │   ├── router/              # Route table, lazy-loaded module pages, AuthGuard/RoleGuard wrapping
 │   └── providers/           # QueryProvider, ThemeProvider, I18nProvider
 ├── layouts/                 # AdminLayout (sidebar), PartnerLayout (mobile bottom-nav, /desk/*), AuthLayout
+│                            # (Phase 1: temporary AppShell)
 ├── components/
 │   ├── common/              # PageHeader, KpiCard, DataTable, FilterBar, ConfirmDialog, EmptyState (Nexus 3-tier, doc 04)
 │   ├── guards/              # AuthGuard, RoleGuard (UX only — API enforce karta hai)
@@ -160,8 +164,10 @@ apps/admin/src/
 │   └── feedback/            # Toaster, ErrorBoundary
 ├── modules/                 # auth · dashboard · orders · ops-issues · packing-desk · inventory · products ·
 │                            # customers · settlements · expenses · settings · staff · audit-log · queues
+│                            # + home (placeholder) · dev-tools (/dev/tokens — dev build only)
 ├── services/api/            # http.ts (fetch wrapper, credentials: 'include', 401 → refresh), endpoints.ts, query-keys.ts
-├── store/                   # Zustand: ui (sidebar, modals), theme
+├── store/                   # Zustand: theme.store.ts (D-14), ui (sidebar, modals)
+├── styles/globals.css       # imports @pk/ui/globals.css (+ app-only additions)
 ├── hooks/  lib/  constants/
 ├── i18n/                    # en/, hi/ — Packing Desk Hindi + English (D-16)
 └── pwa/                     # Service worker registration, push subscription (D-16)
@@ -172,6 +178,8 @@ apps/admin/src/
 ---
 
 ## 📦 4. Packages
+
+> **Just-in-Time packages (D-47):** `@pk/shared` aur `@pk/ui` TypeScript source export karte hain (koi build step nahi). Next `transpilePackages`, Vite native TS, backend production build esbuild bundle. Sab workspaces `moduleResolution: Bundler` → imports extensionless.
 
 ### `packages/shared` (`@pk/shared`)
 ```text
@@ -224,8 +232,6 @@ src/
 
 | Item | Status |
 | :--- | :--- |
-| Folder skeleton (apps, modules, packages) + workspace configs (`package.json`, `pnpm-workspace.yaml`, `turbo.json`, tsconfig presets) | Done (skeleton only — `.gitkeep` placeholders) |
-| Dependency install + exact version pinning (D-03) | **Phase 1 §1.1** |
-| Entry files (`server.ts`, `worker.ts`, `app.ts`, `main.tsx`, Next `layout.tsx`), `db.ts`, `env.ts`, `globals.css` | **Phase 1** |
-| ESLint import-boundary rules (§3 rules 1–2) + hardcoded-color rule | **Phase 1 §1.8** |
-| Docker Compose, CI | **Phase 1 §1.3, §1.8** |
+| Folder skeleton + workspace configs | Done (`b918f76`) |
+| Deps install + exact pinning, entry files, `db.ts`, `env.ts`, `globals.css`, Docker Compose, tests, lint boundaries, CI workflow | **Phase 1 done** — evidence `Phases/phase-01-monorepo-core-db.md` |
+| CI first green run, branch protection, real Sentry DSN | Pending (push + GitHub settings) |

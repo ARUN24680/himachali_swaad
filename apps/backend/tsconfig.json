@@ -1,8 +1,4 @@
 {
   "extends": "@pk/tsconfig/node.json",
-  "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist"
-  },
-  "include": ["src"]
+  "include": ["src", "tests", "scripts", "vitest.config.ts"]
 }

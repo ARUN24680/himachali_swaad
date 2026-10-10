@@ -26,6 +26,8 @@
 
 ## 🛠️ Database Client (`apps/backend/src/config/db.ts`)
 
+> **Implemented (Phase 1):** code me yeh client `createDb(config, logger)` **factory** hai (server, worker aur tests apna-apna pool banate hain) — behaviour neeche jaisa hi hai, plus ek fix: transaction ke dauran checked-out client par **`error` listener** lagta hai. Bina iske DB restart / failover / `pg_terminate_backend` par `pg` unhandled `'error'` emit karta hai aur **poora process crash** ho jata hai (integration test `db.transaction.test.ts › destroys a client whose ROLLBACK fails` ne pakda). Code hi source of truth hai; neeche wala sketch reference hai.
+
 ```typescript
 import pg from 'pg';
 import { env } from './env';      // Zod-validated environment
@@ -63,6 +65,9 @@ export const db = {
   transaction: async <T>(fn: (client: pg.PoolClient) => Promise<T>, opts?: { isolation?: Isolation }): Promise<T> => {
     const client = await pool.connect();
     let broken: Error | undefined;
+    // pg only listens for errors on IDLE clients — a checked-out client must have its own listener
+    const onClientError = (err: Error) => { broken = err; logger.error({ err }, 'connection lost during transaction'); };
+    client.on('error', onClientError);
     try {
       // `isolation` is a closed union type, never user input
       await client.query(opts?.isolation ? `BEGIN ISOLATION LEVEL ${opts.isolation}` : 'BEGIN');
@@ -77,6 +82,7 @@ export const db = {
       }
       throw err;
     } finally {
+      client.off('error', onClientError);
       client.release(broken);
     }
   },
