@@ -101,11 +101,20 @@ Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 
 * Verify `HMAC_SHA256(order_id|payment_id, RAZORPAY_KEY_SECRET)` → `confirmPayment({ source: 'CLIENT_VERIFY' })`.
 * Response: `{ orderCode, status: 'CONFIRMED' | 'REFUND_INITIATED' | 'ALREADY_PROCESSED' }` → client redirects to `/order/:orderCode`.
 
+### `POST /checkout/abandon` — Public (Phase 5, D-52)
+* Header `Idempotency-Key` (same key as the order — ownership proof), body `{ orderCode }` → `{ orderCode, released }`. Releases a superseded attempt's jars now; never when the gateway already has a payment.
+
+### `POST /dev/payments/simulate` — dev/CI only (`PAYMENT_GATEWAY=mock`, refused in production)
+* `{ razorpayOrderId, outcome: 'success' | 'failure', sendWebhook?, skipClientVerify? }` → `{ razorpayOrderId, razorpayPaymentId, razorpaySignature }`; delivers the signed webhook ~2 s later through `/webhooks/razorpay`.
+
+### `GET /shipping/pincode/:pincode/locality` — Public (Phase 5 §5.4)
+* → `{ pincode, city | null, state | null }` from India Post, cached 30 days; checkout auto-fill (manual override kept).
+
 ### Orders (customer-facing)
 
 | Method | Path | Roles | Request → Response |
 | :--- | :--- | :--- | :--- |
-| GET | `/orders/:orderCode/status` | Public with `?phone=` **or** session owner | → `{ orderCode, status, paymentStatus, items, totalPaise }` (`/order/[orderCode]` page polls until webhook confirms) |
+| GET | `/orders/:orderCode/status` | Public with `?phone=` (E.164) **or** session owner | → `OrderStatusResponse` (`packages/shared/src/contracts/orders.ts`): status, paymentStatus, items, totals, shippingCity (never the full address), refund, invoiceAvailable, canCancel, whatsappOptIn, retryPayment (`/order/[orderCode]` page polls until webhook confirms) |
 | GET | `/orders/:orderCode/invoice` | Session owner (or `?phone=`) | → `{ url, expiresAt }` signed private R2 URL (D-11, D-32) |
 | POST | `/orders/:orderCode/cancel` | Session owner | `{ reason }` → allowed only in `CONFIRMED` / `AWAITING_PACKING`; triggers refund |
 | POST | `/track` | Public | `{ orderCode, phone }` **both required** (D-39) → `{ orderCode, status, timeline: [{ status, label, at, location? }], courierName?, awbCode?, trackingUrl?, etd? }`. Mismatch → `NOT_FOUND`. |
@@ -190,7 +199,7 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | | `POST /admin/settlements/:id/mark-paid` | `{ bankReference, paidAt }` |
 | Exports | `GET /admin/exports/:type` | `type = orders \| gst \| inventory \| settlements` → streamed CSV |
 | Webhooks | `POST /admin/webhooks/:id/replay` | Re-process a stored `webhook_events` row |
-| Queues | `/admin/queues` | bull-board UI |
+| Queues | `/api/v1/admin/queues` | bull-board UI (ADMIN, `queues:view`) — Phase 5 |
 
 ---
 
@@ -204,7 +213,7 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | `orders` | `SHIPROCKET_CANCEL_SHIPMENT` | `shipcancel:<orderId>` | Admin/customer cancel after AWB | 5 |
 | `documents` | `GENERATE_INVOICE` | `inv:<orderId>` | `CONFIRMED` | 3 |
 | `documents` | `GENERATE_SETTLEMENT_PDF` | `stmt:<settlementId>` | Finalize | 3 |
-| `payments` | `INITIATE_REFUND` | `refund:<orderId>:<reason>` | Cancel / stockout / mismatch / RTO | 5; then `ops_issue` |
+| `payments` | `INITIATE_REFUND` (`{ refundId }` — intent row already written, D-52) | `refund-<refundId>` | Cancel / stockout / mismatch / duplicate payment / RTO | 5; then `ops_issue` |
 | `notify` | `ORDER_CONFIRMED` and other templates (WhatsApp → SMS fallback / push) | `notify:<template>:<orderId>` | Transitions (`07` §6) | 3 |
 | `cron` | `EXPIRE_RESERVATIONS` | repeat 1 min | — | — |
 | `cron` | `RECONCILE_CONFIRMED` | repeat 5 min | — | — |
@@ -223,7 +232,8 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | `POST /auth/otp/send` | 3 / 10 min per phone; 10 / 10 min per IP |
 | `POST /auth/otp/verify` | 5 attempts per OTP; 20 / 10 min per IP |
 | `POST /auth/staff/login` | 5 / 15 min per email + IP |
-| `POST /track`, `GET /orders/:orderCode/status` | 10 / 10 min per IP |
+| `POST /track` | 10 / 10 min per IP |
+| `GET /orders/:orderCode/status` | 60 / 10 min per IP (3 s poll for 60 s, D-52) |
 | `POST /shipping/check-pincode`, `POST /cart/quote` | 60 / min per IP |
 | `POST /checkout/create-order` | 10 / 10 min per IP; 5 / 10 min per phone |
 | Webhooks | No limit (signature verified) |

@@ -295,7 +295,9 @@ export async function confirmPayment(p: {
 }
 ```
 
-> **BullMQ `jobId` deterministic** rakha hai → duplicate verify + webhook se duplicate jobs nahi bante.
+> **BullMQ `jobId` deterministic** rakha hai → duplicate verify + webhook se duplicate jobs nahi bante. BullMQ custom id me `:` allowed nahi, isliye actual ids `ship-<id>`, `inv-<id>`, `notify-<template>-<id>`, `refund-<refundId>` (D-52).
+>
+> **Implementation notes (Phase 5, D-52):** `markRefundPending()` = `requestRefund()` — refund **intent row** (`refund:<paymentId>:<reason>`) same transaction me likhi jaati hai, job sirf gateway call karta hai. Amount mismatch par payment `UNPAID → PAID → REFUND_PENDING`. Paid order par doosra captured payment → `DUPLICATE_PAYMENT` refund + ops_issue (order untouched). `confirmed_at` sirf `CONFIRMED` transition par stamp hota hai. Code: `apps/backend/src/modules/payments/payments.service.ts`.
 
 ### 4.3 Razorpay Webhook — `POST /api/v1/webhooks/razorpay`
 

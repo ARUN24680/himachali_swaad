@@ -511,7 +511,7 @@ CREATE TABLE refunds (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id            UUID NOT NULL REFERENCES orders(id) ON DELETE RESTRICT,
   payment_id          UUID NOT NULL REFERENCES payments(id),
-  idempotency_key     VARCHAR(64) UNIQUE NOT NULL,     -- e.g. refund:<orderId>:<reason>
+  idempotency_key     VARCHAR(100) UNIQUE NOT NULL,    -- refund:<paymentId>:<reason> (D-52)
   gateway_refund_id   VARCHAR(40) UNIQUE,
   amount_paise        BIGINT NOT NULL CHECK (amount_paise > 0),
   reason              VARCHAR(60) NOT NULL,            -- CUSTOMER_CANCEL | LATE_PAYMENT_STOCKOUT | AMOUNT_MISMATCH | RTO | DAMAGED | LOST
@@ -546,6 +546,11 @@ CREATE TABLE invoice_sequences (
   financial_year  VARCHAR(7) PRIMARY KEY,       -- '2026-27'
   last_number     INT NOT NULL DEFAULT 0
 );
+
+-- Seller details for tax invoices (Q-02 open → null; D-52)
+INSERT INTO settings (key, value, description) VALUES
+  ('seller_details', 'null', 'Q-02: { legalName, gstin, addressLine, city, state, stateCode, pincode } for tax invoices')
+ON CONFLICT (key) DO NOTHING;
 
 -- migrate:down
 DROP TABLE IF EXISTS invoice_sequences, webhook_events, refunds, payments, order_status_logs,

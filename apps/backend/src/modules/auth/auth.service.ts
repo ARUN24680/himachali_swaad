@@ -79,6 +79,9 @@ export function toSessionUser(u: UserRow): SessionUser {
   };
 }
 
+/** Worker job CLEANUP_REFRESH_TOKENS — no auth deps needed. */
+export const cleanupRefreshTokens = (db: Queryable): Promise<number> => repo.deleteExpiredRefreshFamilies(db);
+
 export function createAuthService(deps: AuthServiceDeps) {
   const { db, redis, tokens } = deps;
 

@@ -41,22 +41,28 @@ interface RequestOptions {
   method?: 'GET' | 'POST';
   body?: unknown;
   signal?: AbortSignal;
+  /** Extra request headers, e.g. `Idempotency-Key` for checkout (Phase 5 §5.4). */
+  headers?: Record<string, string>;
 }
 
 /**
  * Envelope-aware fetch to the backend (Rules §2.2). Sessions are httpOnly cookies (D-20), so every
  * call sends `credentials: 'include'` and the client never sees a token.
  */
-export async function apiRequest<T>(path: string, { method = 'GET', body, signal }: RequestOptions = {}): Promise<T> {
+export async function apiRequest<T>(
+  path: string,
+  { method = 'GET', body, signal, headers }: RequestOptions = {},
+): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${env.NEXT_PUBLIC_API_URL}/api/v1${path}`, {
       method,
       credentials: 'include',
-      headers:
-        body === undefined
-          ? { accept: 'application/json' }
-          : { 'content-type': 'application/json', accept: 'application/json' },
+      headers: {
+        accept: 'application/json',
+        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        ...headers,
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal,
     });

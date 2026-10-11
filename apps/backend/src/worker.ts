@@ -1,17 +1,26 @@
-import type { Worker } from 'bullmq';
+import { Worker, type Job } from 'bullmq';
 import { createDb } from './config/db';
 import { loadEnvOrExit } from './config/env';
 import { createLogger } from './config/logger';
 import { createRedis } from './config/redis';
 import { flushSentry, initSentry } from './config/sentry';
+import { gatewayFromEnv, privateStorageFromEnv, revalidatorFromEnv, storageFromEnv } from './config/storage';
+import { createProcessors, SCHEDULES } from './jobs/processors';
+import { createBullJobQueue, JOB_QUEUE, QUEUE_NAMES, type JobName } from './jobs/queues';
+import { createSweepers } from './jobs/sweepers';
+import { createCommerceServices } from './services';
 
 /**
  * Worker entrypoint (D-06): BullMQ processors + repeat jobs, separate process from the HTTP server.
- * No jobs yet — processors are registered from Phase 5 (src/jobs/processors/).
+ * Same service graph as the API (services.ts); jobs come from src/jobs/processors.
  */
 const env = loadEnvOrExit({ ...process.env, PROCESS_NAME: process.env.PROCESS_NAME ?? 'pk-worker' });
 const logger = createLogger({ level: env.LOG_LEVEL, name: env.PROCESS_NAME, pretty: env.NODE_ENV === 'development' });
-initSentry({ dsn: env.SENTRY_DSN, environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV, release: env.RELEASE });
+const reporter = initSentry({
+  dsn: env.SENTRY_DSN,
+  environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV,
+  release: env.RELEASE,
+});
 
 const db = createDb(
   {
@@ -20,15 +29,66 @@ const db = createDb(
     slowQueryMs: env.SLOW_QUERY_MS,
     applicationName: env.PROCESS_NAME,
     ssl: env.NODE_ENV === 'production',
+    // Jobs (invoice numbering, sweeps) may run longer than an HTTP request
+    statementTimeoutMs: 30_000,
   },
   logger,
 );
 const connection = createRedis(env.REDIS_URL, env.PROCESS_NAME);
-
-const workers: Worker[] = [];
-
 await connection.ping();
-logger.info({ workers: workers.length }, 'worker started');
+
+const jobs = createBullJobQueue(connection);
+const gateway = gatewayFromEnv(env, connection);
+const svc = createCommerceServices({
+  db,
+  redis: connection,
+  logger,
+  reporter,
+  storage: storageFromEnv(env),
+  privateStorage: privateStorageFromEnv(env),
+  revalidator: revalidatorFromEnv(env, logger),
+  gateway,
+  jobs,
+  allowDraftInvoice: env.NODE_ENV !== 'production',
+});
+const sweepers = createSweepers({ db, svc, gateway, jobs, logger, reporter });
+const processors = createProcessors({ db, svc, sweepers, logger });
+
+const workers: Worker[] = QUEUE_NAMES.map(
+  (queue) =>
+    new Worker(
+      queue,
+      async (job: Job) => {
+        const handler = processors[job.name as JobName];
+        if (!handler || JOB_QUEUE[job.name as JobName] !== queue) throw new Error(`Unknown job ${queue}/${job.name}`);
+        return (handler as (d: unknown, j: Job) => Promise<unknown>)(job.data, job);
+      },
+      { connection, prefix: 'pk:bull', concurrency: queue === 'cron' ? 1 : 5 },
+    ),
+);
+
+for (const w of workers) {
+  w.on('failed', (job, err) => {
+    if (!job) return;
+    const final = job.attemptsMade >= (job.opts.attempts ?? 1);
+    logger.error({ err, job: job.name, jobId: job.id, attempt: job.attemptsMade, final }, 'job failed');
+    if (!final) return;
+    reporter.capture(err, { job: job.name, jobId: job.id ?? '' });
+    if (job.name === 'INITIATE_REFUND') {
+      void svc.payments.refundGaveUp((job.data as { refundId: string }).refundId, err.message).catch(() => undefined);
+    }
+  });
+}
+
+const cron = jobs.queues.get('cron')!;
+for (const s of SCHEDULES) {
+  await cron.upsertJobScheduler(s.name, s.every ? { every: s.every } : { pattern: s.pattern!, tz: 'Asia/Kolkata' }, {
+    name: s.name,
+    data: {},
+    opts: { removeOnComplete: { count: 100 }, removeOnFail: { count: 500 } },
+  });
+}
+logger.info({ workers: workers.length, schedules: SCHEDULES.map((s) => s.name) }, 'worker started');
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
@@ -39,6 +99,7 @@ async function shutdown(signal: string): Promise<void> {
   forceExit.unref();
   try {
     await Promise.all(workers.map((w) => w.close()));
+    await jobs.close();
     await db.close();
     await connection.quit();
     await flushSentry();

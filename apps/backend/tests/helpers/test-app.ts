@@ -8,6 +8,10 @@ import type { Db } from '../../src/config/db';
 import type { ErrorReporter } from '../../src/config/sentry';
 import { MockOtpProvider } from '../../src/integrations/sms/otp-provider';
 import { createLocalDiskStorage } from '../../src/integrations/storage/local-disk';
+import { createLocalPrivateStorage } from '../../src/integrations/storage/private';
+import { createMockGateway, type MockPaymentGateway } from '../../src/integrations/razorpay/mock';
+import { createStaticDirectory } from '../../src/integrations/shipping/pincode-directory';
+import type { JobName, JobPayloads, JobQueue } from '../../src/jobs/queues';
 import type { StorefrontRevalidator } from '../../src/integrations/storefront/revalidate';
 import { silentLogger } from './test-logger';
 
@@ -42,8 +46,47 @@ export const testStorage = () =>
     secret: 'test-storage-secret',
   });
 
+export const testPrivateStorage = () =>
+  createLocalPrivateStorage({
+    dir: join(tmpdir(), `pk-test-private-${randomBytes(4).toString('hex')}`),
+    apiBaseUrl: TEST_API_URL,
+    secret: 'test-private-secret',
+  });
+
+export const testGateway = (redis: Redis): MockPaymentGateway =>
+  createMockGateway({ redis, keySecret: 'test-key-secret', webhookSecret: 'test-webhook-secret' });
+
+export interface RecordedJob {
+  name: JobName;
+  data: unknown;
+  jobId: string | undefined;
+}
+
+/** JobQueue that records instead of enqueuing; `ids()` = distinct job ids (BullMQ dedups by id). */
+export function recordingJobs(): JobQueue & { jobs: RecordedJob[]; ids: () => string[]; clear: () => void } {
+  const jobs: RecordedJob[] = [];
+  return {
+    jobs,
+    async add<N extends JobName>(name: N, data: JobPayloads[N], jobId?: string) {
+      jobs.push({ name, data, jobId });
+    },
+    ids: () => [...new Set(jobs.map((j) => j.jobId ?? ''))],
+    clear: () => {
+      jobs.length = 0;
+    },
+  };
+}
+
+export const TEST_PINCODES = { '175101': { city: 'Kullu', state: 'Himachal Pradesh' } };
+
 export async function buildTestApp(base: { db: Db; redis: Redis }, overrides: Partial<AppDeps> = {}) {
   return buildApp({
+    privateStorage: testPrivateStorage(),
+    gateway: testGateway(base.redis),
+    jobs: recordingJobs(),
+    pincodeDirectory: createStaticDirectory(TEST_PINCODES),
+    mockWebhookDelayMs: 0,
+    allowDraftInvoice: true,
     logger: silentLogger(),
     reporter: fakeReporter(),
     origins: [TEST_ORIGIN],

@@ -1,4 +1,4 @@
-import { PincodeCheckRequestSchema, type PincodeCheckRequest } from '@pk/shared';
+import { PincodeCheckRequestSchema, PincodeParamsSchema, type PincodeCheckRequest } from '@pk/shared';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import type { FastifyRequest } from 'fastify';
 import { ok } from '../../utils/response';
@@ -11,5 +11,11 @@ export const shippingRoutes: FastifyPluginAsyncZod<{ service: ShippingService }>
     { schema: { body: PincodeCheckRequestSchema }, config: { rateLimit: { max: 30, timeWindow: 60_000 } } },
     async (request: FastifyRequest<{ Body: PincodeCheckRequest }>) =>
       ok(request, await service.checkPincode(request.body.pincode)),
+  );
+
+  app.get(
+    '/pincode/:pincode/locality',
+    { schema: { params: PincodeParamsSchema }, config: { rateLimit: { max: 30, timeWindow: 60_000 } } },
+    async (request) => ok(request, await service.locality(request.params.pincode)),
   );
 };

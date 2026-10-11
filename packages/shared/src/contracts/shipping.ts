@@ -13,3 +13,15 @@ export const PincodeCheckResponseSchema = z.object({
   courierHint: z.string().nullable(),
 });
 export type PincodeCheckResponse = z.infer<typeof PincodeCheckResponseSchema>;
+
+/**
+ * GET /api/v1/shipping/pincode/:pincode/locality (Phase 5 §5.4) — city/state auto-fill from the
+ * India Post PIN directory (cached 30 days). Nulls when unknown; the form keeps manual override.
+ */
+export const PincodeParamsSchema = z.object({ pincode: PincodeSchema });
+export const PincodeLocalityResponseSchema = z.object({
+  pincode: z.string(),
+  city: z.string().nullable(),
+  state: z.string().nullable(),
+});
+export type PincodeLocalityResponse = z.infer<typeof PincodeLocalityResponseSchema>;

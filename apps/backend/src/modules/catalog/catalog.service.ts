@@ -259,6 +259,10 @@ export function createCatalogService(deps: {
         comparePricePaise: p.compare_price_paise,
         isActive: p.is_active,
         sellableStock: p.is_active ? (stock.get(p.id) ?? 0) : 0,
+        // Order-item snapshot fields (Phase 5) — not part of the public quote response
+        sku: p.sku,
+        hsnCode: p.hsn_code,
+        gstRateBp: p.gst_rate_bp,
       }));
     },
 

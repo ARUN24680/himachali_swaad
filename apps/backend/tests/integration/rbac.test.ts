@@ -54,7 +54,7 @@ describe('RBAC matrix (Phase 2 §2.1, §2.5)', () => {
     const res = await get('/api/v1/admin/settings', who);
     expect(res.statusCode).toBe(status);
     if (code) expect(res.json().error.code).toBe(code);
-    else expect(res.json().data.settings.length).toBe(14);
+    else expect(res.json().data.settings.length).toBe(15); // 14 from 0001 + seller_details (0003)
   });
 
   it('kitchen partner sees only their own pickup location', async () => {

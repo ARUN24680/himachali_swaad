@@ -56,6 +56,23 @@ const EnvSchema = z.object({
   R2_PUBLIC_BUCKET: z.preprocess(emptyToUndefined, z.string().optional()),
   /** CDN / custom domain serving the public bucket, e.g. https://img.pahadikhatki.in */
   R2_PUBLIC_BASE_URL: z.preprocess(emptyToUndefined, z.url().optional()),
+  /** PRIVATE bucket for invoices / labels (D-11) — readers get 5-min signed URLs. */
+  R2_PRIVATE_BUCKET: z.preprocess(emptyToUndefined, z.string().optional()),
+  LOCAL_PRIVATE_UPLOADS_DIR: z.string().min(1).default('.uploads-private'),
+
+  /** Payments (Phase 5): `mock` = dev/CI stand-in (refused in production), `razorpay` = real API. */
+  PAYMENT_GATEWAY: z.enum(['mock', 'razorpay']).default('mock'),
+  RAZORPAY_KEY_ID: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .regex(/^rzp_(test|live)_\w+$/)
+      .optional(),
+  ),
+  RAZORPAY_KEY_SECRET: z.preprocess(emptyToUndefined, z.string().min(8).optional()),
+  /** Separate from the key secret (Razorpay dashboard → Webhooks). */
+  RAZORPAY_WEBHOOK_SECRET: z.preprocess(emptyToUndefined, z.string().min(8).optional()),
+
   /** Storefront on-demand revalidation (POST /api/revalidate). Unset → product edits wait for cache expiry. */
   STOREFRONT_REVALIDATE_URL: z.preprocess(emptyToUndefined, z.url().optional()),
   REVALIDATE_SECRET: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
@@ -90,6 +107,37 @@ const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
       path: ['R2_ENDPOINT'],
       message:
         'R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_PUBLIC_BUCKET and R2_PUBLIC_BASE_URL are required for r2',
+    });
+  }
+  if (env.STORAGE_DRIVER === 'r2' && !env.R2_PRIVATE_BUCKET) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['R2_PRIVATE_BUCKET'],
+      message: 'R2_PRIVATE_BUCKET is required for r2 (invoices)',
+    });
+  }
+  if (env.NODE_ENV === 'production' && env.PAYMENT_GATEWAY === 'mock') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['PAYMENT_GATEWAY'],
+      message: 'mock payment gateway is not allowed in production',
+    });
+  }
+  if (
+    env.PAYMENT_GATEWAY === 'razorpay' &&
+    (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET || !env.RAZORPAY_WEBHOOK_SECRET)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['RAZORPAY_KEY_ID'],
+      message: 'RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET are required for razorpay',
+    });
+  }
+  if (env.RAZORPAY_KEY_SECRET && env.RAZORPAY_KEY_SECRET === env.RAZORPAY_WEBHOOK_SECRET) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['RAZORPAY_WEBHOOK_SECRET'],
+      message: 'the webhook secret must differ from the key secret',
     });
   }
   if (Boolean(env.STOREFRONT_REVALIDATE_URL) !== Boolean(env.REVALIDATE_SECRET)) {

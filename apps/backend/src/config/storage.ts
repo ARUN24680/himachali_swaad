@@ -4,6 +4,15 @@ import { createConversionsClient, type ConversionsClient } from '../integrations
 import { createStorefrontRevalidator, type StorefrontRevalidator } from '../integrations/storefront/revalidate';
 import { createLocalDiskStorage } from '../integrations/storage/local-disk';
 import { createR2Storage } from '../integrations/storage/r2';
+import {
+  createLocalPrivateStorage,
+  createR2PrivateStorage,
+  type PrivateStorage,
+} from '../integrations/storage/private';
+import { createMockGateway } from '../integrations/razorpay/mock';
+import { createRazorpayGateway } from '../integrations/razorpay/razorpay';
+import type { PaymentGateway } from '../integrations/razorpay/gateway';
+import type { Redis } from 'ioredis';
 import type { ObjectStorage } from '../integrations/storage/storage';
 import type { Env } from './env';
 
@@ -37,4 +46,34 @@ export function conversionsFromEnv(env: Env, logger: Logger): ConversionsClient 
     testEventCode: env.META_CAPI_TEST_EVENT_CODE,
     logger,
   });
+}
+
+/** Private documents bucket (D-11). */
+export function privateStorageFromEnv(env: Env): PrivateStorage {
+  if (env.STORAGE_DRIVER === 'r2') {
+    return createR2PrivateStorage({
+      endpoint: env.R2_ENDPOINT!,
+      accessKeyId: env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: env.R2_SECRET_ACCESS_KEY!,
+      bucket: env.R2_PRIVATE_BUCKET!,
+    });
+  }
+  return createLocalPrivateStorage({
+    dir: env.LOCAL_PRIVATE_UPLOADS_DIR,
+    apiBaseUrl: env.API_PUBLIC_URL,
+    secret: createHash('sha256').update(`pk-local-private:${env.JWT_SECRET}`).digest('hex'),
+  });
+}
+
+/** Razorpay, or the Redis-backed mock (dev/CI) whose secrets derive from JWT_SECRET. */
+export function gatewayFromEnv(env: Env, redis: Redis): PaymentGateway {
+  if (env.PAYMENT_GATEWAY === 'razorpay') {
+    return createRazorpayGateway({
+      keyId: env.RAZORPAY_KEY_ID!,
+      keySecret: env.RAZORPAY_KEY_SECRET!,
+      webhookSecret: env.RAZORPAY_WEBHOOK_SECRET!,
+    });
+  }
+  const derive = (label: string) => createHash('sha256').update(`${label}:${env.JWT_SECRET}`).digest('hex');
+  return createMockGateway({ redis, keySecret: derive('pk-mock-key'), webhookSecret: derive('pk-mock-webhook') });
 }

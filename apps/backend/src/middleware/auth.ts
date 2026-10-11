@@ -30,6 +30,18 @@ export function createAuthGuards(tokens: TokenService) {
     }
   };
 
+  /** Public routes that behave better for a signed-in user (checkout, order status): never rejects. */
+  const optionalAuth: preHandlerAsyncHookHandler = async (request: FastifyRequest) => {
+    const token = request.cookies[ACCESS_COOKIE];
+    if (!token) return;
+    try {
+      const claims = await tokens.verifyAccess(token);
+      request.auth = { userId: claims.sub, role: claims.role, pickupLocationIds: claims.locs ?? [] };
+    } catch {
+      // expired/invalid → treat as a guest
+    }
+  };
+
   const requireRole =
     (roles: readonly Role[]): preHandlerAsyncHookHandler =>
     async (request: FastifyRequest) => {
@@ -50,7 +62,7 @@ export function createAuthGuards(tokens: TokenService) {
       }
     };
 
-  return { requireAuth, requireRole, requirePickupLocationAccess };
+  return { requireAuth, optionalAuth, requireRole, requirePickupLocationAccess };
 }
 
 export type AuthGuards = ReturnType<typeof createAuthGuards>;
