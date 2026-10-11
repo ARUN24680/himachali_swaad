@@ -34,9 +34,12 @@
 | `FORBIDDEN` | 403 | Role/location not allowed, or CSRF origin check failed |
 | `NOT_FOUND` | 404 | Resource not found (also track lookup mismatch — no enumeration) |
 | `OUT_OF_STOCK` | 409 | Not enough sellable stock (`details.productId`, `details.available`) |
+| `INSUFFICIENT_STOCK` | 409 | Batch adjustment would take stock below 0 or above `initial_quantity` (`details.available`, `details.initialQuantity`) — Phase 3 |
+| `DUPLICATE` | 409 | Unique value already used (`details.field`: `sku` / `slug` / `netWeightG` in group) — Phase 3 |
 | `ILLEGAL_TRANSITION` | 409 | Transition not in allowed map |
 | `STALE_STATE` | 409 | Order moved by someone else; refetch |
 | `IDEMPOTENCY_CONFLICT` | 409 | Same `Idempotency-Key` with different payload |
+| `VALIDATION_FAILED` | 422 | Well-formed request breaks a business rule (publish without required fields → `details.missing`, future mfg date, no kitchen → `details.field`) — Phase 3 |
 | `PINCODE_NOT_SERVICEABLE` | 422 | Shiprocket says no courier |
 | `RATE_LIMITED` | 429 | Too many requests (`Retry-After` header) |
 | `INTERNAL_ERROR` | 500 | Unexpected (Sentry event id in `details`) |
@@ -68,8 +71,8 @@ Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 
 
 | Method | Path | Roles | Request → Response |
 | :--- | :--- | :--- | :--- |
-| GET | `/products` | Public | → `[{ id, slug, productGroup, title, shortDescription, meatType, netWeightG, pricePaise, comparePricePaise, images, spiceLevel, sellableStock, stockBadge: 'IN_STOCK' \| 'LOW' \| 'SOLD_OUT' }]` (sellable = D-24 filter) |
-| GET | `/products/:slug` | Public | → full detail incl. ingredients, allergens, nutrition, shelfLifeDays, storageInstructions, variants (same `productGroup`), current batch `{ batchCode, manufacturedAt }` |
+| GET | `/products` | Public | → `{ groups: [{ productGroup, variants: [{ id, slug, productGroup, title, shortDescription, meatType, netWeightG, pricePaise, comparePricePaise, images, spiceLevel, sellableStock, stockBadge: 'IN_STOCK' \| 'LOW_STOCK' \| 'SOLD_OUT' }] }] }` (sellable = D-24 filter; `Cache-Control: public, max-age=60, stale-while-revalidate=300`; storefront tag `products`) |
+| GET | `/products/:slug` | Public | → full detail incl. ingredients, allergens, nutrition, shelfLifeDays, storageInstructions, variants (same `productGroup`), `fssaiLicenseNo`, current batch `{ batchCode, manufacturedAt, expiryDate }` (FIFO sellable). Drafts → 404 |
 | POST | `/shipping/check-pincode` | Public | `{ pincode: /^[1-9]\d{5}$/ }` → `{ serviceable, estimatedDays, courierName? }` (no COD field at launch, D-25). Redis cache 24h per pincode + weight slab. |
 | POST | `/cart/quote` | Public | `{ items: [{ productId, quantity }], pincode? }` → `{ items: [{ productId, unitPricePaise, quantity, available, adjusted }], subtotalPaise, shippingFeePaise, discountPaise, totalPaise, freeShippingRemainingPaise }` — server-side pricing + stock revalidation (D-15). `create-order` re-quotes anyway. |
 
@@ -135,10 +138,13 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 
 | Method | Path | Roles | Request → Response |
 | :--- | :--- | :--- | :--- |
-| GET | `/batches` | ADMIN, KITCHEN_PARTNER | `?productId&status=SELLABLE\|AGING\|NOT_SELLABLE\|EXPIRED` → batches with jars left + badge |
+| GET | `/batches` | ADMIN, KITCHEN_PARTNER | `?productId&locationId&status=FRESH\|AGING\|NOT_SELLABLE\|EXPIRED&includeEmpty` → `{ batches (FIFO, with shelfStatus + daysToExpiry), sellableBufferDays }` |
+| GET | `/batches/product-options` | ADMIN, KITCHEN_PARTNER | Products a batch can be logged against (drafts too; `shelfLifeDays: null` = blocked) |
 | POST | `/batches` | ADMIN, KITCHEN_PARTNER | `{ productId, quantity, totalCostPaise, manufacturedAt?, pickupLocationId?, notes? }` → server generates `batchCode` (`PK-2610-CHK250-01`, D-42), `expiryDate = manufacturedAt + product.shelf_life_days`, `PRODUCTION` movement |
-| GET | `/batches/:id/movements` | ADMIN, KITCHEN_PARTNER | Stock ledger (`inventory_movements`) |
-| POST | `/batches/:id/adjustments` | **ADMIN only** | `{ quantityDelta, type: 'ADJUSTMENT' \| 'WASTAGE', reason }` → transaction + movement + audit |
+| PATCH | `/batches/:id` | ADMIN, KITCHEN_PARTNER | `{ notes }` only — quantity fixes go through adjustments |
+| GET | `/batches/:id/movements` | ADMIN, KITCHEN_PARTNER | Stock ledger (`inventory_movements`), newest first, with `balanceAfter` |
+| POST | `/batches/:id/adjustments` | ADMIN, KITCHEN_PARTNER (own kitchen, D-49) | `{ quantityDelta, type: 'ADJUSTMENT' \| 'WASTAGE', reason }` → `FOR UPDATE` + bounds check (`409 INSUFFICIENT_STOCK`) + movement + audit |
+| GET | `/partner/pickup-locations` | ADMIN, KITCHEN_PARTNER | Kitchens (ADMIN all, partner own) — batch form kitchen picker |
 
 ---
 
@@ -163,8 +169,8 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | :--- | :--- | :--- |
 | Dashboard | `GET /admin/dashboard` | KPIs: to pack, in transit, revenue (paise), ops issues, low stock |
 | Products | `GET / POST /admin/products`, `GET / PATCH /admin/products/:id` | Full product fields (D-33 dims, `gstRateBp`, `shelfLifeDays`) |
-| | `POST /admin/products/:id/publish`, `POST /admin/products/:id/unpublish` | `is_active` toggle; publish validates FSSAI-required fields |
-| | `POST /admin/uploads/product-image` | `{ contentType, sizeBytes }` → presigned PUT to public R2 |
+| | `POST /admin/products/:id/publish`, `POST /admin/products/:id/unpublish` | `is_active` toggle; publish needs `gstRateBp`, `shelfLifeDays`, `ingredients`, `packedWeightG`, `nutrition`, ≥ 1 image → else `422 VALIDATION_FAILED` + `details.missing` (D-49). SKU immutable. Every write → audit + storefront `revalidateTag('products')` |
+| | `POST /admin/uploads/product-image` | `{ productId, contentType: webp\|jpeg\|png, sizeBytes ≤ 5 MB }` → `{ key, uploadUrl, method: 'PUT', headers, publicUrl }`; key `products/<productId>/<uuid>.<ext>`, Content-Type + Content-Length signed. Then `PATCH images` |
 | Orders | `GET /admin/orders` | Query: `status[]`, `tab`, `q` (code/phone/AWB), `from`, `to`, `page`, `sort` |
 | | `GET /admin/orders/:orderCode` | Items, allocations (batches), payments, refunds, shipment, tracking, notifications, status log |
 | | `GET /admin/orders/:orderCode/label` | Signed label URL |

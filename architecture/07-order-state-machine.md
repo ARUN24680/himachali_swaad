@@ -187,7 +187,7 @@ async function reserveForItem(client: PoolClient, orderId: string, orderItemId: 
        FROM inventory_batches b
       WHERE b.product_id = $1
         AND b.available_stock > 0
-        AND b.expiry_date >= CURRENT_DATE + $2::int
+        AND b.expiry_date >= ist_today() + $2::int   -- IST calendar day (D-49)
       ORDER BY b.expiry_date ASC, b.manufactured_at ASC, b.id ASC
       FOR UPDATE`,
     [productId, await sellableBufferDays(client)] // min_remaining_shelf_days + transit_buffer_days

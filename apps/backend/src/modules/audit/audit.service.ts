@@ -7,7 +7,14 @@ export type AuditAction =
   | 'PASSWORD_CHANGED'
   | 'TOTP_ENROLLED'
   | 'LOGOUT_ALL'
-  | 'TOKEN_REUSE_DETECTED';
+  | 'TOKEN_REUSE_DETECTED'
+  | 'PRODUCT_CREATE'
+  | 'PRODUCT_UPDATE'
+  | 'PRODUCT_PUBLISH'
+  | 'PRODUCT_UNPUBLISH'
+  | 'BATCH_CREATE'
+  | 'BATCH_UPDATE'
+  | 'STOCK_ADJUST';
 
 export interface AuditEntry {
   actorId?: string | null;

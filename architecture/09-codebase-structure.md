@@ -46,7 +46,8 @@ apps/backend/
 │   ├── server.ts              # HTTP entrypoint: env → logger → db/redis → buildApp(deps) → listen, graceful shutdown (D-06)
 │   ├── worker.ts              # Worker entrypoint: BullMQ processors + repeat jobs (alag process, D-06)
 │   ├── app.ts                 # buildApp(): Fastify instance, plugins register, modules ke routes mount
-│   ├── config/                # env.ts (Zod), db.ts (pg pool + transaction), redis.ts, logger.ts (pino), sentry.ts
+│   ├── config/                # env.ts (Zod), db.ts (pg pool + transaction + BIGINT/DATE parsers), redis.ts, logger.ts (pino), sentry.ts,
+│   │                          #   auth.ts, storage.ts (storageFromEnv / revalidatorFromEnv)
 │   ├── plugins/               # Fastify plugins (app-wide): helmet, cors, rate-limit, raw-body, request-id, error-handler
 │   ├── middleware/            # Route-level preHandlers: requireAuth, requireRole, requireOrigin (CSRF), idempotency
 │   ├── utils/                 # app-error.ts, response.ts (envelope ok/fail), request-id.ts, with-timeout.ts
@@ -188,6 +189,7 @@ src/
 ├── schemas/         # Base: PhoneSchema, PincodeSchema, PaiseSchema, AddressSchema, EnvelopeSchema<T>
 ├── order/           # statuses.ts, transitions.ts (allowed map + canTransition, doc 07 §1.2)
 ├── auth/            # roles.ts, permissions.ts (access matrix, Phase 2)
+├── catalog/         # rows.ts (DB row Zod schemas, D-07), shelf-life.ts (shelfStatusFor, stockBadgeFor), batch-code.ts (D-42, todayInIST)
 ├── logistics/       # boxRules.ts, shiprocketStatusMap.ts (Phase 6)
 ├── notifications/   # templates.ts (Phase 8)
 ├── constants/       # Shared constants (RESERVATION_TTL default etc. — runtime values settings table se)
@@ -234,4 +236,6 @@ src/
 | :--- | :--- |
 | Folder skeleton + workspace configs | Done (`b918f76`) |
 | Deps install + exact pinning, entry files, `db.ts`, `env.ts`, `globals.css`, Docker Compose, tests, lint boundaries, CI workflow | **Phase 1 done** — evidence `Phases/phase-01-monorepo-core-db.md` |
-| CI first green run, branch protection, real Sentry DSN | Pending (push + GitHub settings) |
+| CI first green run, branch protection | Done (PR #1) — real Sentry DSN pending |
+| Auth module, guards, admin login + storefront OTP sheet | **Phase 2 done** (PR #2) |
+| `catalog` + `inventory` modules, `integrations/storage` (R2 + local-disk dev driver), `integrations/storefront` (revalidate), `dev-storage` module (STORAGE_DRIVER=local only), storefront `app/api/revalidate` | **Phase 3** |

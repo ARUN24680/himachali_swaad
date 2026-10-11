@@ -58,3 +58,30 @@ describe('parseEnv', () => {
     expect(parseEnv({ ...valid, SENTRY_DSN: '' }).SENTRY_DSN).toBeUndefined();
   });
 });
+
+describe('parseEnv — storage & revalidation (Phase 3)', () => {
+  it('defaults to local storage outside production and refuses it in production', () => {
+    expect(parseEnv(valid).STORAGE_DRIVER).toBe('local');
+    expect(() =>
+      parseEnv({
+        ...valid,
+        NODE_ENV: 'production',
+        OTP_PROVIDER: 'msg91',
+        MSG91_AUTH_KEY: 'k',
+        MSG91_OTP_TEMPLATE_ID: 't',
+      }),
+    ).toThrow(/STORAGE_DRIVER/);
+  });
+
+  it('requires every R2 variable for the r2 driver', () => {
+    expect(() =>
+      parseEnv({ ...valid, STORAGE_DRIVER: 'r2', R2_ENDPOINT: 'https://x.r2.cloudflarestorage.com' }),
+    ).toThrow(/R2_ENDPOINT/);
+  });
+
+  it('requires the revalidate URL and secret together', () => {
+    expect(() => parseEnv({ ...valid, STOREFRONT_REVALIDATE_URL: 'http://localhost:3000/api/revalidate' })).toThrow(
+      /REVALIDATE_SECRET/,
+    );
+  });
+});

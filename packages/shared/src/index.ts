@@ -5,3 +5,8 @@ export * from './schemas/envelope';
 export * from './auth/roles';
 export * from './auth/permissions';
 export * from './contracts/auth';
+export * from './catalog/rows';
+export * from './catalog/shelf-life';
+export * from './catalog/batch-code';
+export * from './contracts/catalog';
+export * from './contracts/inventory';

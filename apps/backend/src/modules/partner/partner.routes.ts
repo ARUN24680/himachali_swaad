@@ -13,6 +13,11 @@ export const partnerRoutes: FastifyPluginAsyncZod<{ service: PartnerService; gua
 ) => {
   const c = createPartnerController(service);
   app.get(
+    '/pickup-locations',
+    { preHandler: [guards.requireAuth, guards.requireRole(['KITCHEN_PARTNER', 'ADMIN'])] },
+    c.pickupLocations,
+  );
+  app.get(
     '/pickup-locations/:id',
     {
       schema: { params: LocationParams },

@@ -4,6 +4,7 @@ import { createDb } from './config/db';
 import { loadEnvOrExit } from './config/env';
 import { createLogger } from './config/logger';
 import { createRedis } from './config/redis';
+import { revalidatorFromEnv, storageFromEnv } from './config/storage';
 import { flushSentry, initSentry } from './config/sentry';
 
 const env = loadEnvOrExit();
@@ -34,6 +35,8 @@ const app = await buildApp({
   origins: env.APP_ORIGINS,
   trustProxy: env.TRUST_PROXY,
   auth: authConfigFromEnv(env),
+  storage: storageFromEnv(env),
+  revalidator: revalidatorFromEnv(env, logger),
 });
 
 let shuttingDown = false;

@@ -260,8 +260,14 @@ DROP EXTENSION IF EXISTS citext;
 
 ## 🥩 `0002_catalog_inventory.sql` (Phase 3)
 
+> **D-49 changes vs. the first draft:** lab/CA-dependent columns (`gst_rate_bp`, `shelf_life_days`, `ingredients`, `packed_weight_g`) are nullable so products can exist as drafts before Q-01/Q-07/D-34 are confirmed; `products_publishable` CHECK guarantees them (plus `nutrition` and ≥ 1 image) before `is_active = TRUE`. `ist_today()` replaces `CURRENT_DATE` everywhere a business day matters (DB servers run in UTC). Added `idx_batches_location`.
+
 ```sql
 -- migrate:up
+CREATE OR REPLACE FUNCTION ist_today() RETURNS date LANGUAGE sql STABLE AS $$
+  SELECT (NOW() AT TIME ZONE 'Asia/Kolkata')::date
+$$;
+
 CREATE TYPE meat_type AS ENUM ('CHICKEN', 'MUTTON', 'FISH', 'PRAWN');
 CREATE TYPE inventory_movement_type AS ENUM ('PRODUCTION', 'RESERVE', 'RELEASE', 'ADJUSTMENT', 'WASTAGE');
 
@@ -275,18 +281,18 @@ CREATE TABLE products (
   description          TEXT NOT NULL,
   meat_type            meat_type NOT NULL,
   net_weight_g         INT NOT NULL CHECK (net_weight_g > 0),
-  packed_weight_g      INT NOT NULL,                          -- D-33/D-34: jar + box + bubble
+  packed_weight_g      INT,                                   -- D-33/D-34: jar + box + bubble (required to publish)
   package_length_cm    NUMERIC(5,1) NOT NULL DEFAULT 15,
   package_breadth_cm   NUMERIC(5,1) NOT NULL DEFAULT 10,
   package_height_cm    NUMERIC(5,1) NOT NULL DEFAULT 10,
   price_paise          BIGINT NOT NULL CHECK (price_paise > 0),   -- MRP, GST inclusive (D-26)
   compare_price_paise  BIGINT,
   hsn_code             VARCHAR(8) NOT NULL DEFAULT '2001',
-  gst_rate_bp          INT NOT NULL CHECK (gst_rate_bp BETWEEN 0 AND 2800),  -- 500 = 5%. No default: Q-01
-  ingredients          TEXT NOT NULL,
+  gst_rate_bp          INT CHECK (gst_rate_bp BETWEEN 0 AND 2800),  -- 500 = 5%. No default: Q-01
+  ingredients          TEXT,
   allergens            TEXT,
   spice_level          SMALLINT CHECK (spice_level BETWEEN 1 AND 5),
-  shelf_life_days      INT NOT NULL CHECK (shelf_life_days > 0),  -- from lab test (Q-07)
+  shelf_life_days      INT CHECK (shelf_life_days > 0),       -- from lab test (Q-07)
   storage_instructions TEXT,
   nutrition            JSONB,                                  -- per 100g: energy_kcal, protein_g, fat_g, carbs_g, sugar_g, sodium_mg
   images               TEXT[] NOT NULL DEFAULT '{}',           -- R2 public keys; [0] = primary
@@ -295,7 +301,14 @@ CREATE TABLE products (
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT products_packed_weight CHECK (packed_weight_g >= net_weight_g),
-  CONSTRAINT products_compare_price CHECK (compare_price_paise IS NULL OR compare_price_paise > price_paise)
+  CONSTRAINT products_compare_price CHECK (compare_price_paise IS NULL OR compare_price_paise > price_paise),
+  -- D-49: the API returns 422 with the missing fields first; this is the backstop
+  CONSTRAINT products_publishable CHECK (
+    NOT is_active OR (
+      gst_rate_bp IS NOT NULL AND shelf_life_days IS NOT NULL AND ingredients IS NOT NULL
+      AND packed_weight_g IS NOT NULL AND nutrition IS NOT NULL AND cardinality(images) >= 1
+    )
+  )
 );
 CREATE UNIQUE INDEX uq_products_group_weight ON products(product_group, net_weight_g);
 CREATE INDEX idx_products_active ON products(is_active, sort_order);
@@ -322,6 +335,7 @@ CREATE TABLE inventory_batches (
 );
 -- FIFO-by-expiry allocation index (D-23)
 CREATE INDEX idx_batches_fifo ON inventory_batches(product_id, expiry_date, manufactured_at) WHERE available_stock > 0;
+CREATE INDEX idx_batches_location ON inventory_batches(pickup_location_id);
 CREATE TRIGGER trg_batches_updated_at BEFORE UPDATE ON inventory_batches FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- Stock ledger. Invariant: available_stock = SUM(quantity_delta) per batch.
@@ -342,6 +356,7 @@ CREATE TRIGGER trg_movements_append_only BEFORE UPDATE OR DELETE ON inventory_mo
 -- migrate:down
 DROP TABLE IF EXISTS inventory_movements, inventory_batches, products;
 DROP TYPE IF EXISTS inventory_movement_type, meat_type;
+DROP FUNCTION IF EXISTS ist_today();
 ```
 
 ---
@@ -736,7 +751,7 @@ SELECT p.id, p.slug, p.title, p.price_paise, p.compare_price_paise,
   LEFT JOIN inventory_batches b
          ON b.product_id = p.id
         AND b.available_stock > 0
-        AND b.expiry_date >= CURRENT_DATE + $1::int   -- min_remaining_shelf_days + transit_buffer_days (D-24)
+        AND b.expiry_date >= ist_today() + $1::int   -- min_remaining_shelf_days + transit_buffer_days (D-24); IST day (D-49)
  WHERE p.is_active = TRUE
  GROUP BY p.id
  ORDER BY p.sort_order, p.title;
