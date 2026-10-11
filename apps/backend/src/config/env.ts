@@ -32,10 +32,35 @@ const EnvSchema = z.object({
   COOKIE_DOMAIN: z.string().min(1),
 
   JWT_SECRET: z.string().min(32, 'must be at least 32 characters'),
+  /** base64 of 32 random bytes — AES-256-GCM key for ADMIN TOTP secrets. `openssl rand -base64 32` */
+  TOTP_ENC_KEY: z
+    .string()
+    .refine(
+      (v) => Buffer.from(v, 'base64').length === 32,
+      'must be base64 of exactly 32 bytes (openssl rand -base64 32)',
+    ),
+  ACCESS_TOKEN_TTL_SEC: z.coerce.number().int().min(60).max(3600).default(900),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
+  OTP_PROVIDER: z.enum(['mock', 'msg91']).default('mock'),
+  MSG91_AUTH_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+  MSG91_OTP_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
 
   SENTRY_DSN: z.preprocess(emptyToUndefined, z.url().optional()),
   SENTRY_ENVIRONMENT: z.preprocess(emptyToUndefined, z.string().optional()),
   RELEASE: z.preprocess(emptyToUndefined, z.string().optional()),
+});
+
+const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
+  if (env.NODE_ENV === 'production' && env.OTP_PROVIDER === 'mock') {
+    ctx.addIssue({ code: 'custom', path: ['OTP_PROVIDER'], message: 'mock OTP provider is not allowed in production' });
+  }
+  if (env.OTP_PROVIDER === 'msg91' && (!env.MSG91_AUTH_KEY || !env.MSG91_OTP_TEMPLATE_ID)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['MSG91_AUTH_KEY'],
+      message: 'MSG91_AUTH_KEY and MSG91_OTP_TEMPLATE_ID are required for msg91',
+    });
+  }
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -49,7 +74,7 @@ export class EnvValidationError extends Error {
 
 /** Parses and validates env vars. Throws EnvValidationError listing every bad/missing var. Values are never echoed. */
 export function parseEnv(source: Record<string, string | undefined>): Env {
-  const result = EnvSchema.safeParse(source);
+  const result = EnvSchemaChecked.safeParse(source);
   if (!result.success) {
     const issues = result.error.issues.map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`);
     throw new EnvValidationError(issues);

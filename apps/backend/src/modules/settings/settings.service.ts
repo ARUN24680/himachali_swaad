@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import type { Queryable } from '../../config/db';
-import { findSettingValue } from './settings.repository';
+import { findSettingValue, listSettings } from './settings.repository';
 
 /**
  * Runtime business settings (`settings` table). Values are Zod-parsed and cached briefly in memory;
@@ -22,6 +22,9 @@ export function createSettingsService(opts: { ttlMs?: number; now?: () => number
       cache.set(key, { value, expiresAt: now() + ttlMs });
       return value;
     },
+
+    /** Admin read (Phase 9 adds editing). */
+    list: (db: Queryable) => listSettings(db),
 
     invalidate(key?: string): void {
       if (key) cache.delete(key);

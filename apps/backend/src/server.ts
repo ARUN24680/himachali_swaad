@@ -1,4 +1,5 @@
 import { buildApp } from './app';
+import { authConfigFromEnv } from './config/auth';
 import { createDb } from './config/db';
 import { loadEnvOrExit } from './config/env';
 import { createLogger } from './config/logger';
@@ -25,7 +26,15 @@ const db = createDb(
 );
 const redis = createRedis(env.REDIS_URL, env.PROCESS_NAME);
 
-const app = await buildApp({ logger, db, redis, reporter, origins: env.APP_ORIGINS, trustProxy: env.TRUST_PROXY });
+const app = await buildApp({
+  logger,
+  db,
+  redis,
+  reporter,
+  origins: env.APP_ORIGINS,
+  trustProxy: env.TRUST_PROXY,
+  auth: authConfigFromEnv(env),
+});
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {

@@ -1,17 +1,15 @@
 import type { FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
-import { afterAll, beforeAll, describe, expect, inject, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { z } from 'zod';
-import { buildApp } from '../../src/app';
 import { createDb } from '../../src/config/db';
 import { healthRoutes } from '../../src/modules/health/health.routes';
 import { createHealthService } from '../../src/modules/health/health.service';
-import type { ErrorReporter } from '../../src/config/sentry';
 import { AppError } from '../../src/utils/app-error';
 import { createTestDb, type TestDb } from '../helpers/test-db';
+import { buildTestApp, fakeReporter, fromBrowser } from '../helpers/test-app';
 import { capturingLogger, silentLogger } from '../helpers/test-logger';
 
-const origins = ['http://localhost:3000'];
 let t: TestDb;
 let redis: Redis;
 
@@ -24,20 +22,8 @@ afterAll(async () => {
   await t.destroy();
 });
 
-const fakeReporter = (): ErrorReporter & { capture: ReturnType<typeof vi.fn> } => ({
-  capture: vi.fn(() => 'evt_test_123'),
-});
-
-async function appWith(overrides: Partial<Parameters<typeof buildApp>[0]> = {}): Promise<FastifyInstance> {
-  const app = await buildApp({
-    logger: silentLogger(),
-    db: t.db,
-    redis,
-    reporter: fakeReporter(),
-    origins,
-    ...overrides,
-  });
-  return app;
+async function appWith(overrides: Parameters<typeof buildTestApp>[1] = {}): Promise<FastifyInstance> {
+  return buildTestApp({ db: t.db, redis }, overrides);
 }
 
 describe('health endpoints', () => {
@@ -135,7 +121,12 @@ describe('envelope & errors', () => {
       { schema: { body: z.object({ pincode: z.string().regex(/^[1-9]\d{5}$/) }) } },
       async () => ({}),
     );
-    const res = await app.inject({ method: 'POST', url: '/test/validate', payload: { pincode: '12' } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/test/validate',
+      payload: { pincode: '12' },
+      headers: fromBrowser(),
+    });
     expect(res.statusCode).toBe(400);
     expect(res.json().error.code).toBe('VALIDATION_ERROR');
     expect(res.json().error.details.issues.length).toBeGreaterThan(0);

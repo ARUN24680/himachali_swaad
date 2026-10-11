@@ -1,7 +1,7 @@
 {
   "name": "pahadi-khatki",
   "private": true,
-  "description": "Pahadi Khatki — Himachali non-veg pickle e-commerce & operations monorepo",
+  "description": "Pahadi Khatki \u2014 Himachali non-veg pickle e-commerce & operations monorepo",
   "engines": {
     "node": ">=24.0.0 <25"
   },
@@ -24,7 +24,8 @@
     "check:colors": "node scripts/check-hardcoded-colors.mjs",
     "test:scripts": "node --test scripts/tests/*.test.mjs",
     "prepare": "husky",
-    "test:e2e": "turbo run test:e2e"
+    "test:e2e": "turbo run test:e2e",
+    "db:seed:staff": "pnpm --filter @pk/backend seed:staff"
   },
   "packageManager": "pnpm@12.10.1",
   "lint-staged": {

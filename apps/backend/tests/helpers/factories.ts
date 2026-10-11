@@ -51,3 +51,26 @@ export async function createPickupLocation(db: Queryable, overrides: Partial<{ c
   );
   return rows[0]!;
 }
+
+/** Staff with a real (fast, cost 4) bcrypt hash so login tests exercise the actual compare. */
+export async function createStaff(
+  db: Queryable,
+  opts: { role: 'ADMIN' | 'KITCHEN_PARTNER'; password?: string; email?: string; isActive?: boolean },
+) {
+  const { default: bcrypt } = await import('bcryptjs');
+  const password = opts.password ?? 'correct horse battery staple';
+  const email = opts.email ?? `staff-${uniqueDigits(10)}@pahadikhatki.test`;
+  const { rows } = await db.query<{ id: string }>(
+    `INSERT INTO users (email, role, password_hash, full_name, is_active)
+     VALUES ($1, $2, $3, 'Staff Member', $4) RETURNING id`,
+    [email, opts.role, bcrypt.hashSync(password, 4), opts.isActive ?? true],
+  );
+  return { id: rows[0]!.id, email, password };
+}
+
+export async function assignPickupLocation(db: Queryable, userId: string, pickupLocationId: string) {
+  await db.query('INSERT INTO user_pickup_locations (user_id, pickup_location_id) VALUES ($1, $2)', [
+    userId,
+    pickupLocationId,
+  ]);
+}
