@@ -156,3 +156,23 @@ export async function findDefaultFssaiLicense(db: Queryable): Promise<string | n
   );
   return rows[0]?.fssai_license_no ?? null;
 }
+
+export async function listProductsByIds(db: Queryable, ids: string[]): Promise<ProductRow[]> {
+  const { rows } = await db.query('SELECT * FROM products WHERE id = ANY($1::uuid[])', [ids]);
+  return parse(rows);
+}
+
+/** Latest-made sellable batch of any live product (home "current batch" badge). */
+export async function findFreshestSellableBatch(db: Queryable, sellableBufferDays: number) {
+  const { rows } = await db.query<{ batch_code: string; manufactured_at: string; title: string }>(
+    `SELECT b.batch_code, b.manufactured_at, p.title
+       FROM inventory_batches b
+       JOIN products p ON p.id = b.product_id AND p.is_active
+      WHERE b.available_stock > 0
+        AND b.expiry_date >= ist_today() + $1::int
+      ORDER BY b.manufactured_at DESC, b.created_at DESC
+      LIMIT 1`,
+    [sellableBufferDays],
+  );
+  return rows[0] ?? null;
+}

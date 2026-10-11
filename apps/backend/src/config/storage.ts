@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Logger } from 'pino';
+import { createConversionsClient, type ConversionsClient } from '../integrations/meta/conversions';
 import { createStorefrontRevalidator, type StorefrontRevalidator } from '../integrations/storefront/revalidate';
 import { createLocalDiskStorage } from '../integrations/storage/local-disk';
 import { createR2Storage } from '../integrations/storage/r2';
@@ -27,4 +28,13 @@ export function storageFromEnv(env: Env): ObjectStorage {
 
 export function revalidatorFromEnv(env: Env, logger: Logger): StorefrontRevalidator {
   return createStorefrontRevalidator({ url: env.STOREFRONT_REVALIDATE_URL, secret: env.REVALIDATE_SECRET, logger });
+}
+
+export function conversionsFromEnv(env: Env, logger: Logger): ConversionsClient {
+  return createConversionsClient({
+    pixelId: env.META_PIXEL_ID,
+    accessToken: env.META_CAPI_ACCESS_TOKEN,
+    testEventCode: env.META_CAPI_TEST_EVENT_CODE,
+    logger,
+  });
 }

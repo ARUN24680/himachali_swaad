@@ -1,3 +1,4 @@
+export * from './components/accordion';
 export * from './components/alert';
 export * from './components/badge';
 export * from './components/button';
@@ -16,6 +17,7 @@ export * from './components/switch';
 export * from './components/table';
 export * from './components/tabs';
 export * from './components/textarea';
+export * from './components/toggle-group';
 export * from './components/toast';
 export * from './lib/utils';
 export * from './nonveg-mark';

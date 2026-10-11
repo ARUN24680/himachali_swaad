@@ -5,12 +5,19 @@
  *
  * --demo (never in production): fills PLACEHOLDER compliance values and logs a few batches through
  * the real inventory service, so local dev has FRESH / AGING / NOT_SELLABLE stock to look at.
+ * --demo --publish: also writes placeholder jar photos to LOCAL storage and publishes the six SKUs
+ * (storefront dev + Playwright e2e). Refused unless STORAGE_DRIVER=local.
  */
 import { todayInIST } from '@pk/shared';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { createDb } from '../src/config/db';
+import { parseEnv } from '../src/config/env';
 import { createLogger } from '../src/config/logger';
+import { storageFromEnv } from '../src/config/storage';
+import type { LocalDiskStorage } from '../src/integrations/storage/local-disk';
 import type { AuthContext } from '../src/middleware/auth';
+import { placeholderJarPng } from './placeholder-png';
 import { createInventoryService } from '../src/modules/inventory/inventory.service';
 import { createSettingsService } from '../src/modules/settings/settings.service';
 
@@ -77,7 +84,9 @@ const PRODUCTS: SeedProduct[] = GROUPS.flatMap((g, gi) =>
 
 async function main() {
   const demo = process.argv.includes('--demo');
+  const publish = process.argv.includes('--publish');
   if (demo && process.env.NODE_ENV === 'production') throw new Error('--demo is not allowed in production');
+  if (publish && !demo) throw new Error('--publish only works together with --demo');
 
   const db = createDb(
     {
@@ -150,15 +159,48 @@ async function main() {
       }
       process.stdout.write(`✔ Demo batches logged for ${ids.rows.length} products (+2 shelf-status examples)\n`);
     }
+    if (publish) await publishDemo(db);
     process.stdout.write(
       '  ⚠ Demo values are PLACEHOLDERS (GST, shelf life, nutrition) — never use them in production.\n',
     );
   }
 
-  process.stdout.write(
-    '  Products stay unpublished: add photos + confirmed details, then publish in the admin portal.\n',
-  );
+  if (!publish) {
+    process.stdout.write(
+      '  Products stay unpublished: add photos + confirmed details, then publish in the admin portal.\n',
+    );
+  }
   await db.close();
+}
+
+// Per meat type: background gradient top/bottom, jar body, lid (RGB — seed data, not UI styling)
+const PALETTE: Record<string, { top: Rgb; bottom: Rgb; jar: Rgb; lid: Rgb }> = {
+  CHICKEN: { top: [243, 235, 220], bottom: [212, 163, 89], jar: [150, 72, 36], lid: [33, 29, 26] },
+  MUTTON: { top: [234, 227, 210], bottom: [150, 72, 36], jar: [94, 38, 22], lid: [33, 29, 26] },
+  FISH: { top: [236, 240, 236], bottom: [44, 59, 52], jar: [176, 112, 52], lid: [33, 29, 26] },
+};
+type Rgb = readonly [number, number, number];
+
+/** Placeholder photos into LOCAL storage, then publish (the products_publishable CHECK still applies). */
+async function publishDemo(db: ReturnType<typeof createDb>) {
+  const env = parseEnv(process.env);
+  if (env.STORAGE_DRIVER !== 'local')
+    throw new Error('--publish writes placeholder photos and needs STORAGE_DRIVER=local');
+  const storage = storageFromEnv(env) as LocalDiskStorage;
+  const products = await db.query<{ id: string; meat_type: string; images: string[] }>(
+    'SELECT id, meat_type, images FROM products WHERE sku = ANY($1::text[])',
+    [PRODUCTS.map((p) => p.sku)],
+  );
+  for (const p of products.rows) {
+    const images = [...p.images];
+    if (images.length === 0) {
+      const key = `products/${p.id}/${randomUUID()}.png`;
+      await storage.write(key, placeholderJarPng(PALETTE[p.meat_type] ?? PALETTE.CHICKEN!));
+      images.push(key);
+    }
+    await db.query('UPDATE products SET images = $2, is_active = TRUE WHERE id = $1', [p.id, images]);
+  }
+  process.stdout.write(`✔ Published ${products.rowCount} demo products with placeholder photos (local storage)\n`);
 }
 
 main().catch((err) => {

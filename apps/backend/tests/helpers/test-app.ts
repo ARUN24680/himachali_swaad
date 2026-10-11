@@ -50,6 +50,7 @@ export async function buildTestApp(base: { db: Db; redis: Redis }, overrides: Pa
     auth: testAuthConfig(),
     storage: testStorage(),
     revalidator: spyRevalidator(),
+    capi: { enabled: false, send: vi.fn(async () => undefined) },
     ...base,
     ...overrides,
   });

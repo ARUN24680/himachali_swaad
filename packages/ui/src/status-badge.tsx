@@ -27,6 +27,10 @@ export const STATUS_TONES: Record<string, StatusTone> = {
   // Product catalog status (Phase 3 §3.7)
   LIVE: 'success',
   DRAFT: 'neutral',
+  // Storefront stock badge (D-49 d) — label carries the real count ("Only 4 jars left")
+  IN_STOCK: 'success',
+  LOW_STOCK: 'warning',
+  SOLD_OUT: 'neutral',
 };
 
 const humanize = (status: string) => status.charAt(0) + status.slice(1).toLowerCase().replaceAll('_', ' ');

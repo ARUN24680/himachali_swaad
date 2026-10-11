@@ -166,6 +166,8 @@ export type ProductCard = z.infer<typeof ProductCardSchema>;
 
 export const ProductListResponseSchema = z.object({
   groups: z.array(z.object({ productGroup: z.string(), variants: z.array(ProductCardSchema) })),
+  /** Most recently made sellable batch across the catalog (home "current batch" badge) — real data only. */
+  freshestBatch: z.object({ batchCode: z.string(), manufacturedAt: z.string(), productTitle: z.string() }).nullable(),
 });
 export type ProductListResponse = z.infer<typeof ProductListResponseSchema>;
 

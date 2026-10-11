@@ -59,7 +59,8 @@ test('partner logs a 50-jar batch in under 30 s; preview shows per-jar cost + ex
   await expect(page.getByRole('dialog').getByText('₹120.00', { exact: true })).toBeVisible(); // 600000 / 50
   await expect(page.getByText(/^PK-\d{4}-MTN250-··$/)).toBeVisible();
   await page.getByRole('button', { name: 'Log batch' }).last().click();
-  await expect(page.getByText(/Batch PK-\d{4}-MTN250-01 logged/)).toBeVisible();
+  // The toast title (the live-region announcement repeats the text, so scope to the toast itself)
+  await expect(page.locator('[data-slot="toast-title"]', { hasText: /Batch PK-\d{4}-MTN250-01 logged/ })).toBeVisible();
   const elapsedMs = Date.now() - started;
   expect(elapsedMs).toBeLessThan(30_000);
   info.annotations.push({ type: 'batch-entry-ms', description: String(elapsedMs) });
