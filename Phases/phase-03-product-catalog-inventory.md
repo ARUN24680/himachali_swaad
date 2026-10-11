@@ -79,7 +79,7 @@ Traceable non-veg pickle catalog: products (250g/500g groups) with compliance da
 ---
 
 ## 🔍 Verification Checklist
-- [ ] Migration `0002` up/down/up CI green. — local up → down → up OK; CI run pending (PR)
+- [x] Migration `0002` up/down/up CI green. — local up → down → up OK; CI run 38129606314 (PR #3) all 5 jobs green
 - [x] Batch create → `PRODUCTION` movement, generated batch code format valid, `expiry_date = mfg + shelf_life_days` (integration test `batches.test.ts`).
 - [x] Ledger invariant holds after create + 50 random adjustments (property test `ledger.test.ts`).
 - [x] Adjustment jo stock < 0 kare → `409`, kuch persist nahi. — `batches.test.ts` › returns 409 and persists nothing
