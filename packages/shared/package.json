@@ -4,7 +4,11 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./money": "./src/money.ts",
+    "./errors": "./src/errors.ts",
+    "./patterns": "./src/schemas/patterns.ts",
+    "./limits": "./src/constants/limits.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

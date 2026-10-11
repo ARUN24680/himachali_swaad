@@ -1,4 +1,4 @@
-import { formatINR } from '@pk/shared';
+import { formatINR } from '@pk/shared/money';
 import { ImageResponse } from 'next/og';
 import { site } from '@/config/site';
 import { OG_RIDGE, OG_SIZE, ogPalette as c } from '@/lib/og-palette';

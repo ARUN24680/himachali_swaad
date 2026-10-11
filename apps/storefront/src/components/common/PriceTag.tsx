@@ -1,4 +1,4 @@
-import { formatINR } from '@pk/shared';
+import { formatINR } from '@pk/shared/money';
 import { cn } from '@pk/ui';
 
 /** Whole-number discount for display only; floor so we never overstate a saving. */

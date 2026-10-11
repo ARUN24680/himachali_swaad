@@ -1,4 +1,4 @@
-import { formatINR } from '@pk/shared';
+import { formatINR } from '@pk/shared/money';
 import { Progress } from '@pk/ui';
 import { PartyPopper, Truck } from 'lucide-react';
 

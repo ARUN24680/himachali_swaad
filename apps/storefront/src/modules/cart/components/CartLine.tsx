@@ -1,6 +1,7 @@
 'use client';
 
-import { formatINR, multiplyPaise, type CartQuoteLine } from '@pk/shared';
+import type { CartQuoteLine } from '@pk/shared';
+import { formatINR, multiplyPaise } from '@pk/shared/money';
 import { NonVegMark, cn } from '@pk/ui';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import Link from 'next/link';

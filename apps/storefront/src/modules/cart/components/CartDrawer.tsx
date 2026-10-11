@@ -1,6 +1,7 @@
 'use client';
 
-import { formatINR, type CartQuoteLine } from '@pk/shared';
+import type { CartQuoteLine } from '@pk/shared';
+import { formatINR } from '@pk/shared/money';
 import {
   Button,
   Sheet,

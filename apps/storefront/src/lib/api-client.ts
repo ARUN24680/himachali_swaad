@@ -1,4 +1,5 @@
-import { isErrorCode, type ErrorCode } from '@pk/shared';
+import type { ErrorCode } from '@pk/shared';
+import { isErrorCode } from '@pk/shared/errors';
 import { env } from '@/lib/env';
 
 /** Client-side failure codes that never come from the API envelope. */

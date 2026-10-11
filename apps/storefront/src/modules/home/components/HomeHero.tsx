@@ -78,7 +78,7 @@ export function HomeHero({
               <ProductImage
                 src={heroImage}
                 alt={heroAlt}
-                sizes="(min-width: 768px) 40vw, 80vw"
+                sizes="(min-width: 768px) 40vw, (min-width: 640px) 320px, 240px"
                 priority
                 className="absolute inset-0 aspect-auto h-full"
               />

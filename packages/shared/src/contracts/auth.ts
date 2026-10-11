@@ -56,8 +56,4 @@ export type OtpVerifyRequest = z.infer<typeof OtpVerifyRequestSchema>;
 export type StaffLoginRequest = z.infer<typeof StaffLoginRequestSchema>;
 export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequestSchema>;
 
-/** +919876543210 → +91******3210 */
-export function maskPhone(phone: string | null): string | null {
-  if (!phone) return null;
-  return `${phone.slice(0, 3)}******${phone.slice(-4)}`;
-}
+export { maskPhone } from '../schemas/patterns';

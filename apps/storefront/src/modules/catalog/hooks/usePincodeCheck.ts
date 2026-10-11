@@ -1,9 +1,9 @@
 'use client';
 
-import { PincodeSchema } from '@pk/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { writeLastPincode } from '@/lib/last-pincode';
+import { isValidPincode } from '@/lib/pincode';
 import { shippingApi } from '../api/shippingApi';
 
 /**
@@ -17,7 +17,7 @@ export function usePincodeCheck(input: string) {
     return () => clearTimeout(t);
   }, [input]);
 
-  const valid = PincodeSchema.safeParse(debounced).success;
+  const valid = isValidPincode(debounced);
   const query = useQuery({
     queryKey: ['shipping', 'pincode', debounced],
     queryFn: ({ signal }) => shippingApi.checkPincode(debounced, signal),
@@ -31,7 +31,7 @@ export function usePincodeCheck(input: string) {
   }, [query.data]);
 
   const complete = input.length === 6;
-  const inputValid = PincodeSchema.safeParse(input).success;
+  const inputValid = isValidPincode(input);
   return {
     ...query,
     /** 6 digits typed but not a real PIN format (e.g. starts with 0). */
