@@ -6,11 +6,22 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { QueryProvider } from './app/providers/QueryProvider';
+import { queryClient } from './app/providers/queryClient';
 import { ThemeProvider } from './app/providers/ThemeProvider';
 import { router } from './app/router';
 import { initSentry } from './lib/sentry';
+import { setAuthFailureHandler } from './services/api/http';
 
 initSentry();
+
+// Session could not be refreshed → drop every cached response and send the user to sign in,
+// remembering where they were (Phase 2 §2.7).
+setAuthFailureHandler(() => {
+  queryClient.clear();
+  const { pathname, search } = window.location;
+  if (pathname === '/login') return;
+  void router.navigate(`/login?next=${encodeURIComponent(pathname + search)}`, { replace: true });
+});
 
 const root = document.getElementById('root');
 if (!root) throw new Error('#root element missing from index.html');
