@@ -7,6 +7,7 @@ const valid = {
   APP_ORIGINS: 'http://localhost:3000, http://localhost:5173',
   COOKIE_DOMAIN: 'localhost',
   JWT_SECRET: 'x'.repeat(32),
+  TOTP_ENC_KEY: Buffer.alloc(32, 7).toString('base64'),
 };
 
 describe('parseEnv', () => {
@@ -45,6 +46,12 @@ describe('parseEnv', () => {
       expect(e.issues.some((i) => i.startsWith('DB_POOL_MAX'))).toBe(true);
       expect(e.message).not.toContain(secret);
     }
+  });
+
+  it('forbids the mock OTP provider in production and requires MSG91 credentials', () => {
+    expect(() => parseEnv({ ...valid, NODE_ENV: 'production', OTP_PROVIDER: 'mock' })).toThrow(/OTP_PROVIDER/);
+    expect(() => parseEnv({ ...valid, OTP_PROVIDER: 'msg91' })).toThrow(/MSG91_AUTH_KEY/);
+    expect(() => parseEnv({ ...valid, TOTP_ENC_KEY: 'c2hvcnQ=' })).toThrow(/TOTP_ENC_KEY/);
   });
 
   it('treats an empty SENTRY_DSN as unset', () => {

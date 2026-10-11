@@ -60,7 +60,7 @@
 | POST | `/auth/logout-all` | Any | Revokes all refresh-token families of the user |
 | GET | `/auth/me` | Any authenticated | → `{ user, pickupLocationIds? }` |
 
-Notes: OTP 6-digit, Redis TTL 5 min, max 5 verify attempts (D-21). Cookies `pk_at` (15 min JWT) and `pk_rt` (30 din opaque) — `httpOnly; Secure; SameSite=Lax; Domain=.pahadikhatki.in` (D-20).
+Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 s resend cooldown (D-21, D-48). OTP never logs in staff/deactivated users (D-48). `/auth/refresh` 401 carries `details.reason` = `reuse` · `expired` · `unknown` · `inactive` · `race` (race = 10 s two-tab grace, retry the request). Cookies `pk_at` (15 min JWT) and `pk_rt` (30 din opaque) — `httpOnly; Secure; SameSite=Lax; Domain=.pahadikhatki.in` (D-20).
 
 ---
 
