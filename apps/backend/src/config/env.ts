@@ -45,6 +45,21 @@ const EnvSchema = z.object({
   MSG91_AUTH_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
   MSG91_OTP_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
 
+  /** Public base URL of this API (local image uploads, links in messages). */
+  API_PUBLIC_URL: z.url().default('http://localhost:4000'),
+  /** Product images (D-11): `local` = dev/test disk stand-in, `r2` = Cloudflare R2 public bucket. */
+  STORAGE_DRIVER: z.enum(['local', 'r2']).default('local'),
+  LOCAL_UPLOADS_DIR: z.string().min(1).default('.uploads'),
+  R2_ENDPOINT: z.preprocess(emptyToUndefined, z.url().optional()),
+  R2_ACCESS_KEY_ID: z.preprocess(emptyToUndefined, z.string().optional()),
+  R2_SECRET_ACCESS_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+  R2_PUBLIC_BUCKET: z.preprocess(emptyToUndefined, z.string().optional()),
+  /** CDN / custom domain serving the public bucket, e.g. https://img.pahadikhatki.in */
+  R2_PUBLIC_BASE_URL: z.preprocess(emptyToUndefined, z.url().optional()),
+  /** Storefront on-demand revalidation (POST /api/revalidate). Unset → product edits wait for cache expiry. */
+  STOREFRONT_REVALIDATE_URL: z.preprocess(emptyToUndefined, z.url().optional()),
+  REVALIDATE_SECRET: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
+
   SENTRY_DSN: z.preprocess(emptyToUndefined, z.url().optional()),
   SENTRY_ENVIRONMENT: z.preprocess(emptyToUndefined, z.string().optional()),
   RELEASE: z.preprocess(emptyToUndefined, z.string().optional()),
@@ -53,6 +68,31 @@ const EnvSchema = z.object({
 const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
   if (env.NODE_ENV === 'production' && env.OTP_PROVIDER === 'mock') {
     ctx.addIssue({ code: 'custom', path: ['OTP_PROVIDER'], message: 'mock OTP provider is not allowed in production' });
+  }
+  if (env.NODE_ENV === 'production' && env.STORAGE_DRIVER === 'local') {
+    ctx.addIssue({ code: 'custom', path: ['STORAGE_DRIVER'], message: 'local storage is not allowed in production' });
+  }
+  if (
+    env.STORAGE_DRIVER === 'r2' &&
+    (!env.R2_ENDPOINT ||
+      !env.R2_ACCESS_KEY_ID ||
+      !env.R2_SECRET_ACCESS_KEY ||
+      !env.R2_PUBLIC_BUCKET ||
+      !env.R2_PUBLIC_BASE_URL)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['R2_ENDPOINT'],
+      message:
+        'R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_PUBLIC_BUCKET and R2_PUBLIC_BASE_URL are required for r2',
+    });
+  }
+  if (Boolean(env.STOREFRONT_REVALIDATE_URL) !== Boolean(env.REVALIDATE_SECRET)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['REVALIDATE_SECRET'],
+      message: 'set STOREFRONT_REVALIDATE_URL and REVALIDATE_SECRET together',
+    });
   }
   if (env.OTP_PROVIDER === 'msg91' && (!env.MSG91_AUTH_KEY || !env.MSG91_OTP_TEMPLATE_ID)) {
     ctx.addIssue({

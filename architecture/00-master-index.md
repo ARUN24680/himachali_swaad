@@ -27,7 +27,7 @@ Yeh directory **Pahadi Khatki** (Himachali Non-Veg Pickle E-Commerce & Operation
 | **[05-logistics-packaging-sop.md](./05-logistics-packaging-sop.md)** | **Physical Operations & Packaging SOP** | Zero-leakage protocol, QC, FSSAI label contents, procurement. |
 | **[06-step-by-step-build-roadmap.md](./06-step-by-step-build-roadmap.md)** | **Roadmap Summary** | Phase 0–10 one-line summary (details in `Phases/`). |
 | **[07-order-state-machine.md](./07-order-state-machine.md)** | **Order State Machine** | Statuses, allowed transitions, stock reservation, payment confirmation, Shiprocket mapping, notifications. |
-| **[08-decisions-log.md](./08-decisions-log.md)** | **Architecture Decisions Log** | D-01 … D-48 decisions + open business questions (Q-01 … Q-07). |
+| **[08-decisions-log.md](./08-decisions-log.md)** | **Architecture Decisions Log** | D-01 … D-49 decisions + open business questions (Q-01 … Q-07). |
 | **[09-codebase-structure.md](./09-codebase-structure.md)** | **Codebase Structure** | Monorepo folders, backend Nexus module pattern (routes → controller → service → repository), hybrid frontend (ui → common → modules), naming conventions. |
 | **[Phases/00-phases-master.md](../Phases/00-phases-master.md)** | **Execution Phases** | Phase 0–10 detailed checklists — **roadmap ka single source of truth**. |
 

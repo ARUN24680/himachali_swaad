@@ -1,6 +1,15 @@
 import pg from 'pg';
 import type { Logger } from 'pino';
 
+// Process-wide type parsers (Phase 3). BIGINT (paise, counts) → number, refusing values a JS number
+// can't hold exactly; DATE stays 'YYYY-MM-DD' (the default Date parse shifts by the server timezone).
+pg.types.setTypeParser(pg.types.builtins.INT8, (value) => {
+  const n = Number(value);
+  if (!Number.isSafeInteger(n)) throw new RangeError(`BIGINT ${value} exceeds Number.MAX_SAFE_INTEGER`);
+  return n;
+});
+pg.types.setTypeParser(pg.types.builtins.DATE, (value) => value);
+
 /**
  * Pure raw SQL client (D-01, architecture/01 §Database Client). Created via factory so the
  * HTTP server, the worker and tests each own their pool.

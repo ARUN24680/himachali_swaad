@@ -4,7 +4,9 @@ export type StatusTone = 'success' | 'warning' | 'info' | 'destructive' | 'neutr
 
 /**
  * Status → tone mapping lives ONLY here (Rules §1.4). Order statuses are added in Phase 5
- * (07-order-state-machine.md), batch freshness in Phase 3.
+ * (07-order-state-machine.md); batch shelf status + product LIVE/DRAFT in Phase 3.
+ * Note: `EXPIRED` means an expired batch here — an expired *order* (neutral, Rules §1.4) must pass
+ * an explicit `label` + its own key when order statuses land in Phase 5.
  */
 export const STATUS_TONES: Record<string, StatusTone> = {
   // Orders / payments
@@ -17,10 +19,14 @@ export const STATUS_TONES: Record<string, StatusTone> = {
   CANCELLED: 'destructive',
   LOST: 'destructive',
   PENDING_PAYMENT: 'neutral',
-  // Batches
+  // Batch shelf status (Phase 3 §3.6, D-24)
   FRESH: 'success',
   AGING: 'warning',
+  NOT_SELLABLE: 'neutral',
   EXPIRED: 'destructive',
+  // Product catalog status (Phase 3 §3.7)
+  LIVE: 'success',
+  DRAFT: 'neutral',
 };
 
 const humanize = (status: string) => status.charAt(0) + status.slice(1).toLowerCase().replaceAll('_', ' ');

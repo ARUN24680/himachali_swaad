@@ -25,7 +25,15 @@ export default function HomePage() {
           <CardHeader>
             <CardTitle>Operations portal</CardTitle>
             <CardDescription>
-              The catalog and inventory arrive in Phase 3, orders and packing after that.
+              Manage the{' '}
+              <Link to="/products" className="font-medium text-accent-foreground underline underline-offset-4">
+                catalog
+              </Link>{' '}
+              and kitchen{' '}
+              <Link to="/batches" className="font-medium text-accent-foreground underline underline-offset-4">
+                batches
+              </Link>{' '}
+              here. Orders and packing arrive in later phases.
               {import.meta.env.DEV && (
                 <>
                   {' '}

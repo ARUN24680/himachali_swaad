@@ -6,13 +6,21 @@ import type { Logger } from 'pino';
 import type { Db } from './config/db';
 import type { ErrorReporter } from './config/sentry';
 import type { OtpProvider } from './integrations/sms/otp-provider';
+import type { LocalDiskStorage } from './integrations/storage/local-disk';
+import type { ObjectStorage } from './integrations/storage/storage';
+import type { StorefrontRevalidator } from './integrations/storefront/revalidate';
 import { createAuthGuards } from './middleware/auth';
 import type { CookieConfig } from './modules/auth/auth.cookies';
 import { authRoutes } from './modules/auth/auth.routes';
 import { createAuthService } from './modules/auth/auth.service';
 import { createTokenService } from './modules/auth/auth.tokens';
+import { adminCatalogRoutes, publicCatalogRoutes } from './modules/catalog/catalog.routes';
+import { createCatalogService } from './modules/catalog/catalog.service';
+import { devStorageRoutes } from './modules/dev-storage/dev-storage.routes';
 import { healthRoutes } from './modules/health/health.routes';
 import { createHealthService } from './modules/health/health.service';
+import { inventoryRoutes } from './modules/inventory/inventory.routes';
+import { createInventoryService } from './modules/inventory/inventory.service';
 import { partnerRoutes } from './modules/partner/partner.routes';
 import { createPartnerService } from './modules/partner/partner.service';
 import { adminSettingsRoutes } from './modules/settings/settings.routes';
@@ -37,6 +45,10 @@ export interface AppDeps {
   reporter: ErrorReporter;
   origins: string[];
   auth: AuthConfig;
+  /** Product images (D-11). */
+  storage: ObjectStorage;
+  /** Purges storefront cache tags after catalog/stock writes. */
+  revalidator: StorefrontRevalidator;
   trustProxy?: boolean;
   rateLimit?: { max: number; windowMs: number };
 }
@@ -87,6 +99,18 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     refreshTtlSec: deps.auth.cookies.refreshTtlSec,
   });
   const settingsService = createSettingsService();
+  const inventoryService = createInventoryService({
+    db: deps.db,
+    settings: settingsService,
+    revalidator: deps.revalidator,
+  });
+  const catalogService = createCatalogService({
+    db: deps.db,
+    settings: settingsService,
+    inventory: inventoryService,
+    storage: deps.storage,
+    revalidator: deps.revalidator,
+  });
 
   // ── Routes ───────────────────────────────────────────────────────────────
   await app.register(healthRoutes, { service: createHealthService({ db: deps.db, redis: deps.redis }) });
@@ -102,6 +126,13 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     service: createPartnerService({ db: deps.db }),
     guards,
   });
+
+  await app.register(publicCatalogRoutes, { prefix: '/api/v1/products', service: catalogService });
+  await app.register(adminCatalogRoutes, { prefix: '/api/v1/admin', service: catalogService, guards });
+  await app.register(inventoryRoutes, { prefix: '/api/v1/batches', service: inventoryService, guards });
+  if (deps.storage.kind === 'local') {
+    await app.register(devStorageRoutes, { storage: deps.storage as LocalDiskStorage });
+  }
 
   return app;
 }

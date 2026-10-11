@@ -27,3 +27,6 @@ test-results/
 
 # Next.js generated
 next-env.d.ts
+
+# Local product-image storage (STORAGE_DRIVER=local)
+.uploads/
