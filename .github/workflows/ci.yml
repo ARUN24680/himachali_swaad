@@ -135,6 +135,8 @@ jobs:
       TOTP_ENC_KEY: Y2ktb25seS10b3RwLWtleS0zMi1ieXRlcy1sb25nISE=
       STORAGE_DRIVER: local
       PAYMENT_GATEWAY: mock
+      # One runner IP + Playwright retries: lift the create-order per-IP limit (test-only, refused in production)
+      CHECKOUT_IP_LIMIT: '100'
       API_PUBLIC_URL: http://localhost:4000
       SEED_ADMIN_NAME: CI Admin
       SEED_ADMIN_EMAIL: admin@ci.pahadikhatki.test
