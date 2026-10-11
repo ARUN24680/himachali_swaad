@@ -92,7 +92,7 @@ apps/storefront/src/app/
 ---
 
 ## 🔍 Verification Checklist
-- [ ] Lighthouse mobile: Performance > 90, CLS < 0.05 on home + product detail (CI Lighthouse run or recorded report). — devtools throttling (Slow 4G, 4× CPU): **99 / 99**, LCP 1.7 s, CLS 0 (home, PDP); simulated Lantern on localhost: 85 / 85 (LCP 4.4 s est.). Reports in `Phases/evidence/phase-04/lighthouse/`. **Re-run on the deployed URL (Phase 10) before ticking.**
+- [ ] Lighthouse mobile: Performance > 90, CLS < 0.05 on home + product detail (CI Lighthouse run or recorded report). — devtools throttling (Slow 4G, 4× CPU): **99 / 99**, LCP 1.6 s, CLS 0 (home, PDP); a11y 100, SEO 100. Simulated (Lantern) on localhost: **87 / 87** (was 78–81 → lazy Sentry, zod-free client bundle via `@pk/shared/*` subpaths, LCP image `preload`). Reports `Phases/evidence/phase-04/lighthouse/`. **Re-run on the deployed URL (Phase 10) before ticking.**
 - [x] Playwright: browse → variant toggle → add to cart → reload → cart persists; at 375 / 768 / 1440, **no horizontal overflow** (`document.documentElement.scrollWidth <= innerWidth` assertion). — `storefront-cart.spec.ts` at 375/768/1440 with overflow assertion
 - [x] Quote endpoint: price change in DB → drawer shows new price; stock reduced → `QTY_REDUCED` issue (integration test `cart-quote.test.ts`). — `cart-quote.test.ts`
 - [x] Storefront bundle/imports me `pg` nahi (lint + build check). — eslint `no-restricted-imports` (pg) + `pnpm --filter @pk/storefront build` green

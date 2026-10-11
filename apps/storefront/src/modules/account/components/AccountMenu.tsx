@@ -13,12 +13,24 @@ import { ChevronDown, Loader2, LogOut, UserRound } from 'lucide-react';
 import { useSignOut } from '../hooks/useAuthMutations';
 import { useSession } from '../hooks/useSession';
 import { openSignIn } from '../store/account-ui.store';
-import { SignInDialog } from './SignInDialog';
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
+import { useAccountUiStore } from '../store/account-ui.store';
+
+/**
+ * The OTP sheet (forms, OTP input, phone validation) is fetched only when someone taps "Sign in",
+ * keeping it out of every page's first-load JS (Phase 4 Lighthouse budget).
+ */
+const SignInDialog = dynamic(() => import('./SignInDialog').then((m) => m.SignInDialog), { ssr: false });
 
 /** Header account control: "Sign in" for guests, masked phone + "Sign out" when signed in. */
 export function AccountMenu() {
   const session = useSession();
   const signOut = useSignOut();
+  const signInOpen = useAccountUiStore((s) => s.signInOpen);
+  // Mount the lazy dialog on first open and keep it mounted (so its close animation still plays)
+  const [dialogMounted, setDialogMounted] = useState(false);
+  if (signInOpen && !dialogMounted) setDialogMounted(true);
 
   let control;
   if (session.isPending) {
@@ -84,7 +96,7 @@ export function AccountMenu() {
   return (
     <>
       {control}
-      <SignInDialog />
+      {dialogMounted && <SignInDialog />}
     </>
   );
 }

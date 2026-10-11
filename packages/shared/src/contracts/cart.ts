@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { MAX_CART_LINES } from '../constants/limits';
 import { PincodeSchema } from '../schemas/common';
 
 /** POST /api/v1/cart/quote (Phase 4 §4.5, D-15). The cart stores only {productId, quantity}; prices always come from here. */
 
-export const MAX_CART_LINES = 20;
+export { MAX_CART_LINES };
 
 export const CartItemInputSchema = z.object({
   productId: z.uuid(),

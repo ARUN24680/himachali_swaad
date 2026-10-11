@@ -187,7 +187,8 @@ apps/admin/src/
 ```text
 src/
 ├── contracts/       # Per-domain request/response Zod schemas (auth, catalog, cart, checkout, orders, partner, admin…)
-├── schemas/         # Base: PhoneSchema, PincodeSchema, PaiseSchema, AddressSchema, EnvelopeSchema<T>
+├── schemas/         # Base: PhoneSchema, PincodeSchema, PaiseSchema, AddressSchema, EnvelopeSchema<T>;
+│                    #   patterns.ts = zod-free regexes + maskPhone (browser import: @pk/shared/patterns)
 ├── order/           # statuses.ts, transitions.ts (allowed map + canTransition, doc 07 §1.2)
 ├── auth/            # roles.ts, permissions.ts (access matrix, Phase 2)
 ├── catalog/         # rows.ts (DB row Zod schemas, D-07), shelf-life.ts (shelfStatusFor, stockBadgeFor), batch-code.ts (D-42, todayInIST)

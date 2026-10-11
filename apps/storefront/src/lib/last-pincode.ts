@@ -1,4 +1,4 @@
-import { PincodeSchema } from '@pk/shared';
+import { isValidPincode } from './pincode';
 
 /** Last pincode the customer checked (Phase 4 §4.6) — prefills the checker, cart quote and Phase 5 checkout. */
 const KEY = 'pk-last-pincode';
@@ -6,7 +6,7 @@ const KEY = 'pk-last-pincode';
 export function readLastPincode(): string | undefined {
   try {
     const value = window.localStorage.getItem(KEY);
-    return value && PincodeSchema.safeParse(value).success ? value : undefined;
+    return value && isValidPincode(value) ? value : undefined;
   } catch {
     return undefined; // private mode / SSR
   }

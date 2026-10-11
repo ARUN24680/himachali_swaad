@@ -1,6 +1,6 @@
 'use client';
 
-import { PhoneSchema } from '@pk/shared';
+import { PHONE_REGEX } from '@pk/shared/patterns';
 import { Alert, Button, Label } from '@pk/ui';
 import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
@@ -34,8 +34,7 @@ export function PhoneStep({ initialPhone, onSent }: PhoneStepProps) {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const phone = `+91${digits}`;
-    const parsed = PhoneSchema.safeParse(phone);
-    if (!parsed.success) {
+    if (!PHONE_REGEX.test(phone)) {
       setFieldError(digits.length < 10 ? 'Enter your 10-digit mobile number' : 'Enter a valid Indian mobile number');
       return;
     }

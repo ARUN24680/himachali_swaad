@@ -1,4 +1,5 @@
-import { MAX_CART_LINES, type CartItemInput } from '@pk/shared';
+import { MAX_CART_LINES } from '@pk/shared/limits';
+import type { CartItemInput } from '@pk/shared';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { maskPhone, type SessionUser } from '@pk/shared';
+import type { SessionUser } from '@pk/shared';
+import { maskPhone } from '@pk/shared/patterns';
 import { Alert, Button, OtpInput } from '@pk/ui';
 import { AlertCircle, CheckCircle2, Loader2, Pencil } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';

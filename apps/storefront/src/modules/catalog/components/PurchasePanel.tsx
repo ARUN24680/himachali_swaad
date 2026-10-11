@@ -1,6 +1,7 @@
 'use client';
 
-import { formatINR, type ProductDetail } from '@pk/shared';
+import type { ProductDetail } from '@pk/shared';
+import { formatINR } from '@pk/shared/money';
 import { Button, cn } from '@pk/ui';
 import { Check } from 'lucide-react';
 import Link from 'next/link';

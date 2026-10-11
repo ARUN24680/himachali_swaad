@@ -13,3 +13,4 @@ export * from './contracts/inventory';
 export * from './contracts/cart';
 export * from './contracts/shipping';
 export * from './contracts/analytics';
+export { PHONE_REGEX, PINCODE_REGEX } from './schemas/patterns';

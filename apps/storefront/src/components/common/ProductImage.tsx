@@ -29,7 +29,9 @@ export function ProductImage({
           alt={alt}
           fill
           sizes={sizes}
-          priority={priority}
+          // Next 16: `preload` replaces the deprecated `priority`; fetchpriority=high for the LCP image
+          preload={priority}
+          fetchPriority={priority ? 'high' : undefined}
           className={cn(
             'object-cover',
             zoomOnHover &&
