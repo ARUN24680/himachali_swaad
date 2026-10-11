@@ -10,7 +10,10 @@ afterAll(() => t.destroy());
 
 describe('migration 0001_foundation', () => {
   it('seeds the default settings', async () => {
-    const { rows } = await t.db.query<{ key: string; value: unknown }>('SELECT key, value FROM settings ORDER BY key');
+    // The template DB has every migration applied; 0003 adds seller_details
+    const { rows } = await t.db.query<{ key: string; value: unknown }>(
+      "SELECT key, value FROM settings WHERE key <> 'seller_details' ORDER BY key",
+    );
     const settings = Object.fromEntries(rows.map((r) => [r.key, r.value]));
     expect(rows).toHaveLength(14);
     expect(settings.reservation_ttl_minutes).toBe(15);

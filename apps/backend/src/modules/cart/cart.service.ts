@@ -15,7 +15,17 @@ const MaxQty = z.number().int().min(1).max(99);
 export function createCartService(deps: { db: Db; catalog: CatalogService; settings: SettingsService }) {
   const { db, catalog, settings } = deps;
 
+  /** Snapshot fields an order item stores (product edits never change order history). */
+  type Snapshot = { sku: string; hsnCode: string; gstRateBp: number | null };
+
   async function quoteCart(items: CartItemInput[], q: Queryable = db): Promise<CartQuoteResponse> {
+    return (await quoteWithSnapshots(items, q)).quote;
+  }
+
+  async function quoteWithSnapshots(
+    items: CartItemInput[],
+    q: Queryable = db,
+  ): Promise<{ quote: CartQuoteResponse; snapshots: Map<string, Snapshot> }> {
     // Same product twice → one line (quantities add up)
     const merged = new Map<string, number>();
     for (const item of items) merged.set(item.productId, (merged.get(item.productId) ?? 0) + item.quantity);
@@ -27,6 +37,9 @@ export function createCartService(deps: { db: Db; catalog: CatalogService; setti
       settings.getSetting(q, 'flat_shipping_fee_paise', NullablePaise),
     ]);
     const byId = new Map(products.map((p) => [p.id, p]));
+    const snapshots = new Map<string, Snapshot>(
+      products.map((p) => [p.id, { sku: p.sku, hsnCode: p.hsnCode, gstRateBp: p.gstRateBp }]),
+    );
 
     const lines: CartQuoteLine[] = [...merged].map(([productId, requested]) => {
       const p = byId.get(productId);
@@ -68,7 +81,7 @@ export function createCartService(deps: { db: Db; catalog: CatalogService; setti
     const freeShipping = threshold !== null && subtotalPaise >= threshold;
     const shippingFeePaise = subtotalPaise === 0 || freeShipping ? 0 : (flatFee ?? 0);
     const discountPaise = 0; // coupons are v2
-    return {
+    const quote: CartQuoteResponse = {
       items: lines,
       subtotalPaise,
       shippingFeePaise,
@@ -78,9 +91,11 @@ export function createCartService(deps: { db: Db; catalog: CatalogService; setti
       freeShippingRemainingPaise: threshold === null ? null : Math.max(0, threshold - subtotalPaise),
       maxQtyPerItem: maxQty,
     };
+    return { quote, snapshots };
   }
 
-  return { quoteCart };
+  /** Phase 5 createOrder(): the same quote plus each product's order-item snapshot fields. */
+  return { quoteCart, quoteWithSnapshots };
 }
 
 export type CartService = ReturnType<typeof createCartService>;

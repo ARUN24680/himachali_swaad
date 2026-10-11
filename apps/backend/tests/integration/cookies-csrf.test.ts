@@ -67,8 +67,9 @@ describe('CSRF origin check (D-20)', () => {
   it('allows an allowed origin, and never checks GET or webhooks', async () => {
     expect((await post(fromBrowser())).statusCode).toBe(200);
     expect((await prodLike.inject({ method: 'GET', url: '/healthz' })).statusCode).toBe(200);
-    // No webhook routes exist until Phase 5 — but the guard must not be what rejects them
+    // No Origin: the CSRF guard must not reject it — the webhook's own signature check does (400, not 403)
     const webhook = await prodLike.inject({ method: 'POST', url: '/api/v1/webhooks/razorpay', payload: {} });
-    expect(webhook.statusCode).toBe(404);
+    expect(webhook.statusCode).toBe(400);
+    expect(webhook.json().error.code).toBe('INVALID_SIGNATURE');
   });
 });

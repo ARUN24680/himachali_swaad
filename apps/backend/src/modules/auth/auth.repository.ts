@@ -110,3 +110,16 @@ export async function revokeAllForUser(db: Queryable, userId: string): Promise<n
   );
   return rowCount ?? 0;
 }
+
+/**
+ * Daily cleanup (Phase 5 §5.9): drops whole token families whose newest token expired over a week
+ * ago (whole families, because replaced_by_id points inside the family). Returns rows deleted.
+ */
+export async function deleteExpiredRefreshFamilies(q: Queryable): Promise<number> {
+  const res = await q.query(
+    `DELETE FROM refresh_tokens WHERE family_id IN (
+       SELECT family_id FROM refresh_tokens GROUP BY family_id HAVING MAX(expires_at) < NOW() - INTERVAL '7 days'
+     )`,
+  );
+  return res.rowCount ?? 0;
+}

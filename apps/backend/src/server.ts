@@ -4,7 +4,14 @@ import { createDb } from './config/db';
 import { loadEnvOrExit } from './config/env';
 import { createLogger } from './config/logger';
 import { createRedis } from './config/redis';
-import { conversionsFromEnv, revalidatorFromEnv, storageFromEnv } from './config/storage';
+import {
+  conversionsFromEnv,
+  gatewayFromEnv,
+  privateStorageFromEnv,
+  revalidatorFromEnv,
+  storageFromEnv,
+} from './config/storage';
+import { createBullJobQueue } from './jobs/queues';
 import { flushSentry, initSentry } from './config/sentry';
 
 const env = loadEnvOrExit();
@@ -26,6 +33,7 @@ const db = createDb(
   logger,
 );
 const redis = createRedis(env.REDIS_URL, env.PROCESS_NAME);
+const jobs = createBullJobQueue(redis);
 
 const app = await buildApp({
   logger,
@@ -38,6 +46,11 @@ const app = await buildApp({
   storage: storageFromEnv(env),
   revalidator: revalidatorFromEnv(env, logger),
   capi: conversionsFromEnv(env, logger),
+  privateStorage: privateStorageFromEnv(env),
+  gateway: gatewayFromEnv(env, redis),
+  jobs,
+  queueDashboard: jobs,
+  allowDraftInvoice: env.NODE_ENV !== 'production',
 });
 
 let shuttingDown = false;
@@ -52,6 +65,7 @@ async function shutdown(signal: string): Promise<void> {
   forceExit.unref();
   try {
     await app.close();
+    await jobs.close();
     await db.close();
     await redis.quit();
     await flushSentry();

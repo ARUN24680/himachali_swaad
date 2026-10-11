@@ -14,7 +14,8 @@ export type AuditAction =
   | 'PRODUCT_UNPUBLISH'
   | 'BATCH_CREATE'
   | 'BATCH_UPDATE'
-  | 'STOCK_ADJUST';
+  | 'STOCK_ADJUST'
+  | 'ORDER_CANCEL';
 
 export interface AuditEntry {
   actorId?: string | null;

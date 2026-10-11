@@ -7,3 +7,4 @@ export { StockBadge } from './components/StockBadge';
 export { MEAT_LABEL, formatDate, formatWeight, stockLabel } from './lib/format';
 export { CatalogListing, CatalogListingSkeleton } from './components/CatalogListing';
 export { CatalogUnavailable } from './components/CatalogUnavailable';
+export { usePincodeCheck } from './hooks/usePincodeCheck';

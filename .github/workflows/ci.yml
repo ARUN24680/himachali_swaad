@@ -134,6 +134,7 @@ jobs:
       JWT_SECRET: ci-only-jwt-secret-that-is-at-least-32-characters
       TOTP_ENC_KEY: Y2ktb25seS10b3RwLWtleS0zMi1ieXRlcy1sb25nISE=
       STORAGE_DRIVER: local
+      PAYMENT_GATEWAY: mock
       API_PUBLIC_URL: http://localhost:4000
       SEED_ADMIN_NAME: CI Admin
       SEED_ADMIN_EMAIL: admin@ci.pahadikhatki.test

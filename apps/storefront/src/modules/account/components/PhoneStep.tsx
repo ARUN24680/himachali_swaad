@@ -5,16 +5,9 @@ import { Alert, Button, Label } from '@pk/ui';
 import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
 import { isApiError } from '@/lib/api-client';
+import { toNationalDigits } from '@/lib/phone';
 import { formatWait, useCountdown } from '../hooks/useCountdown';
 import { useSendOtp } from '../hooks/useAuthMutations';
-
-/** Accepts what people actually type or paste: "98765 43210", "+91 98765-43210", "098765 43210". */
-function toNationalDigits(raw: string): string {
-  const d = raw.replace(/\D/g, '');
-  if (d.length === 12 && d.startsWith('91')) return d.slice(2);
-  if (d.length === 11 && d.startsWith('0')) return d.slice(1);
-  return d.slice(0, 10);
-}
 
 interface PhoneStepProps {
   initialPhone: string;

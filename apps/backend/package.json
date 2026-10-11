@@ -16,6 +16,8 @@
     "seed:catalog": "tsx --env-file-if-exists=../../.env scripts/seed-catalog.ts"
   },
   "dependencies": {
+    "@bull-board/api": "9.10.2",
+    "@bull-board/fastify": "9.10.2",
     "@fastify/cookie": "11.1.2",
     "@fastify/cors": "11.3.0",
     "@fastify/helmet": "13.1.1",
@@ -30,6 +32,7 @@
     "ioredis": "5.11.1",
     "jose": "6.2.12",
     "otpauth": "9.5.2",
+    "pdf-lib": "1.17.1",
     "pg": "8.23.1",
     "pino": "10.4.0",
     "zod": "4.6.5"

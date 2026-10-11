@@ -2,6 +2,7 @@ import { IMAGE_CONTENT_TYPES, MAX_IMAGE_BYTES } from '@pk/shared';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { LOCAL_ASSET_PATH, LOCAL_UPLOAD_PATH, type LocalDiskStorage } from '../../integrations/storage/local-disk';
+import { LOCAL_PRIVATE_PATH, type LocalPrivateStorage } from '../../integrations/storage/private';
 import { AppError } from '../../utils/app-error';
 
 const CONTENT_TYPE_BY_EXT: Record<string, string> = { webp: 'image/webp', jpg: 'image/jpeg', png: 'image/png' };
@@ -10,7 +11,10 @@ const CONTENT_TYPE_BY_EXT: Record<string, string> = { webp: 'image/webp', jpg: '
  * Development-only stand-in for the R2 upload + CDN endpoints (registered only when
  * STORAGE_DRIVER=local, which env.ts forbids in production).
  */
-export const devStorageRoutes: FastifyPluginAsyncZod<{ storage: LocalDiskStorage }> = async (app, { storage }) => {
+export const devStorageRoutes: FastifyPluginAsyncZod<{
+  storage: LocalDiskStorage;
+  privateStorage: LocalPrivateStorage | null;
+}> = async (app, { storage, privateStorage }) => {
   app.addContentTypeParser(
     [...IMAGE_CONTENT_TYPES],
     { parseAs: 'buffer', bodyLimit: MAX_IMAGE_BYTES },
@@ -43,4 +47,21 @@ export const devStorageRoutes: FastifyPluginAsyncZod<{ storage: LocalDiskStorage
       .header('cross-origin-resource-policy', 'cross-origin')
       .send(file);
   });
+
+  // Signed, expiring links to private documents (invoices) — the local twin of an R2 presigned GET
+  if (privateStorage) {
+    app.get(
+      `${LOCAL_PRIVATE_PATH}/*`,
+      { schema: { querystring: z.object({ exp: z.string().min(1), sig: z.string().min(1) }) } },
+      async (request, reply) => {
+        const key = (request.params as { '*': string })['*'];
+        const file = await privateStorage.readSigned(key, request.query.exp, request.query.sig);
+        if (!file) throw new AppError('FORBIDDEN', 'This link is invalid or has expired.');
+        return reply
+          .header('content-type', key.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream')
+          .header('cache-control', 'private, no-store')
+          .send(file);
+      },
+    );
+  }
 };

@@ -105,6 +105,97 @@ export function createInventoryService(deps: {
 
     productOptions: () => repo.listProductOptions(db),
 
+    // ── Order stock (Phase 5, architecture/07 §3–4.1). Callers own the transaction. ─────────
+
+    /**
+     * FIFO-by-expiry reservation of one order item, split across batches (D-22/23/24). Throws
+     * OUT_OF_STOCK when the sellable jars don't cover `quantity` — the caller's transaction rolls
+     * back. Call once per item in product_id order (deadlock prevention).
+     * Returns the pickup locations the jars came from.
+     */
+    async reserveForItem(
+      client: Queryable,
+      r: {
+        orderId: string;
+        orderItemId: string;
+        productId: string;
+        quantity: number;
+        status: 'RESERVED' | 'COMMITTED';
+        reason: string;
+      },
+    ): Promise<string[]> {
+      const batches = await repo.lockSellableBatches(client, r.productId, await sellableBufferDays(client));
+      let remaining = r.quantity;
+      const locations = new Set<string>();
+      for (const batch of batches) {
+        if (remaining === 0) break;
+        const take = Math.min(remaining, batch.available_stock);
+        await repo.changeBatchStock(client, batch.id, -take);
+        await repo.insertAllocation(client, {
+          orderItemId: r.orderItemId,
+          batchId: batch.id,
+          quantity: take,
+          status: r.status,
+        });
+        await repo.insertOrderMovement(client, {
+          batchId: batch.id,
+          type: 'RESERVE',
+          quantityDelta: -take,
+          orderId: r.orderId,
+          reason: r.reason,
+        });
+        locations.add(batch.pickup_location_id);
+        remaining -= take;
+      }
+      if (remaining > 0) {
+        const available = r.quantity - remaining;
+        throw new AppError('OUT_OF_STOCK', 'Some jars just sold out.', { productId: r.productId, available });
+      }
+      return [...locations];
+    },
+
+    /** RESERVED → COMMITTED on payment (stock already left the batch at reservation). */
+    async commitReservations(client: Queryable, orderId: string): Promise<void> {
+      const rows = await repo.listOrderAllocations(client, orderId, ['RESERVED']);
+      if (rows.length)
+        await repo.setAllocationStatus(
+          client,
+          rows.map((a) => a.id),
+          'COMMITTED',
+        );
+    },
+
+    /**
+     * Puts an order's live jars back on the shelf: allocations → RELEASED, stock +qty, RELEASE
+     * movements (expiry, or cancel before the jar left the kitchen — 07 §3, D-31).
+     */
+    async releaseOrderStock(
+      client: Queryable,
+      orderId: string,
+      from: readonly ('RESERVED' | 'COMMITTED')[],
+      reason: string,
+    ): Promise<number> {
+      const rows = await repo.listOrderAllocations(client, orderId, from);
+      if (rows.length === 0) return 0;
+      await repo.lockBatchesById(client, [...new Set(rows.map((a) => a.batch_id))]);
+      for (const a of rows) {
+        await repo.changeBatchStock(client, a.batch_id, a.quantity);
+        await repo.insertOrderMovement(client, {
+          batchId: a.batch_id,
+          type: 'RELEASE',
+          quantityDelta: a.quantity,
+          orderId,
+          reason,
+        });
+      }
+      await repo.setAllocationStatus(
+        client,
+        rows.map((a) => a.id),
+        'RELEASED',
+      );
+      return rows.reduce((n, a) => n + a.quantity, 0);
+    },
+
     async listBatches(
       auth: AuthContext,
       f: { productId?: string; locationId?: string; status?: ShelfStatus; includeEmpty: boolean },

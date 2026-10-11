@@ -206,3 +206,95 @@ export async function listProductOptions(db: Queryable) {
     isActive: r.is_active,
   }));
 }
+
+// ── Order stock reservation (Phase 5, architecture/07 §3–4) ───────────────
+
+/**
+ * Sellable batches of one product, FIFO by expiry, LOCKED (D-23, D-24). Same filter as the
+ * storefront stock query, so what the shop shows is what checkout can allocate.
+ */
+export async function lockSellableBatches(client: Queryable, productId: string, sellableBufferDays: number) {
+  const { rows } = await client.query<{ id: string; available_stock: number; pickup_location_id: string }>(
+    `SELECT b.id, b.available_stock, b.pickup_location_id
+       FROM inventory_batches b
+      WHERE b.product_id = $1
+        AND b.available_stock > 0
+        AND b.expiry_date >= ist_today() + $2::int
+      ORDER BY b.expiry_date ASC, b.manufactured_at ASC, b.id ASC
+      FOR UPDATE`,
+    [productId, sellableBufferDays],
+  );
+  return rows;
+}
+
+export async function changeBatchStock(client: Queryable, batchId: string, delta: number): Promise<void> {
+  await client.query('UPDATE inventory_batches SET available_stock = available_stock + $2 WHERE id = $1', [
+    batchId,
+    delta,
+  ]);
+}
+
+/**
+ * Locks batches in the SAME global order reservation uses (product_id, then FIFO expiry order), so
+ * a release and a concurrent checkout always acquire locks in one direction — no deadlock cycle.
+ */
+export async function lockBatchesById(client: Queryable, batchIds: string[]): Promise<void> {
+  await client.query(
+    `SELECT id FROM inventory_batches WHERE id = ANY($1::uuid[])
+      ORDER BY product_id, expiry_date, manufactured_at, id
+      FOR UPDATE`,
+    [batchIds],
+  );
+}
+
+export async function insertOrderMovement(
+  client: Queryable,
+  m: { batchId: string; type: 'RESERVE' | 'RELEASE'; quantityDelta: number; orderId: string; reason: string },
+): Promise<void> {
+  await client.query(
+    `INSERT INTO inventory_movements (batch_id, movement_type, quantity_delta, order_id, reason)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [m.batchId, m.type, m.quantityDelta, m.orderId, m.reason],
+  );
+}
+
+export async function insertAllocation(
+  client: Queryable,
+  a: { orderItemId: string; batchId: string; quantity: number; status: 'RESERVED' | 'COMMITTED' },
+): Promise<void> {
+  await client.query(
+    `INSERT INTO order_item_allocations (order_item_id, batch_id, quantity, status) VALUES ($1, $2, $3, $4)`,
+    [a.orderItemId, a.batchId, a.quantity, a.status],
+  );
+}
+
+/** Live allocations of an order in the given statuses, batch-id order. */
+export async function listOrderAllocations(client: Queryable, orderId: string, statuses: readonly string[]) {
+  const { rows } = await client.query<{
+    id: string;
+    batch_id: string;
+    quantity: number;
+    status: 'RESERVED' | 'COMMITTED' | 'RELEASED';
+    pickup_location_id: string;
+  }>(
+    `SELECT a.id, a.batch_id, a.quantity, a.status, b.pickup_location_id
+       FROM order_item_allocations a
+       JOIN order_items oi ON oi.id = a.order_item_id
+       JOIN inventory_batches b ON b.id = a.batch_id
+      WHERE oi.order_id = $1 AND a.status = ANY($2::allocation_status[])
+      ORDER BY a.batch_id, a.id`,
+    [orderId, statuses],
+  );
+  return rows;
+}
+
+export async function setAllocationStatus(
+  client: Queryable,
+  allocationIds: string[],
+  status: 'COMMITTED' | 'RELEASED',
+): Promise<void> {
+  await client.query('UPDATE order_item_allocations SET status = $2 WHERE id = ANY($1::uuid[])', [
+    allocationIds,
+    status,
+  ]);
+}

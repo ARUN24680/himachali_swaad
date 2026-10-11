@@ -1,0 +1,97 @@
+import type { Redis } from 'ioredis';
+import type { Logger } from 'pino';
+import type { Db } from './config/db';
+import type { ErrorReporter } from './config/sentry';
+import type { PaymentGateway } from './integrations/razorpay/gateway';
+import type { PincodeDirectory } from './integrations/shipping/pincode-directory';
+import type { ObjectStorage } from './integrations/storage/storage';
+import type { PrivateStorage } from './integrations/storage/private';
+import type { StorefrontRevalidator } from './integrations/storefront/revalidate';
+import type { JobQueue } from './jobs/queues';
+import { createAccountService } from './modules/account/account.service';
+import { createCartService } from './modules/cart/cart.service';
+import { createCatalogService } from './modules/catalog/catalog.service';
+import { createCheckoutService } from './modules/checkout/checkout.service';
+import { createInventoryService } from './modules/inventory/inventory.service';
+import { createInvoiceService } from './modules/orders/invoice.service';
+import { createOrdersService } from './modules/orders/orders.service';
+import { createPaymentsService } from './modules/payments/payments.service';
+import { createSettingsService } from './modules/settings/settings.service';
+import { createWebhooksService } from './modules/webhooks/webhooks.service';
+
+export interface CommerceDeps {
+  db: Db;
+  redis: Redis;
+  logger: Logger;
+  reporter: ErrorReporter;
+  storage: ObjectStorage;
+  privateStorage: PrivateStorage;
+  revalidator: StorefrontRevalidator;
+  gateway: PaymentGateway;
+  jobs: JobQueue;
+  /** Non-production: invoices may be issued as DRAFT while Q-02 seller details are unset. */
+  allowDraftInvoice: boolean;
+}
+
+/**
+ * The commerce service graph (catalog → cart → checkout → payments → orders), built the same way
+ * by the HTTP server (app.ts), the worker (worker.ts) and integration tests.
+ */
+export function createCommerceServices(d: CommerceDeps) {
+  const settings = createSettingsService();
+  const inventory = createInventoryService({ db: d.db, settings, revalidator: d.revalidator });
+  const catalog = createCatalogService({
+    db: d.db,
+    settings,
+    inventory,
+    storage: d.storage,
+    revalidator: d.revalidator,
+  });
+  const cart = createCartService({ db: d.db, catalog, settings });
+  const account = createAccountService({ db: d.db });
+  const orders = createOrdersService({
+    db: d.db,
+    inventory,
+    gateway: d.gateway,
+    jobs: d.jobs,
+    privateStorage: d.privateStorage,
+    logger: d.logger,
+  });
+  const checkout = createCheckoutService({
+    db: d.db,
+    redis: d.redis,
+    cart,
+    inventory,
+    orders,
+    account,
+    settings,
+    gateway: d.gateway,
+    logger: d.logger,
+  });
+  const payments = createPaymentsService({
+    db: d.db,
+    gateway: d.gateway,
+    inventory,
+    jobs: d.jobs,
+    logger: d.logger,
+    reporter: d.reporter,
+  });
+  const webhooks = createWebhooksService({
+    db: d.db,
+    gateway: d.gateway,
+    payments,
+    logger: d.logger,
+    reporter: d.reporter,
+  });
+  const invoices = createInvoiceService({
+    db: d.db,
+    settings,
+    privateStorage: d.privateStorage,
+    allowDraft: d.allowDraftInvoice,
+    logger: d.logger,
+  });
+  return { settings, inventory, catalog, cart, account, orders, checkout, payments, webhooks, invoices };
+}
+
+export type CommerceServices = ReturnType<typeof createCommerceServices>;
+export type { PincodeDirectory };

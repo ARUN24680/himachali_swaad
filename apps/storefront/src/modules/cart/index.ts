@@ -4,3 +4,4 @@ export { CartButton } from './components/CartButton';
 export { CartRoot } from './components/CartRoot';
 export { openCart } from './store/cart-ui.store';
 export { CART_STORAGE_KEY, useCartStore, type CartItem } from './store/cart.store';
+export { useCartQuote, noticeFor, cartKeys } from './hooks/useCartQuote';

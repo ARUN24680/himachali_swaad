@@ -7,6 +7,11 @@ import type { Db } from './config/db';
 import type { ErrorReporter } from './config/sentry';
 import type { ConversionsClient } from './integrations/meta/conversions';
 import { createStubServiceabilityProvider, type ServiceabilityProvider } from './integrations/shipping/serviceability';
+import { createIndiaPostDirectory, type PincodeDirectory } from './integrations/shipping/pincode-directory';
+import type { PaymentGateway } from './integrations/razorpay/gateway';
+import type { MockPaymentGateway } from './integrations/razorpay/mock';
+import type { LocalPrivateStorage, PrivateStorage } from './integrations/storage/private';
+import type { BullJobQueue, JobQueue } from './jobs/queues';
 import type { OtpProvider } from './integrations/sms/otp-provider';
 import type { LocalDiskStorage } from './integrations/storage/local-disk';
 import type { ObjectStorage } from './integrations/storage/storage';
@@ -18,21 +23,25 @@ import { createAuthService } from './modules/auth/auth.service';
 import { createTokenService } from './modules/auth/auth.tokens';
 import { analyticsRoutes } from './modules/analytics/analytics.routes';
 import { cartRoutes } from './modules/cart/cart.routes';
-import { createCartService } from './modules/cart/cart.service';
 import { adminCatalogRoutes, publicCatalogRoutes } from './modules/catalog/catalog.routes';
-import { createCatalogService } from './modules/catalog/catalog.service';
 import { devStorageRoutes } from './modules/dev-storage/dev-storage.routes';
 import { healthRoutes } from './modules/health/health.routes';
 import { createHealthService } from './modules/health/health.service';
 import { inventoryRoutes } from './modules/inventory/inventory.routes';
-import { createInventoryService } from './modules/inventory/inventory.service';
 import { shippingRoutes } from './modules/shipping/shipping.routes';
 import { createShippingService } from './modules/shipping/shipping.service';
 import { partnerRoutes } from './modules/partner/partner.routes';
 import { createPartnerService } from './modules/partner/partner.service';
 import { adminSettingsRoutes } from './modules/settings/settings.routes';
-import { createSettingsService } from './modules/settings/settings.service';
+import { accountRoutes } from './modules/account/account.routes';
+import { checkoutRoutes } from './modules/checkout/checkout.routes';
+import { devPaymentRoutes } from './modules/dev-payments/dev-payments.routes';
+import { adminOrderRoutes, orderRoutes } from './modules/orders/orders.routes';
+import { paymentsRoutes } from './modules/payments/payments.routes';
+import { webhookRoutes } from './modules/webhooks/webhooks.routes';
+import { registerQueueDashboard } from './plugins/queue-dashboard';
 import { registerOriginCheck } from './plugins/csrf';
+import { createCommerceServices } from './services';
 import { registerErrorHandler } from './plugins/error-handler';
 import { registerSecurity } from './plugins/security';
 import { genRequestId } from './utils/request-id';
@@ -60,6 +69,20 @@ export interface AppDeps {
   capi: ConversionsClient;
   /** Pincode serviceability; defaults to the stub until Phase 6 (Shiprocket). */
   serviceability?: ServiceabilityProvider;
+  /** PIN → city/state auto-fill; defaults to India Post. */
+  pincodeDirectory?: PincodeDirectory;
+  /** Invoices + labels (D-11). */
+  privateStorage: PrivateStorage;
+  /** Razorpay or the dev/CI mock (Phase 5). */
+  gateway: PaymentGateway;
+  /** BullMQ producer (worker consumes). */
+  jobs: JobQueue;
+  /** bull-board at /admin/queues (ADMIN) when the real BullMQ queues are passed (D-09). */
+  queueDashboard?: BullJobQueue;
+  /** Mock gateway: delay before the simulated webhook arrives (0 = synchronous, tests). */
+  mockWebhookDelayMs?: number;
+  /** Non-production may issue DRAFT invoices while seller details (Q-02) are unset. */
+  allowDraftInvoice?: boolean;
   trustProxy?: boolean;
   rateLimit?: { max: number; windowMs: number };
 }
@@ -109,19 +132,21 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     totpKey: deps.auth.totpKey,
     refreshTtlSec: deps.auth.cookies.refreshTtlSec,
   });
-  const settingsService = createSettingsService();
-  const inventoryService = createInventoryService({
+  const svc = createCommerceServices({
     db: deps.db,
-    settings: settingsService,
-    revalidator: deps.revalidator,
-  });
-  const catalogService = createCatalogService({
-    db: deps.db,
-    settings: settingsService,
-    inventory: inventoryService,
+    redis: deps.redis,
+    logger: deps.logger,
+    reporter: deps.reporter,
     storage: deps.storage,
+    privateStorage: deps.privateStorage,
     revalidator: deps.revalidator,
+    gateway: deps.gateway,
+    jobs: deps.jobs,
+    allowDraftInvoice: deps.allowDraftInvoice ?? false,
   });
+  const settingsService = svc.settings;
+  const inventoryService = svc.inventory;
+  const catalogService = svc.catalog;
 
   // ── Routes ───────────────────────────────────────────────────────────────
   await app.register(healthRoutes, { service: createHealthService({ db: deps.db, redis: deps.redis }) });
@@ -140,22 +165,44 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await app.register(publicCatalogRoutes, { prefix: '/api/v1/products', service: catalogService });
   await app.register(adminCatalogRoutes, { prefix: '/api/v1/admin', service: catalogService, guards });
-  await app.register(cartRoutes, {
-    prefix: '/api/v1/cart',
-    service: createCartService({ db: deps.db, catalog: catalogService, settings: settingsService }),
-  });
+  await app.register(cartRoutes, { prefix: '/api/v1/cart', service: svc.cart });
   await app.register(shippingRoutes, {
     prefix: '/api/v1/shipping',
     service: createShippingService({
       redis: deps.redis,
       provider: deps.serviceability ?? createStubServiceabilityProvider(),
+      directory: deps.pincodeDirectory ?? createIndiaPostDirectory(),
       logger: deps.logger,
     }),
   });
-  await app.register(analyticsRoutes, { prefix: '/api/v1/analytics', capi: deps.capi });
+  await app.register(analyticsRoutes, {
+    prefix: '/api/v1/analytics',
+    capi: deps.capi,
+    purchaseFacts: (code) => svc.orders.purchaseFacts(code),
+  });
   await app.register(inventoryRoutes, { prefix: '/api/v1/batches', service: inventoryService, guards });
+
+  // ── Phase 5: checkout, payments, orders ─────────────────────────────────
+  await app.register(checkoutRoutes, { prefix: '/api/v1/checkout', service: svc.checkout, guards });
+  await app.register(paymentsRoutes, { prefix: '/api/v1/payments', service: svc.payments });
+  await app.register(orderRoutes, { prefix: '/api/v1/orders', service: svc.orders, guards });
+  await app.register(adminOrderRoutes, { prefix: '/api/v1/admin/orders', service: svc.orders, guards });
+  await app.register(accountRoutes, { prefix: '/api/v1/me', service: svc.account, guards });
+  await app.register(webhookRoutes, { prefix: '/api/v1/webhooks', service: svc.webhooks });
+  if (deps.gateway.kind === 'mock') {
+    await app.register(devPaymentRoutes, {
+      prefix: '/api/v1/dev/payments',
+      gateway: deps.gateway as MockPaymentGateway,
+      webhookDelayMs: deps.mockWebhookDelayMs ?? 2000,
+    });
+  }
+  if (deps.queueDashboard) await registerQueueDashboard(app, deps.queueDashboard, guards);
+
   if (deps.storage.kind === 'local') {
-    await app.register(devStorageRoutes, { storage: deps.storage as LocalDiskStorage });
+    await app.register(devStorageRoutes, {
+      storage: deps.storage as LocalDiskStorage,
+      privateStorage: deps.privateStorage.kind === 'local' ? (deps.privateStorage as LocalPrivateStorage) : null,
+    });
   }
 
   return app;
