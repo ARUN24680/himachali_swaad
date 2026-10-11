@@ -10,3 +10,6 @@ export * from './catalog/shelf-life';
 export * from './catalog/batch-code';
 export * from './contracts/catalog';
 export * from './contracts/inventory';
+export * from './contracts/cart';
+export * from './contracts/shipping';
+export * from './contracts/analytics';

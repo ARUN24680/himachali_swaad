@@ -102,11 +102,46 @@ jobs:
   e2e:
     name: E2E smoke (375 / 768 / 1440)
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
+    # The storefront renders products server-side, so e2e runs against the real API + seeded demo catalog
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: pk
+          POSTGRES_PASSWORD: pk_ci
+          POSTGRES_DB: pahadi_khatki
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U pk -d pahadi_khatki"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
     env:
       NEXT_PUBLIC_API_URL: http://localhost:4000
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       VITE_API_URL: http://localhost:4000
+      # Backend (CI-only throwaway values)
+      NODE_ENV: test
+      LOG_LEVEL: warn
+      DATABASE_URL: postgres://pk:pk_ci@localhost:5432/pahadi_khatki?sslmode=disable
+      REDIS_URL: redis://localhost:6379
+      APP_ORIGINS: http://localhost:3000,http://localhost:5173
+      COOKIE_DOMAIN: localhost
+      JWT_SECRET: ci-only-jwt-secret-that-is-at-least-32-characters
+      TOTP_ENC_KEY: Y2ktb25seS10b3RwLWtleS0zMi1ieXRlcy1sb25nISE=
+      STORAGE_DRIVER: local
+      API_PUBLIC_URL: http://localhost:4000
+      SEED_ADMIN_NAME: CI Admin
+      SEED_ADMIN_EMAIL: admin@ci.pahadikhatki.test
+      SEED_ADMIN_PASSWORD: ci-admin-passphrase
+      SEED_PARTNER_NAME: CI Partner
+      SEED_PARTNER_EMAIL: partner@ci.pahadikhatki.test
+      SEED_PARTNER_PHONE: '+919876543210'
+      SEED_PARTNER_PASSWORD: ci-partner-passphrase
     steps:
       - uses: actions/checkout@v7
       # pnpm (from packageManager) + Node (from .nvmrc) + store cache + frozen install, one step
@@ -114,11 +149,22 @@ jobs:
         with:
           cache: true
           require-lockfile: true
+      - name: Migrate + seed demo catalog
+        run: |
+          (cd packages/database && pnpm exec dbmate --migrations-dir ./migrations --no-dump-schema up)
+          (cd apps/backend && pnpm exec tsx scripts/seed-staff.ts && pnpm exec tsx scripts/seed-catalog.ts --demo --publish)
+      - name: Start API
+        run: |
+          (cd apps/backend && nohup pnpm exec tsx src/server.ts > ../../api.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf http://localhost:4000/readyz && break; sleep 1; done
+          curl -sf http://localhost:4000/api/v1/products > /dev/null
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-results
-          path: apps/*/test-results/
+          path: |
+            apps/*/test-results/
+            api.log
           retention-days: 7

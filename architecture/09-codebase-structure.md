@@ -136,6 +136,7 @@ apps/storefront/src/
 │   ├── account/             #   login, orders, orders/[orderCode], addresses
 │   └── (legal)/             #   privacy-policy, terms, refund-cancellation, shipping-policy, grievance
 ├── modules/                 # home · catalog · cart (+store) · checkout · orders · tracking · account · content (about/faq/legal copy)
+│                            #   · analytics (consent store + banner, GA4/Pixel loaders, CAPI relay — Phase 4)
 ├── components/
 │   ├── common/              # PriceTag, ProductImage, EmptyState, SectionHeading …
 │   └── layout/              # Header, Footer, MobileNav, AnnouncementBar
@@ -239,3 +240,5 @@ src/
 | CI first green run, branch protection | Done (PR #1) — real Sentry DSN pending |
 | Auth module, guards, admin login + storefront OTP sheet | **Phase 2 done** (PR #2) |
 | `catalog` + `inventory` modules, `integrations/storage` (R2 + local-disk dev driver), `integrations/storefront` (revalidate), `dev-storage` module (STORAGE_DRIVER=local only), storefront `app/api/revalidate` | **Phase 3** |
+| `cart` (quoteCart), `shipping` (check-pincode + Redis cache), `analytics` (Meta CAPI relay) modules; `integrations/shipping` (stub serviceability), `integrations/meta` (Conversions API) | **Phase 4** |
+| Storefront: home, catalog, PDP, cart drawer (Zustand `pk-cart-v1` + quote), content + legal pages, SEO (metadata, JSON-LD, sitemap, robots, OG), consent + analytics; `lib/server-api.ts` (server fetch + tags), `lib/report-error.ts` (lazy Sentry) | **Phase 4** |

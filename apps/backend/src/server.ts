@@ -4,7 +4,7 @@ import { createDb } from './config/db';
 import { loadEnvOrExit } from './config/env';
 import { createLogger } from './config/logger';
 import { createRedis } from './config/redis';
-import { revalidatorFromEnv, storageFromEnv } from './config/storage';
+import { conversionsFromEnv, revalidatorFromEnv, storageFromEnv } from './config/storage';
 import { flushSentry, initSentry } from './config/sentry';
 
 const env = loadEnvOrExit();
@@ -37,6 +37,7 @@ const app = await buildApp({
   auth: authConfigFromEnv(env),
   storage: storageFromEnv(env),
   revalidator: revalidatorFromEnv(env, logger),
+  capi: conversionsFromEnv(env, logger),
 });
 
 let shuttingDown = false;

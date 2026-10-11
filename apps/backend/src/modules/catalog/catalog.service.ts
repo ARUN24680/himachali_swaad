@@ -184,10 +184,11 @@ export function createCatalogService(deps: {
     // ── Public storefront ───────────────────────────────────────────────
     async listPublic(): Promise<ProductListResponse> {
       const buffer = await inventory.sellableBufferDays();
-      const [products, stock, threshold] = await Promise.all([
+      const [products, stock, threshold, freshest] = await Promise.all([
         repo.listProducts(db, { activeOnly: true }),
         repo.storefrontStock(db, buffer),
         lowStockThreshold(),
+        repo.findFreshestSellableBatch(db, buffer),
       ]);
       const groups = new Map<string, ProductCard[]>();
       for (const p of products) {
@@ -195,7 +196,12 @@ export function createCatalogService(deps: {
         list.push(toCard(p, stock.get(p.id) ?? 0, threshold));
         groups.set(p.product_group, list);
       }
-      return { groups: [...groups].map(([productGroup, variants]) => ({ productGroup, variants })) };
+      return {
+        groups: [...groups].map(([productGroup, variants]) => ({ productGroup, variants })),
+        freshestBatch: freshest
+          ? { batchCode: freshest.batch_code, manufacturedAt: freshest.manufactured_at, productTitle: freshest.title }
+          : null,
+      };
     },
 
     async detailPublic(slug: string): Promise<ProductDetail> {
@@ -234,6 +240,26 @@ export function createCatalogService(deps: {
           ? { batchCode: batch.batch_code, manufacturedAt: batch.manufactured_at, expiryDate: batch.expiry_date }
           : null,
       };
+    },
+
+    /**
+     * Pricing + sellable stock for cart quotes (Phase 4) and order creation (Phase 5). Unknown ids
+     * are simply absent from the result; inactive products come back with `isActive: false`.
+     */
+    async productsForQuote(q: Queryable, ids: string[]) {
+      const buffer = await inventory.sellableBufferDays(q);
+      const [products, stock] = await Promise.all([repo.listProductsByIds(q, ids), repo.storefrontStock(q, buffer)]);
+      return products.map((p) => ({
+        id: p.id,
+        slug: p.slug,
+        title: p.title,
+        netWeightG: p.net_weight_g,
+        image: p.images[0] ? storage.publicUrl(p.images[0]) : null,
+        pricePaise: p.price_paise,
+        comparePricePaise: p.compare_price_paise,
+        isActive: p.is_active,
+        sellableStock: p.is_active ? (stock.get(p.id) ?? 0) : 0,
+      }));
     },
 
     // ── Admin ───────────────────────────────────────────────────────────

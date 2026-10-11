@@ -60,6 +60,11 @@ const EnvSchema = z.object({
   STOREFRONT_REVALIDATE_URL: z.preprocess(emptyToUndefined, z.url().optional()),
   REVALIDATE_SECRET: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
 
+  /** Meta Conversions API (Phase 4 §4.8). Unset → relay disabled. */
+  META_PIXEL_ID: z.preprocess(emptyToUndefined, z.string().regex(/^\d+$/).optional()),
+  META_CAPI_ACCESS_TOKEN: z.preprocess(emptyToUndefined, z.string().optional()),
+  META_CAPI_TEST_EVENT_CODE: z.preprocess(emptyToUndefined, z.string().optional()),
+
   SENTRY_DSN: z.preprocess(emptyToUndefined, z.url().optional()),
   SENTRY_ENVIRONMENT: z.preprocess(emptyToUndefined, z.string().optional()),
   RELEASE: z.preprocess(emptyToUndefined, z.string().optional()),

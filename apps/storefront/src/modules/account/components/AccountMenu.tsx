@@ -26,7 +26,7 @@ export function AccountMenu() {
       <div
         role="status"
         aria-label="Loading your account"
-        className="h-11 w-28 animate-pulse rounded-md bg-muted motion-reduce:animate-none"
+        className="h-11 w-11 animate-pulse rounded-md bg-muted motion-reduce:animate-none sm:w-28"
       />
     );
   } else if (session.data?.user) {
@@ -73,9 +73,10 @@ export function AccountMenu() {
   } else {
     // Signed out — or /me failed (offline): guests can still sign in or browse
     control = (
-      <Button variant="outline" onClick={openSignIn}>
+      <Button variant="outline" onClick={openSignIn} className="w-11 px-0 sm:w-auto sm:px-5">
         <UserRound aria-hidden="true" />
-        Sign in
+        {/* Icon-only on phones to fit the header; the accessible name stays "Sign in" */}
+        <span className="sr-only sm:not-sr-only">Sign in</span>
       </Button>
     );
   }

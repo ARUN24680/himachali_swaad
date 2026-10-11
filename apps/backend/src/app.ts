@@ -5,6 +5,8 @@ import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
 import type { Db } from './config/db';
 import type { ErrorReporter } from './config/sentry';
+import type { ConversionsClient } from './integrations/meta/conversions';
+import { createStubServiceabilityProvider, type ServiceabilityProvider } from './integrations/shipping/serviceability';
 import type { OtpProvider } from './integrations/sms/otp-provider';
 import type { LocalDiskStorage } from './integrations/storage/local-disk';
 import type { ObjectStorage } from './integrations/storage/storage';
@@ -14,6 +16,9 @@ import type { CookieConfig } from './modules/auth/auth.cookies';
 import { authRoutes } from './modules/auth/auth.routes';
 import { createAuthService } from './modules/auth/auth.service';
 import { createTokenService } from './modules/auth/auth.tokens';
+import { analyticsRoutes } from './modules/analytics/analytics.routes';
+import { cartRoutes } from './modules/cart/cart.routes';
+import { createCartService } from './modules/cart/cart.service';
 import { adminCatalogRoutes, publicCatalogRoutes } from './modules/catalog/catalog.routes';
 import { createCatalogService } from './modules/catalog/catalog.service';
 import { devStorageRoutes } from './modules/dev-storage/dev-storage.routes';
@@ -21,6 +26,8 @@ import { healthRoutes } from './modules/health/health.routes';
 import { createHealthService } from './modules/health/health.service';
 import { inventoryRoutes } from './modules/inventory/inventory.routes';
 import { createInventoryService } from './modules/inventory/inventory.service';
+import { shippingRoutes } from './modules/shipping/shipping.routes';
+import { createShippingService } from './modules/shipping/shipping.service';
 import { partnerRoutes } from './modules/partner/partner.routes';
 import { createPartnerService } from './modules/partner/partner.service';
 import { adminSettingsRoutes } from './modules/settings/settings.routes';
@@ -49,6 +56,10 @@ export interface AppDeps {
   storage: ObjectStorage;
   /** Purges storefront cache tags after catalog/stock writes. */
   revalidator: StorefrontRevalidator;
+  /** Meta Conversions API (disabled no-op without credentials). */
+  capi: ConversionsClient;
+  /** Pincode serviceability; defaults to the stub until Phase 6 (Shiprocket). */
+  serviceability?: ServiceabilityProvider;
   trustProxy?: boolean;
   rateLimit?: { max: number; windowMs: number };
 }
@@ -129,6 +140,19 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await app.register(publicCatalogRoutes, { prefix: '/api/v1/products', service: catalogService });
   await app.register(adminCatalogRoutes, { prefix: '/api/v1/admin', service: catalogService, guards });
+  await app.register(cartRoutes, {
+    prefix: '/api/v1/cart',
+    service: createCartService({ db: deps.db, catalog: catalogService, settings: settingsService }),
+  });
+  await app.register(shippingRoutes, {
+    prefix: '/api/v1/shipping',
+    service: createShippingService({
+      redis: deps.redis,
+      provider: deps.serviceability ?? createStubServiceabilityProvider(),
+      logger: deps.logger,
+    }),
+  });
+  await app.register(analyticsRoutes, { prefix: '/api/v1/analytics', capi: deps.capi });
   await app.register(inventoryRoutes, { prefix: '/api/v1/batches', service: inventoryService, guards });
   if (deps.storage.kind === 'local') {
     await app.register(devStorageRoutes, { storage: deps.storage as LocalDiskStorage });

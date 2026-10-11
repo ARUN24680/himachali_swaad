@@ -11,14 +11,24 @@ function imageRemotePattern(): URL {
   return new URL(`${base.replace(/\/+$/, '')}/products/**`);
 }
 
+const imagePattern = imageRemotePattern();
+/**
+ * Next 16 refuses to optimise images from private IPs (SSRF guard). Allow it ONLY when images are
+ * served by the local dev backend (localhost /dev-assets, STORAGE_DRIVER=local) — never for a CDN host.
+ */
+const localImageOrigin = ['localhost', '127.0.0.1', '[::1]'].includes(imagePattern.hostname);
+
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Keeps dev-server screenshots (Phase evidence) free of the floating Next badge
+  devIndicators: false,
   // Workspace packages ship TypeScript source (Just-in-Time packages)
   transpilePackages: ['@pk/ui', '@pk/shared'],
   images: {
     formats: ['image/avif', 'image/webp'],
-    remotePatterns: [imageRemotePattern()],
+    remotePatterns: [imagePattern],
+    dangerouslyAllowLocalIP: localImageOrigin,
   },
 };
 
