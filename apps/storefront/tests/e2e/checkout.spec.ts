@@ -1,6 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import { expectNoHorizontalOverflow, seedConsentDeclined } from './helpers';
 
+// CI runs `next dev`: the first visit to /checkout and /order/[orderCode] compiles the route, which can
+// take well over Playwright's 5 s expect default — give navigations and the whole flow room.
+const NAV = { timeout: 45_000 };
+test.describe.configure({ timeout: 120_000 });
+
 /**
  * Phase 5 checkout E2E at 375 / 768 / 1440, against the REAL API (CI: seed-catalog --demo --publish,
  * PAYMENT_GATEWAY=mock). Nothing on the order/payment path is mocked — the mock gateway's dialog
@@ -25,7 +30,7 @@ async function addJarAndCheckout(page: Page) {
   await expect(page.getByTestId('cart-button')).toHaveAccessibleName('Cart, 1 jar');
   await page.getByTestId('cart-button').click();
   await page.getByTestId('cart-drawer').getByRole('link', { name: 'Checkout' }).click();
-  await expect(page).toHaveURL(/\/checkout$/);
+  await expect(page).toHaveURL(/\/checkout$/, NAV);
   await expect(page.getByRole('heading', { level: 1, name: 'Checkout' })).toBeVisible();
   await expect(page.getByTestId('summary-line')).toHaveCount(1);
 }
@@ -63,7 +68,7 @@ test('cart → checkout → mock "Pay successfully" → /order/PK-XXXXXX confirm
   await expect(visible(page, 'reservation-timer')).toContainText(/1[0-5]:\d\d/);
   await mock.getByRole('button', { name: 'Pay successfully' }).click();
 
-  await expect(page).toHaveURL(/\/order\/PK-[0-9A-HJKMNP-TV-Z]{6}$/);
+  await expect(page).toHaveURL(/\/order\/PK-[0-9A-HJKMNP-TV-Z]{6}$/, NAV);
   await expect(page.getByTestId('order-confirmed')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('order-status')).toHaveText('Confirmed');
   await expect(page.getByText(/Delivering to\s+Kullu/)).toBeVisible();
@@ -86,7 +91,7 @@ test('mock "Fail payment" → retry state → same order pays', async ({ page })
   await retry.getByRole('button', { name: 'Retry payment' }).click();
   await expect(mock).toBeVisible();
   await mock.getByRole('button', { name: 'Pay successfully' }).click();
-  await expect(page).toHaveURL(/\/order\/PK-/);
+  await expect(page).toHaveURL(/\/order\/PK-/, NAV);
   await expect(page.getByTestId('order-confirmed')).toBeVisible({ timeout: 20_000 });
 });
 
@@ -96,7 +101,7 @@ test('mock "Pay, then close browser" → order page confirms via webhook polling
   await visible(page, 'pay-button').click();
   await page.getByTestId('mock-payment').getByRole('button', { name: 'Pay, then close browser' }).click();
 
-  await expect(page).toHaveURL(/\/order\/PK-[0-9A-HJKMNP-TV-Z]{6}$/);
+  await expect(page).toHaveURL(/\/order\/PK-[0-9A-HJKMNP-TV-Z]{6}$/, NAV);
   // No client verify: the page shows "Confirming…" until the (≈2 s late) webhook confirms the order
   await expect(page.getByTestId('order-confirming')).toBeVisible();
   if (process.env.EVIDENCE) {

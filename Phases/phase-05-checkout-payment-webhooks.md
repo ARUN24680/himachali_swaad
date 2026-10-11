@@ -94,7 +94,7 @@
 ---
 
 ## 🔍 Verification Checklist
-- [ ] Migration `0003` up/down/up CI green.
+- [x] Migration `0003` up/down/up CI green. — ✅ PR #6 CI job "Migrations up → down → up (PostgreSQL 17)" pass, run https://github.com/ARUN24680/himachali_swaad/actions/runs/38164679303
 - [x] **Concurrency**: 10 parallel `create-order` for last 1 jar → exactly 1 `201`, 9 `409 OUT_OF_STOCK`, `available_stock = 0`, ledger invariant holds (test `reservation-concurrency.test.ts`). — ✅ `reservation-concurrency.test.ts › 10 parallel checkouts`
 - [x] Multi-item orders in opposite product order, 50 parallel runs → zero deadlocks (test). — ✅ `reservation-concurrency.test.ts › 50 parallel`
 - [x] Split allocation: batches 3 + 3, order 5 → 2 allocation rows, expiry-earlier batch first; `NOT_SELLABLE` batch untouched (test). — ✅ `reservation-concurrency.test.ts › splits across batches`
