@@ -11,6 +11,7 @@ import {
   type ServiceabilityProvider,
 } from './integrations/shipping/serviceability';
 import type { PushSender } from './integrations/push/web-push';
+import type { MessagingDeps } from './config/messaging';
 import type { ShiprocketApi } from './integrations/shiprocket/client';
 import type { ShiprocketSandbox } from './integrations/shiprocket/sandbox';
 import type { FastifyPluginAsync } from 'fastify';
@@ -44,6 +45,10 @@ import { checkoutRoutes } from './modules/checkout/checkout.routes';
 import { devPaymentRoutes } from './modules/dev-payments/dev-payments.routes';
 import { devShippingRoutes } from './modules/dev-shipping/dev-shipping.routes';
 import { labelRoutes } from './modules/logistics/logistics.routes';
+import { myOrdersRoutes, trackRoutes } from './modules/tracking/tracking.routes';
+import { whatsappWebhookRoutes } from './modules/notifications/whatsapp-webhook.routes';
+import { devMessageRoutes } from './modules/dev-messages/dev-messages.routes';
+import type { MockMessageProvider } from './integrations/messaging/mock';
 import { adminOrderRoutes, orderRoutes } from './modules/orders/orders.routes';
 import { paymentsRoutes } from './modules/payments/payments.routes';
 import { webhookRoutes } from './modules/webhooks/webhooks.routes';
@@ -85,6 +90,8 @@ export interface AppDeps {
   shiprocketSandbox?: { state: ShiprocketSandbox; plugin: FastifyPluginAsync };
   /** Web Push sender (Phase 7). */
   push: PushSender;
+  /** WhatsApp / SMS / e-mail + webhook secrets (Phase 8). */
+  messaging: MessagingDeps;
   /** Clock override for logistics (tests). */
   now?: () => Date;
   /** PIN → city/state auto-fill; defaults to India Post. */
@@ -166,6 +173,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     shiprocket: deps.shiprocket,
     courierWebhookToken: deps.courierWebhookToken,
     push: deps.push,
+    messaging: deps.messaging,
     now: deps.now,
   });
   const settingsService = svc.settings;
@@ -224,6 +232,24 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(adminOrderRoutes, { prefix: '/api/v1/admin/orders', service: svc.orders, guards });
   await app.register(accountRoutes, { prefix: '/api/v1/me', service: svc.account, guards });
   await app.register(webhookRoutes, { prefix: '/api/v1/webhooks', service: svc.webhooks });
+
+  // ── Phase 8: tracking ───────────────────────────────────────────────────
+  await app.register(trackRoutes, { prefix: '/api/v1', service: svc.tracking });
+  await app.register(myOrdersRoutes, { prefix: '/api/v1/me', service: svc.tracking, guards });
+  await app.register(whatsappWebhookRoutes, {
+    prefix: '/api/v1/webhooks',
+    messages: svc.messages,
+    appSecret: deps.messaging.webhook.appSecret,
+    verifyToken: deps.messaging.webhook.verifyToken,
+  });
+  if (deps.messaging.whatsapp.name === 'mock-whatsapp' && deps.messaging.sms.name === 'mock-sms') {
+    await app.register(devMessageRoutes, {
+      prefix: '/api/v1/dev/messages',
+      whatsapp: deps.messaging.whatsapp as MockMessageProvider,
+      sms: deps.messaging.sms as MockMessageProvider,
+      appSecret: deps.messaging.webhook.appSecret,
+    });
+  }
 
   // ── Phase 6: logistics ──────────────────────────────────────────────────
   await app.register(labelRoutes, { prefix: '/api/v1', service: svc.logistics, guards });

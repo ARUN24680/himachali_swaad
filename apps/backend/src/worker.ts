@@ -8,6 +8,7 @@ import { createProcessors, SCHEDULES } from './jobs/processors';
 import { createBullJobQueue } from './jobs/queues';
 import { startWorkers } from './jobs/runner';
 import { pushFromEnv, shippingFromEnv } from './config/shipping';
+import { messagingFromEnv } from './config/messaging';
 import { createSweepers } from './jobs/sweepers';
 import { createCommerceServices } from './services';
 
@@ -56,6 +57,7 @@ const svc = createCommerceServices({
   shiprocket: shipping.shiprocket,
   courierWebhookToken: shipping.webhookToken,
   push: pushFromEnv(env),
+  messaging: messagingFromEnv(env, connection, logger),
 });
 const sweepers = createSweepers({ db, svc, gateway, jobs, logger, reporter });
 const processors = createProcessors({ db, svc, sweepers, logger });

@@ -10,6 +10,7 @@ import {
   Hourglass,
   Loader2,
   Lock,
+  MapPin,
   MessageCircle,
   PackageX,
   RefreshCcw,
@@ -330,6 +331,14 @@ function OrderBody({
             ? 'You opted in to WhatsApp — dispatch and delivery updates will come there as well as by SMS.'
             : 'Dispatch and delivery updates come by SMS to the number you used at checkout.'}
         </p>
+        <Link
+          href={`/track?code=${order.orderCode}`}
+          className={`${buttonVariants({ variant: 'outline' })} mt-4 w-full sm:w-auto`}
+          data-testid="order-track-link"
+        >
+          <MapPin aria-hidden="true" />
+          {confirmed ? 'Track this order anytime' : 'Track your parcel'}
+        </Link>
       </section>
     </Layout>
   );

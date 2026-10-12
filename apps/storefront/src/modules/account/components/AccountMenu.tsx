@@ -9,7 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@pk/ui';
-import { ChevronDown, Loader2, LogOut, UserRound } from 'lucide-react';
+import { ChevronDown, Loader2, LogOut, Package, UserRound } from 'lucide-react';
+import Link from 'next/link';
 import { useSignOut } from '../hooks/useAuthMutations';
 import { useSession } from '../hooks/useSession';
 import { openSignIn } from '../store/account-ui.store';
@@ -59,6 +60,13 @@ export function AccountMenu() {
             <span className="block text-xs text-muted-foreground">Signed in as</span>
             <span className="block font-medium text-foreground tabular-nums">{phone}</span>
           </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/account/orders">
+              <Package aria-hidden="true" />
+              My orders
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={signOut.isPending}

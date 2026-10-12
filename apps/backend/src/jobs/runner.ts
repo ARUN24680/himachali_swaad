@@ -1,4 +1,4 @@
-import { UnrecoverableError, Worker, type ConnectionOptions, type Job } from 'bullmq';
+import { DelayedError, UnrecoverableError, Worker, type ConnectionOptions, type Job } from 'bullmq';
 import type { Logger } from 'pino';
 import type { ErrorReporter } from '../config/sentry';
 import { ShiprocketError } from '../integrations/shiprocket/client';
@@ -17,6 +17,7 @@ const LOGISTICS_JOBS: ReadonlySet<JobName> = new Set([
 
 /** Only network / 5xx / 429 are worth retrying (Phase 6 §6.1); the rest dead-letter now. */
 export function toJobError(err: unknown): unknown {
+  if (err instanceof DelayedError) return err;
   if (err instanceof PermanentJobError || (err instanceof ShiprocketError && !err.retryable)) {
     return new UnrecoverableError(err.message);
   }
@@ -40,13 +41,13 @@ export function startWorkers(deps: {
     (queue) =>
       new Worker(
         queue,
-        async (job: Job) => {
+        async (job: Job, token?: string) => {
           const handler = processors[job.name as JobName];
           if (!handler || JOB_QUEUE[job.name as JobName] !== queue) {
             throw new UnrecoverableError(`Unknown job ${queue}/${job.name}`);
           }
           try {
-            return await (handler as (d: unknown, j: Job) => Promise<unknown>)(job.data, job);
+            return await (handler as (d: unknown, j: Job, t?: string) => Promise<unknown>)(job.data, job, token);
           } catch (err) {
             throw toJobError(err);
           }

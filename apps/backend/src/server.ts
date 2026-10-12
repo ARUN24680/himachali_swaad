@@ -12,6 +12,7 @@ import {
   storageFromEnv,
 } from './config/storage';
 import { pushFromEnv, SANDBOX_PATH, shippingFromEnv } from './config/shipping';
+import { messagingFromEnv } from './config/messaging';
 import { createShiprocketSandbox } from './integrations/shiprocket/sandbox';
 import { joinUrl } from './integrations/storage/storage';
 import { createBullJobQueue } from './jobs/queues';
@@ -59,6 +60,7 @@ const app = await buildApp({
   shiprocket: shipping.shiprocket,
   courierWebhookToken: shipping.webhookToken,
   push: pushFromEnv(env),
+  messaging: messagingFromEnv(env, redis, logger),
   // env.ts refuses the sandbox in production
   ...(shipping.sandbox
     ? { shiprocketSandbox: createShiprocketSandbox({ baseUrl: () => joinUrl(env.API_PUBLIC_URL, SANDBOX_PATH) }) }

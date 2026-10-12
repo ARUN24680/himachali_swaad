@@ -303,7 +303,8 @@ export function createPaymentsService(deps: {
     idempotencyKey: string | null,
     status: 'processed' | 'failed',
   ): Promise<boolean> {
-    return db.transaction(async (client) => {
+    let processedRefundId: string | null = null;
+    const known = await db.transaction(async (client) => {
       const refund = await repo.findRefundForWebhook(client, gatewayRefundId, idempotencyKey);
       if (!refund) return false;
       const order = await orderStore.findById(client, refund.order_id, 'update');
@@ -320,6 +321,7 @@ export function createPaymentsService(deps: {
       }
 
       if (!(await repo.markRefundProcessed(client, refund.id, gatewayRefundId))) return true; // replay
+      if (orderLevel) processedRefundId = refund.id;
       if (orderLevel && order.payment_status === 'REFUND_PENDING') {
         const sums = await repo.sumOrderRefunds(client, order.id);
         if (sums.pending === 0) {
@@ -334,6 +336,15 @@ export function createPaymentsService(deps: {
       }
       return true;
     });
+    // Customer message after COMMIT (D-30); dedup by refund id
+    if (processedRefundId) {
+      const id: string = processedRefundId;
+      await enqueue(
+        () => jobs.add('REFUND_PROCESSED', { refundId: id }, jobIds.notify('refund_processed', id)),
+        'refund-notify',
+      );
+    }
+    return known;
   }
 }
 

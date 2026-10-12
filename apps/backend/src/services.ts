@@ -4,6 +4,7 @@ import type { Db } from './config/db';
 import type { ErrorReporter } from './config/sentry';
 import type { PaymentGateway } from './integrations/razorpay/gateway';
 import type { PushSender } from './integrations/push/web-push';
+import type { MessagingDeps } from './config/messaging';
 import type { ShiprocketApi } from './integrations/shiprocket/client';
 import type { PincodeDirectory } from './integrations/shipping/pincode-directory';
 import type { ObjectStorage } from './integrations/storage/storage';
@@ -17,7 +18,9 @@ import { createCheckoutService } from './modules/checkout/checkout.service';
 import { createInventoryService } from './modules/inventory/inventory.service';
 import { createLogisticsService } from './modules/logistics/logistics.service';
 import { createNotificationsService } from './modules/notifications/notifications.service';
+import { createMessagesService } from './modules/notifications/messages.service';
 import { createPartnerService } from './modules/partner/partner.service';
+import { createTrackingService } from './modules/tracking/tracking.service';
 import { createInvoiceService } from './modules/orders/invoice.service';
 import { createOrdersService } from './modules/orders/orders.service';
 import { createPaymentsService } from './modules/payments/payments.service';
@@ -42,6 +45,8 @@ export interface CommerceDeps {
   courierWebhookToken: string;
   /** Web Push for partner alerts (Phase 7); disabled sender without VAPID keys. */
   push: PushSender;
+  /** WhatsApp / SMS / e-mail providers + message config (Phase 8). */
+  messaging: Omit<MessagingDeps, 'webhook'>;
   /** Clock for logistics cut-off / pickup-missed logic (tests). */
   now?: () => Date;
 }
@@ -126,6 +131,18 @@ export function createCommerceServices(d: CommerceDeps) {
     logger: d.logger,
     now: d.now,
   });
+  const messages = createMessagesService({
+    db: d.db,
+    redis: d.redis,
+    whatsapp: d.messaging.whatsapp,
+    sms: d.messaging.sms,
+    email: d.messaging.email,
+    jobs: d.jobs,
+    logger: d.logger,
+    config: d.messaging.config,
+    now: d.now,
+  });
+  const tracking = createTrackingService({ db: d.db, redis: d.redis, orders, logger: d.logger });
   return {
     settings,
     inventory,
@@ -140,6 +157,8 @@ export function createCommerceServices(d: CommerceDeps) {
     logistics,
     notifications,
     partner,
+    tracking,
+    messages,
   };
 }
 

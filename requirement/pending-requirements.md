@@ -2,7 +2,7 @@
 
 > **Kyun yeh file:** abhi focus poora system end-to-end complete karne par hai. Jo kaam kisi bahar ki cheez (account, keys, CA/lawyer, business decision, deploy) par atka hai, ya jise jaan-boojh kar baad ke liye chhoda gaya, woh sab yahan ek jagah hai — taaki baad me yeh "sub-flows" jod sakein.
 > **Source:** `Phases/phase-0X-*.md` ke unticked checklist items, `architecture/08-decisions-log.md` (Q-01…Q-07, PROPOSED decisions, D-52/D-53 notes).
-> **Last updated:** 2026-10-12 (Phase 7 backend + packing desk PWA).
+> **Last updated:** 2026-10-12 (Phase 8 tracking + notifications).
 > **Rule:** kuch bhi pura karo toh yahan `[x]` + evidence likho **aur** asli phase file me bhi tick karo (AGENTS.md §4).
 
 **Legend:** 🔑 = account/keys chahiye · 🧾 = CA/lawyer/business decision · 🚀 = deploy/public URL chahiye · 🧑‍🍳 = kitchen/physical kaam · 🛠️ = code baaki · ⏭️ = aage ke phase me plan
@@ -107,14 +107,26 @@
 | D-6 | WhatsApp `new_order_alert` / digest fallback ka asli **sender** | ⏭️ Phase 8 (B-11) | `WHATSAPP_SEND` consumer |
 | D-7 | Partner ka real-phone walkthrough (bina training ke install → push → pack → Mark Packed) — phase DoD | 📱 + partner | Manual evidence |
 
+## 7b. 🔔 Phase 8 — Tracking & Notifications
+
+| # | Kya bacha hai | Blocked on | Kya karna hai |
+| :-- | :-- | :-- | :-- |
+| M-1 | **WhatsApp Cloud API** (ya BSP — Q-06): number + display name approval, templates approve (`packages/shared/src/notifications/templates.ts` ke naam + variables same rakhna) | 🔑 Meta Business (B-11) | `.env`: `WHATSAPP_PROVIDER=cloud`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`; Meta webhook URL `https://<api>/api/v1/webhooks/whatsapp` |
+| M-2 | **MSG91 SMS** DLT templates (critical 5: order_confirmed, out_for_delivery, delivery_attempt_failed, order_cancelled, refund_processed) | 🔑 TRAI DLT (B-11) | `SMS_PROVIDER=msg91`, `MSG91_AUTH_KEY`, `MSG91_SMS_TEMPLATES` JSON |
+| M-3 | Staging par real number par "status change → WhatsApp < 10 s" check | M-1, 🚀 | Manual evidence (Phase 8 checklist ka last item) |
+| M-4 | **Admin alert numbers + e-mail**: `ADMIN_ALERT_PHONES`, `ADMIN_ALERT_EMAIL`; e-mail provider abhi log-only — provider choose karna (Resend / SES / SMTP) | 🧾 decision | `integrations/messaging` me EmailSender implement |
+| M-5 | **Support WhatsApp number** `NEXT_PUBLIC_SELLER_WHATSAPP` (storefront) — tab tak /track ka help button /contact par jata hai | 🧾 Admin | storefront env |
+| M-6 | Customer message language — abhi `CUSTOMER_MESSAGE_LANGUAGE=en`; checkout par language choice chahiye ho toh decide | 🧾 decision | — |
+| M-7 | Partner phone numbers `users.phone` me hon (WhatsApp fallback ke liye) | 🧾 Admin (staff setup) | Phase 9 staff screen |
+
 ## 8. ⏭️ Aage ke phases me already planned (sirf yaad ke liye)
 
 | # | Kya | Kab |
 | :-- | :-- | :-- |
 | N-1 | ✅ Done (Phase 7): `mark-packed` → `SHIPROCKET_SCHEDULE_PICKUP` | — |
 | N-2 | ✅ Done (Phase 7): manifests + A4 4-up label sheet on the desk | — |
-| N-3 | Notifications **bhejna** — abhi sirf enqueue hote hain (`ORDER_CONFIRMED`, `ORDER_CANCELLED`, `ORDER_STATUS_NOTIFY`, `ADMIN_ALERT` consumers no-op) | Phase 8 |
-| N-4 | Guest orders "My Orders" me same phone se dikhna | Phase 8 |
+| N-3 | ✅ Done (Phase 8): notification consumers send (mock until M-1/M-2) | — |
+| N-4 | ✅ Done (Phase 8): `/me/orders` includes guest orders with the verified phone | — |
 | N-5 | Admin UI: cancel/refund, retry booking, ops-issue resolve, settings edit, webhook replay | Phase 9 |
 | N-6 | Phase 2 checklist ka "expired refresh tokens daily cleanup" — **code Phase 5 me ho gaya** (`CLEANUP_REFRESH_TOKENS` 03:45 IST); Phase 2 file me evidence ke saath tick karna baaki | housekeeping |
 

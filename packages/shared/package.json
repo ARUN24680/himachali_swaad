@@ -10,7 +10,8 @@
     "./patterns": "./src/schemas/patterns.ts",
     "./limits": "./src/constants/limits.ts",
     "./order": "./src/order/index.ts",
-    "./logistics": "./src/logistics/index.ts"
+    "./logistics": "./src/logistics/index.ts",
+    "./notifications": "./src/notifications/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

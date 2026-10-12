@@ -18,6 +18,7 @@ import {
   testGateway,
   testPrivateStorage,
   testStorage,
+  testMessaging,
 } from '../helpers/test-app';
 import { silentLogger } from '../helpers/test-logger';
 import { TEST_COURIER_TOKEN, unreachableShiprocket } from '../helpers/shiprocket';
@@ -64,6 +65,7 @@ const deps = () => {
     shiprocket: unreachableShiprocket(),
     courierWebhookToken: TEST_COURIER_TOKEN,
     push: createWebPushSender({}),
+    messaging: testMessaging(redis),
   });
   const sweepers = createSweepers({ db: t.db, svc, gateway, jobs, logger: silentLogger(), reporter });
   return { svc, sweepers, processors: createProcessors({ db: t.db, svc, sweepers, logger: silentLogger() }) };

@@ -59,6 +59,11 @@ export function SiteFooter({ consentControl }: { consentControl?: ReactNode }) {
             <li>{consentControl}</li>
           </FooterCol>
           <FooterCol title="Customer care" wide>
+            <li>
+              <Link href="/track" className={linkCls}>
+                Track your order
+              </Link>
+            </li>
             <li className="flex min-h-9 items-center gap-2">
               <Phone aria-hidden="true" className="size-4 shrink-0" />
               <PendingValue value={seller.phone} label="Customer care phone">

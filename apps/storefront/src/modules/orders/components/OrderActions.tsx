@@ -26,8 +26,11 @@ export function InvoiceButton({ orderCode, phone }: { orderCode: string; phone: 
   );
 }
 
-/** Customer self-cancel (session owners, CONFIRMED / AWAITING_PACKING only — `canCancel` from the API). */
-export function CancelOrderButton({ orderCode }: { orderCode: string }) {
+/**
+ * Customer self-cancel (session owners, CONFIRMED / AWAITING_PACKING only — `canCancel` from the API).
+ * `onCancelled` lets other views (My orders, Phase 8) refresh their own queries.
+ */
+export function CancelOrderButton({ orderCode, onCancelled }: { orderCode: string; onCancelled?: () => void }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -39,7 +42,12 @@ export function CancelOrderButton({ orderCode }: { orderCode: string }) {
       setFieldError('Tell us why (a few words is fine)');
       return;
     }
-    cancel.mutate(reason.trim(), { onSuccess: () => setOpen(false) });
+    cancel.mutate(reason.trim(), {
+      onSuccess: () => {
+        setOpen(false);
+        onCancelled?.();
+      },
+    });
   };
 
   const serverError = cancel.error

@@ -22,8 +22,17 @@ export interface JobPayloads {
   ADMIN_ALERT: { kind: string; orderId: string | null; message: string };
   /** Push to the kitchen's partners (Phase 7 §7.3); WhatsApp fallback via WHATSAPP_SEND. */
   PARTNER_NEW_ORDER_ALERT: { orderId: string };
-  /** WhatsApp template to a user (partner fallback now, customers in Phase 8) — Phase 8 consumer. */
-  WHATSAPP_SEND: { template: string; userId: string | null; orderId: string | null };
+  /** WhatsApp template to a staff user (partner push fallback). */
+  WHATSAPP_SEND: {
+    template: string;
+    userId: string | null;
+    orderId: string | null;
+    variables?: Record<string, string>;
+  };
+  /** Customer refund_processed message (Phase 8 §8.5). */
+  REFUND_PROCESSED: { refundId: string };
+  /** End of an admin-alert batching window: one summary message with the count (Phase 8 §8.6). */
+  ADMIN_ALERT_SUMMARY: { kind: string; window: string };
   EXPIRE_RESERVATIONS: Record<string, never>;
   RECONCILE_CONFIRMED: Record<string, never>;
   RECONCILE_REFUNDS: Record<string, never>;
@@ -49,6 +58,8 @@ export const JOB_QUEUE: Record<JobName, QueueName> = {
   ADMIN_ALERT: 'notify',
   PARTNER_NEW_ORDER_ALERT: 'notify',
   WHATSAPP_SEND: 'notify',
+  REFUND_PROCESSED: 'notify',
+  ADMIN_ALERT_SUMMARY: 'notify',
   EXPIRE_RESERVATIONS: 'cron',
   RECONCILE_CONFIRMED: 'cron',
   RECONCILE_REFUNDS: 'cron',
@@ -90,13 +101,21 @@ const RETRIES: Partial<Record<JobName, number>> = {
   ADMIN_ALERT: 3,
   PARTNER_NEW_ORDER_ALERT: 3,
   WHATSAPP_SEND: 3,
+  REFUND_PROCESSED: 3,
+  ADMIN_ALERT_SUMMARY: 3,
 };
 
 export const DEFAULT_BACKOFF_MS = 30_000;
 
-export function jobOptions(name: JobName, jobId?: string, backoffMs = DEFAULT_BACKOFF_MS): JobsOptions {
+export function jobOptions(
+  name: JobName,
+  jobId?: string,
+  backoffMs = DEFAULT_BACKOFF_MS,
+  delayMs?: number,
+): JobsOptions {
   return {
     ...(jobId ? { jobId } : {}),
+    ...(delayMs && delayMs > 0 ? { delay: delayMs } : {}),
     attempts: RETRIES[name] ?? 1,
     // Only retryable failures come back: non-retryable ones throw UnrecoverableError (jobs/runner.ts)
     backoff: { type: 'exponential', delay: backoffMs },
@@ -108,7 +127,7 @@ export function jobOptions(name: JobName, jobId?: string, backoffMs = DEFAULT_BA
 
 /** What services depend on — tests swap in a recorder. */
 export interface JobQueue {
-  add<N extends JobName>(name: N, data: JobPayloads[N], jobId?: string): Promise<void>;
+  add<N extends JobName>(name: N, data: JobPayloads[N], jobId?: string, opts?: { delayMs?: number }): Promise<void>;
 }
 
 export interface BullJobQueue extends JobQueue {
@@ -123,8 +142,8 @@ export function createBullJobQueue(connection: ConnectionOptions, opts: { backof
   );
   return {
     queues,
-    async add(name, data, jobId) {
-      await queues.get(JOB_QUEUE[name])!.add(name, data, jobOptions(name, jobId, opts.backoffMs));
+    async add(name, data, jobId, addOpts) {
+      await queues.get(JOB_QUEUE[name])!.add(name, data, jobOptions(name, jobId, opts.backoffMs, addOpts?.delayMs));
     },
     async close() {
       await Promise.all([...queues.values()].map((q) => q.close()));

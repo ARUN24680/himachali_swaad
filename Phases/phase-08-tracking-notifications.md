@@ -19,9 +19,12 @@ Har message `notifications_log` me traceable hoga.
 ## 📋 Granular Tasks & Checklist
 
 ### 8.1 Public Tracking API (`POST /api/v1/track`, D-39)
-- [ ] Zod: `{ orderCode: /^PK-[0-9A-HJKMNP-TV-Z]{6}$/, phone: 10-digit Indian mobile }` — **dono required**. Sirf phone se lookup nahi.
-- [ ] Rate limit: 10 requests / 10 min per IP + per orderCode; mismatch par generic "Order not found" (enumeration se bachne ke liye same response).
-- [ ] Response (**no PII** beyond first name + city):
+- [x] Zod: `{ orderCode: /^PK-[0-9A-HJKMNP-TV-Z]{6}$/, phone: 10-digit Indian mobile }` — **dono required**. Sirf phone se lookup nahi.
+  > `packages/shared/src/contracts/tracking.ts` — both required; phone 10-digit or +91 (normalised, D-55 a); `apps/backend/tests/integration/track.test.ts` › 400 on bad phone.
+- [x] Rate limit: 10 requests / 10 min per IP + per orderCode; mismatch par generic "Order not found" (enumeration se bachne ke liye same response).
+  > `apps/backend/tests/integration/track.test.ts` › "11th lookup … per IP → 429; … per order code → 429"; same 404 body for wrong phone and unknown code.
+- [x] Response (**no PII** beyond first name + city):
+  > `apps/backend/tests/integration/track.test.ts` › privacy snapshot (keys + no phone/address/email/pincode). Shape per phase file (D-55 a).
   ```json
   {
     "orderCode": "PK-7KQ2M9",
@@ -35,7 +38,8 @@ Har message `notifications_log` me traceable hoga.
     "timeline": [ { "key": "BOTTLED", "label": "Bottled in Himachal", "at": "2026-10-04" }, "…" ]
   }
   ```
-- [ ] **Timeline merge:** `order_status_logs` (internal milestones) + `tracking_events` (courier scans) → time-sorted, customer-friendly labels:
+- [x] **Timeline merge:** `order_status_logs` (internal milestones) + `tracking_events` (courier scans) → time-sorted, customer-friendly labels:
+  > `apps/backend/tests/integration/track.test.ts` › "timeline merges bottling + our milestones + courier scans" (first transit scan folded into handover, D-55 c).
   | Source | Label |
   | :--- | :--- |
   | Batch `manufactured_at` | 🏔️ Bottled in Himachal (batch code + date) |
@@ -47,21 +51,30 @@ Har message `notifications_log` me traceable hoga.
   | `DELIVERED` | 🏡 Delivered |
   | `DELIVERY_FAILED` | ⚠️ Delivery attempt failed — help CTA |
   | `CANCELLED` / refund | ↩️ Cancelled · refund status |
-- [ ] Response cache: Redis 60s per order (webhook processing par invalidate).
+- [x] Response cache: Redis 60s per order (webhook processing par invalidate).
+  > 60 s Redis, key = order + shipment `updated_at` → webhook invalidates automatically (D-55 b); `apps/backend/tests/integration/track.test.ts` › "cached for 60 s, but a courier webhook shows up immediately".
 
 ### 8.2 Tracking Page (`apps/storefront/src/app/track/page.tsx`)
-- [ ] Form: Order code + phone (`/order/[orderCode]` page aur WhatsApp link se `?code=` prefill; phone hamesha user type kare).
-- [ ] Vertical stepper (mobile) / horizontal (desktop), semantic tokens (`--success`, `--warning`, `--info`) — koi hardcoded color nahi.
-- [ ] Courier AWB + "Track on courier site" link, ETD.
-- [ ] WhatsApp support CTA: *"Parcel ke baare me help chahiye? Chat with us"* (pre-filled order code).
-- [ ] Skeleton loaders, error/empty states, `noindex` meta.
+- [x] Form: Order code + phone (`/order/[orderCode]` page aur WhatsApp link se `?code=` prefill; phone hamesha user type kare).
+  > `apps/storefront/tests/e2e/track.spec.ts` (`?code` prefill, phone never in URL); `/order/[code]` links to `/track?code=`.
+- [x] Vertical stepper (mobile) / horizontal (desktop), semantic tokens (`--success`, `--warning`, `--info`) — koi hardcoded color nahi.
+  > `apps/storefront/src/modules/tracking/components/JourneyTimeline.tsx` (vertical < 1024 px, horizontal ≥ 1024, tone tokens); `apps/storefront/tests/e2e/track.spec.ts` asserts layout; `pnpm check:colors`.
+- [x] Courier AWB + "Track on courier site" link, ETD.
+  > `Phases/evidence/phase-08/track-in-transit-*` (AWB copy, "Track on courier site", ETD band).
+- [x] WhatsApp support CTA: *"Parcel ke baare me help chahiye? Chat with us"* (pre-filled order code).
+  > `src/lib/whatsapp.ts` from `NEXT_PUBLIC_SELLER_WHATSAPP` (wa.me + pre-filled order code), verified on a build with a test number (`Phases/evidence/phase-08/track-whatsapp-cta-mobile-375-light.png`); falls back to /contact while the number is unset (pending-requirements).
+- [x] Skeleton loaders, error/empty states, `noindex` meta.
+  > `Phases/evidence/phase-08/track-*` skeleton / not-found / rate-limited / empty states; `noindex` asserted in `apps/storefront/tests/e2e/track.spec.ts`.
 
 ### 8.3 My Orders (OTP-logged-in customers, D-18)
-- [ ] `GET /api/v1/me/orders` (paginated) + `GET /api/v1/me/orders/:orderCode` — `requireAuth`, `user_id` **ya** verified phone = `customer_phone` (guest orders bhi OTP login ke baad dikhein).
-- [ ] Storefront `/account/orders` list + detail (same timeline component).
+- [x] `GET /api/v1/me/orders` (paginated) + `GET /api/v1/me/orders/:orderCode` — `requireAuth`, `user_id` **ya** verified phone = `customer_phone` (guest orders bhi OTP login ke baad dikhein).
+  > `apps/backend/tests/integration/track.test.ts` › My Orders (own + guest-with-verified-phone, other customer 404, 401/403).
+- [x] Storefront `/account/orders` list + detail (same timeline component).
+  > `apps/storefront/tests/e2e/account-orders.spec.ts`; `Phases/evidence/phase-08/my-orders-*`.
 
 ### 8.4 Notification Service (`apps/backend/src/modules/notifications/`)
-- [ ] Provider interface:
+- [x] Provider interface:
+  > `apps/backend/src/integrations/messaging/{provider,mock,whatsapp-cloud,msg91-sms}.ts`; `tests/unit/messaging-providers.test.ts` (Cloud API payload + error mapping, MSG91 flow). BSP adapter not built — Q-06 still open (pending-requirements).
   ```typescript
   interface MessageProvider {
     sendTemplate(input: { to: string; template: string; language: 'en' | 'hi'; variables: Record<string, string> }):
@@ -69,11 +82,16 @@ Har message `notifications_log` me traceable hoga.
   }
   ```
   Implementations: `WhatsAppCloudProvider` / BSP (D-38 decision ke hisaab se), `SmsProvider` (MSG91, DLT templates), `MockProvider` (dev/test — log only).
-- [ ] Flow: `notify` queue job → `notifications_log` row (`QUEUED`) → WhatsApp send → fail (non-retryable / user not on WhatsApp) → SMS fallback (critical templates only) → status update.
-- [ ] **Dedup:** `jobId = notify:<template>:<orderId>` (`07` §6) — same template same order par dobara nahi.
-- [ ] **Quiet hours** (non-critical only, e.g. digest/marketing): 9 PM – 8 AM IST delay. Transactional (confirmed, OFD, delivered) turant.
-- [ ] Provider delivery-status webhook: `POST /api/v1/webhooks/whatsapp` (signature verify per provider docs) → `notifications_log.status` (`SENT` / `DELIVERED` / `READ` / `FAILED`).
-- [ ] Phone numbers E.164; PII logs me mask.
+- [x] Flow: `notify` queue job → `notifications_log` row (`QUEUED`) → WhatsApp send → fail (non-retryable / user not on WhatsApp) → SMS fallback (critical templates only) → status update.
+  > `messages.service.ts`; `apps/backend/tests/integration/notifications.test.ts` › "not on WhatsApp → FAILED WhatsApp row + SMS fallback … retryable error retries first".
+- [x] **Dedup:** `jobId = notify:<template>:<orderId>` (`07` §6) — same template same order par dobara nahi.
+  > Job id `notify-<template>-<orderId>` + log dedup; `apps/backend/tests/integration/notifications.test.ts` › "the same courier webhook twice → ONE order_shipped", "second run is deduped".
+- [x] **Quiet hours** (non-critical only, e.g. digest/marketing): 9 PM – 8 AM IST delay. Transactional (confirmed, OFD, delivered) turant.
+  > `quietHoursRelease()` (`packages/shared/tests/notifications.test.ts`); `apps/backend/tests/integration/notifications.test.ts` › "quiet hours: packing_digest at 22:00 IST is held till 08:00 (job moved to delayed), out_for_delivery still goes".
+- [x] Provider delivery-status webhook: `POST /api/v1/webhooks/whatsapp` (signature verify per provider docs) → `notifications_log.status` (`SENT` / `DELIVERED` / `READ` / `FAILED`).
+  > `whatsapp-webhook.routes.ts` (GET challenge, X-Hub-Signature-256); `apps/backend/tests/integration/notifications.test.ts` › delivery receipts (401 bad sig, monotonic READ).
+- [x] Phone numbers E.164; PII logs me mask.
+  > All phones E.164; logs use `maskPhone()` (`+91******5678`) in `messages.service.ts` / mock provider.
 
 ### 8.5 Templates (approved in Phase 0)
 | Template | Audience | Trigger |
@@ -90,11 +108,14 @@ Har message `notifications_log` me traceable hoga.
 | `packing_digest` | Partner | Daily 9 AM |
 | `admin_alert` | Admin | `ops_issue`, NDR, RTO, LOST, webhook failure, Shiprocket wallet low, stock ledger mismatch |
 
-- [ ] Hindi + English variants jahan zaroori; variables named (`{{order_code}}`), template registry `packages/shared/src/notifications/templates.ts`.
+- [x] Hindi + English variants jahan zaroori; variables named (`{{order_code}}`), template registry `packages/shared/src/notifications/templates.ts`.
+  > `packages/shared/src/notifications/templates.ts` (en + hi, named `{{vars}}`, critical / quietHours flags); `packages/shared/tests/notifications.test.ts`. Meta / DLT approval of these templates = Phase 0 (B-11).
 
 ### 8.6 Consent & Admin Alert Channel
-- [ ] Checkout par **WhatsApp updates opt-in** checkbox (**default unchecked** — DPDP ke hisaab se consent affirmative hona chahiye, pre-ticked nahi; clearly labelled) → `orders.whatsapp_opt_in` + `whatsapp_opt_in_at` (architecture/01); opt-out → sirf SMS critical.
-- [ ] Admin alert channel: WhatsApp (admin numbers) + email fallback; alerts batched (same type within 10 min → one message with count) taaki spam na ho.
+- [x] Checkout par **WhatsApp updates opt-in** checkbox (**default unchecked** — DPDP ke hisaab se consent affirmative hona chahiye, pre-ticked nahi; clearly labelled) → `orders.whatsapp_opt_in` + `whatsapp_opt_in_at` (architecture/01); opt-out → sirf SMS critical.
+  > Done in Phase 5: `apps/storefront/src/modules/checkout/lib/checkout-form.ts` `whatsappOptIn: false` default, stored in `orders.whatsapp_opt_in(_at)`; Phase 8 sends WhatsApp only with it (`notifications.test.ts` › no consent).
+- [x] Admin alert channel: WhatsApp (admin numbers) + email fallback; alerts batched (same type within 10 min → one message with count) taaki spam na ho.
+  > `apps/backend/tests/integration/notifications.test.ts` › admin alerts (first now, one summary with count after 10 min, e-mail fallback). E-mail is a log driver until a provider is chosen (pending-requirements).
 
 ---
 
@@ -105,15 +126,24 @@ Har message `notifications_log` me traceable hoga.
 ---
 
 ## 🔍 Verification Checklist
-- [ ] `/api/v1/track` sirf code + sahi phone par data deta hai; galat phone → same generic 404 (`track.int.test.ts`).
-- [ ] 11th request in 10 min → `429`.
-- [ ] Response me full address / full phone / email nahi (snapshot test).
-- [ ] Timeline webhook events ke saath correct order me merge hota hai (fixture test).
+- [x] `/api/v1/track` sirf code + sahi phone par data deta hai; galat phone → same generic 404 (`track.int.test.ts`).
+  > `apps/backend/tests/integration/track.test.ts` (named `track.test.ts`).
+- [x] 11th request in 10 min → `429`.
+  > `apps/backend/tests/integration/track.test.ts` › 429 test.
+- [x] Response me full address / full phone / email nahi (snapshot test).
+  > `apps/backend/tests/integration/track.test.ts` › privacy snapshot.
+- [x] Timeline webhook events ke saath correct order me merge hota hai (fixture test).
+  > `apps/backend/tests/integration/track.test.ts` › timeline merge (real courier webhooks via the sandbox).
 - [ ] Status change ke baad WhatsApp message < 10s (staging, real number).
-- [ ] Same webhook do baar → ek hi `order_shipped` message (`notifications.dedupe.int.test.ts`).
-- [ ] WhatsApp failure → SMS fallback logged in `notifications_log`.
-- [ ] Quiet-hours rule digest ko delay karta hai, `out_for_delivery` ko nahi.
-- [ ] `/track` page 375 / 768 / 1440 par bina horizontal overflow; light + dark tokens.
+  > Needs WhatsApp Cloud API credentials + approved templates + a staging number (Q-06). Automated part: payment → `ORDER_CONFIRMED` job → mock WhatsApp send, and the live dev run (`PK-MBX42R` → `order_confirmed` SENT within ~1 s).
+- [x] Same webhook do baar → ek hi `order_shipped` message (`notifications.dedupe.int.test.ts`).
+  > `apps/backend/tests/integration/notifications.test.ts` (named `notifications.test.ts`).
+- [x] WhatsApp failure → SMS fallback logged in `notifications_log`.
+  > `apps/backend/tests/integration/notifications.test.ts` › FAILED WhatsApp + SENT SMS rows.
+- [x] Quiet-hours rule digest ko delay karta hai, `out_for_delivery` ko nahi.
+  > `apps/backend/tests/integration/notifications.test.ts` › quiet hours test.
+- [x] `/track` page 375 / 768 / 1440 par bina horizontal overflow; light + dark tokens.
+  > `apps/storefront/tests/e2e/track.spec.ts` overflow asserted at 375/768/1440; `Phases/evidence/phase-08/track-*-{375,768,1440}-{light,dark}.png`.
 
 ---
 

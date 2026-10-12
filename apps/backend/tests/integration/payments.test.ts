@@ -26,6 +26,7 @@ import {
   testGateway,
   testPrivateStorage,
   testStorage,
+  testMessaging,
 } from '../helpers/test-app';
 import { silentLogger } from '../helpers/test-logger';
 import { TEST_COURIER_TOKEN, unreachableShiprocket } from '../helpers/shiprocket';
@@ -336,5 +337,6 @@ function services() {
     shiprocket: unreachableShiprocket(),
     courierWebhookToken: TEST_COURIER_TOKEN,
     push: createWebPushSender({}),
+    messaging: testMessaging(redis),
   });
 }
