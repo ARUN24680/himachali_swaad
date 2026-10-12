@@ -44,6 +44,8 @@ export function useTotpVerify() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (code: string) => authApi.totpVerify(code),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.me }),
+    // The server just set an MFA access cookie: every query that failed with
+    // TOTP_ENROLLMENT_REQUIRED (Phase 10 §10.1) now works, so refetch them all — not only /auth/me
+    onSuccess: () => qc.invalidateQueries(),
   });
 }

@@ -10,6 +10,7 @@ import { startWorkers } from './jobs/runner';
 import { pushFromEnv, shippingFromEnv } from './config/shipping';
 import { messagingFromEnv } from './config/messaging';
 import { createSweepers } from './jobs/sweepers';
+import { WORKER_HEARTBEAT_KEY, type QueueHealth } from './modules/admin/ops-alerts.service';
 import { createCommerceServices } from './services';
 
 /**
@@ -60,7 +61,20 @@ const svc = createCommerceServices({
   messaging: messagingFromEnv(env, connection, logger),
 });
 const sweepers = createSweepers({ db, svc, gateway, jobs, logger, reporter });
-const processors = createProcessors({ db, svc, sweepers, logger });
+async function queueHealth(): Promise<QueueHealth> {
+  let failed = 0;
+  let waiting = 0;
+  let oldestWaitingAt: number | null = null;
+  for (const q of jobs.queues.values()) {
+    const c = await q.getJobCounts('failed', 'waiting');
+    failed += c.failed ?? 0;
+    waiting += c.waiting ?? 0;
+    const [oldest] = await q.getJobs(['waiting'], 0, 0, true); // asc → oldest first
+    if (oldest && (oldestWaitingAt === null || oldest.timestamp < oldestWaitingAt)) oldestWaitingAt = oldest.timestamp;
+  }
+  return { failed, waiting, oldestWaitingAt };
+}
+const processors = createProcessors({ db, svc, sweepers, logger, queueHealth });
 
 const workers = startWorkers({
   connection,
@@ -79,6 +93,11 @@ for (const s of SCHEDULES) {
     opts: { removeOnComplete: { count: 100 }, removeOnFail: { count: 500 } },
   });
 }
+// Phase 10 §10.3: heartbeat read by GET /healthz/worker (uptime monitor alerts when it goes stale)
+const beat = () => void connection.set(WORKER_HEARTBEAT_KEY, String(Date.now()), 'EX', 120).catch(() => undefined);
+beat();
+const heartbeat = setInterval(beat, 30_000);
+heartbeat.unref();
 logger.info({ workers: workers.length, schedules: SCHEDULES.map((s) => s.name) }, 'worker started');
 
 let shuttingDown = false;
@@ -88,6 +107,7 @@ async function shutdown(signal: string): Promise<void> {
   logger.info({ signal }, 'worker shutting down: finish active jobs');
   const forceExit = setTimeout(() => process.exit(1), 30_000);
   forceExit.unref();
+  clearInterval(heartbeat);
   try {
     await Promise.all(workers.map((w) => w.close()));
     await jobs.close();

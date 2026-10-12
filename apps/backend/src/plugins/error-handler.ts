@@ -8,7 +8,12 @@ import { fail } from '../utils/response';
  * Every error leaves the API as the standard envelope. Expected errors keep their code;
  * anything unknown becomes INTERNAL_ERROR, is reported to Sentry, and never leaks its message or stack.
  */
-export function registerErrorHandler(app: FastifyInstance, reporter: ErrorReporter): void {
+export function registerErrorHandler(
+  app: FastifyInstance,
+  reporter: ErrorReporter,
+  /** Phase 10 §10.3: counts 5xx for the "error spike" ops alert. Must never throw. */
+  onServerError?: () => void,
+): void {
   app.setErrorHandler((err: FastifyError, request, reply) => {
     if (err instanceof AppError) {
       if (err.code === 'RATE_LIMITED' && err.details?.retryAfterSeconds) {
@@ -35,6 +40,7 @@ export function registerErrorHandler(app: FastifyInstance, reporter: ErrorReport
       return reply.status(err.statusCode).send(fail(request.id, { code: 'VALIDATION_ERROR', message: err.message }));
     }
 
+    onServerError?.();
     const sentryEventId = reporter.capture(err, { requestId: request.id, route: request.routeOptions.url });
     request.log.error({ err, sentryEventId }, 'unhandled error');
     return reply.status(500).send(

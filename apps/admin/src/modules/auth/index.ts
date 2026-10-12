@@ -4,3 +4,4 @@ export { TwoFactorCard } from './components/TwoFactorCard';
 export { UserMenu } from './components/UserMenu';
 export { useSignOut } from './hooks/useAuthMutations';
 export { ROLE_LABEL } from './components/roleLabel';
+export { REQUIRED_PARAM, REQUIRED_VALUE, safeNextPath, totpSetupUrl } from './totpRequired';

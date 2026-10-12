@@ -3,7 +3,13 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { authOf } from '../../middleware/auth';
 import { AppError } from '../../utils/app-error';
 import { ok } from '../../utils/response';
-import { clearSessionCookies, REFRESH_COOKIE, setSessionCookies, type CookieConfig } from './auth.cookies';
+import {
+  clearSessionCookies,
+  REFRESH_COOKIE,
+  setAccessCookie,
+  setSessionCookies,
+  type CookieConfig,
+} from './auth.cookies';
 import type { AuthService, IssuedSession, RequestContext } from './auth.service';
 
 const ctxOf = (request: FastifyRequest): RequestContext => ({
@@ -59,7 +65,14 @@ export function createAuthController(service: AuthService, cookies: CookieConfig
 
     totpSetup: async (request: FastifyRequest) => ok(request, await service.totpSetup(authOf(request).userId)),
 
-    totpVerify: async (request: FastifyRequest<{ Body: { code: string } }>) =>
-      ok(request, await service.totpVerify(authOf(request).userId, request.body.code, ctxOf(request))),
+    totpVerify: async (request: FastifyRequest<{ Body: { code: string } }>, reply: FastifyReply) => {
+      const { enabled, accessToken } = await service.totpVerify(
+        authOf(request).userId,
+        request.body.code,
+        ctxOf(request),
+      );
+      setAccessCookie(reply, cookies, accessToken);
+      return ok(request, { enabled });
+    },
   };
 }

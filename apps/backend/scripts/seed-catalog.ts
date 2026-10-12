@@ -135,7 +135,7 @@ async function main() {
         settings: createSettingsService(),
         revalidator: { revalidate: async () => undefined },
       });
-      const auth: AuthContext = { userId: admin.rows[0].id, role: 'ADMIN', pickupLocationIds: [] };
+      const auth: AuthContext = { userId: admin.rows[0].id, role: 'ADMIN', pickupLocationIds: [], mfa: true };
       const ids = await db.query<{ id: string; sku: string }>('SELECT id, sku FROM products ORDER BY sort_order');
       const daysAgo = (n: number) => {
         const d = new Date(`${todayInIST()}T00:00:00Z`);

@@ -8,6 +8,8 @@ import {
   AdminOrderDetailSchema,
   AdminOrderRowSchema,
   AdminOrdersResponseSchema,
+  AdminOpsMetricsResponseSchema,
+  AdminTestAlertResponseSchema,
   AdminRefundRequestSchema,
   AuditLogResponseSchema,
   ExpenseCreateRequestSchema,
@@ -646,6 +648,25 @@ export async function installAdminRoutes(
       generatedAt: new Date().toISOString(),
     });
 
+  // 24 IST hourly buckets, oldest first ("YYYY-MM-DDTHH:00")
+  const opsMetrics = () => {
+    const ist = new Date(Date.now() + 330 * 60_000);
+    return AdminOpsMetricsResponseSchema.parse({
+      ordersByHour: Array.from({ length: 24 }, (_, i) => {
+        const t = new Date(ist.getTime() - (23 - i) * 3_600_000);
+        const h = t.getUTCHours();
+        return {
+          hour: `${t.toISOString().slice(0, 13)}:00`,
+          orders: h < 7 ? 0 : Math.max(0, Math.round(1.5 + 1.5 * Math.sin((h - 9) / 2.4))),
+        };
+      }),
+      refunds30d: { count: 3, processedPaise: 124700 },
+      shipped30d: 58,
+      ndrRatePercent30d: 6.9,
+      rtoRatePercent30d: 3.4,
+    });
+  };
+
   const customers = () => {
     const byPhone = new Map<string, MockOrder[]>();
     for (const o of orders) byPhone.set(o.phone, [...(byPhone.get(o.phone) ?? []), o]);
@@ -739,6 +760,17 @@ export async function installAdminRoutes(
     if (role !== 'ADMIN') return fail(route, 403, 'FORBIDDEN', 'Admins only');
 
     if (path === '/admin/dashboard') return ok(route, dashboard());
+
+    // ── Ops metrics + test alert (Phase 10 §10.3) ──
+    if (path === '/admin/ops/metrics' && method === 'GET') return ok(route, opsMetrics());
+    if (path === '/admin/ops/test-alert' && method === 'POST')
+      return ok(
+        route,
+        AdminTestAlertResponseSchema.parse({
+          ok: true,
+          message: 'Test alert queued for 1 admin (WhatsApp + e-mail).',
+        }),
+      );
 
     // ── Orders ──
     if (path === '/admin/orders' && method === 'GET') {

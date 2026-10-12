@@ -127,8 +127,30 @@
 | A-2 | **Q-05 settlement cycle** weekly / monthly (UI kisi bhi period ke liye kaam karta hai) | 🧾 Dono partners | — |
 | A-3 | **D-41 formula sign-off** (PROPOSED) + `partner_split_bp` default 50 % confirm | 🧾 Dono partners + CA | `settings.partner_split_bp` |
 | A-4 | Real `packaging_cost_per_jar_paise` (abhi ₹32 estimate) | 🧑‍🍳 procurement | Settings page |
-| A-5 | bull-board embed ke liye API CSP `frame-ancestors` me admin origin (warna "Open job queues" link chalta hai) | 🚀 deploy | `plugins/security.ts` |
+| A-5 | ✅ Done (Phase 10): bull-board ka apna CSP, `frame-ancestors` = app origins (D-57 c) | — | `plugins/queue-dashboard.ts` |
 | A-6 | Large exports streaming (abhi in-memory CSV — launch volume ke liye theek) | ⏭️ jab orders badhein | `exports.service.ts` |
+
+## 7d. 🛡️ Phase 10 — Hardening & Go-Live
+
+Code side Phase 10 me ho gaya (D-57): ADMIN 2FA mandatory, login lockout, security headers (API / storefront / admin), CI dependency audit + Dependabot, perf indexes (0007), k6 spike + read latency, ops alerts + worker heartbeat + ops metrics, runbooks, ASVS L1 walk-through, launch simulations (local mocks). Yeh sab **real infra / log / business** maangte hain:
+
+| # | Kya bacha hai | Blocked on | Kya karna hai |
+| :-- | :-- | :-- | :-- |
+| H-1 | **securityheaders.com + SSL Labs A grade** (api., admin., storefront) + hstspreload.org submit | 🚀 deploy (I-1) | `docs/security/headers.md` ke steps |
+| H-2 | **Secrets host ke secret manager me** + key rotation register | 🚀 I-1 | `docs/runbooks/key-rotation.md` |
+| H-3 | **R2 private bucket public access off verify** (signed URL 300 s code me hai) | 🔑 I-3 | Cloudflare dashboard + unsigned URL 403 check |
+| H-4 | **PITR enable + restore drill on staging** (timestamp + row counts) | 🚀 I-1 | `docs/runbooks/restore-from-backup.md` → `docs/launch/restore-drill.md` |
+| H-5 | Redis persistence (AOF everysec / RDB) provider par set | 🚀 I-1 | `docs/runbooks/restore-from-backup.md` |
+| H-6 | **k6 spike + Lighthouse re-run on staging** (local pass: 0 oversell, read p95 12 ms) | 🚀 staging | `load/README.md` |
+| H-7 | Pool sizing vs provider `max_connections` confirm | 🚀 I-1 | `docs/ops/capacity.md` table |
+| H-8 | **Uptime monitors** (storefront, `/readyz`, `/healthz/worker`, admin) + Sentry release/source-map upload in deploy job | 🚀 I-1 + I-2 | `docs/ops/monitoring.md` |
+| H-9 | **Har alert ek baar test-fire + real WhatsApp/e-mail par receive** (test-alert button ready) | 🔑 M-1/M-2 (WhatsApp/SMS keys) | Dashboard → Operations → Send test alert |
+| H-10 | **Launch simulations staging par test keys ke saath** (local mocks par sab pass) + storefront screenshots | 🔑 Razorpay test + Shiprocket + WhatsApp | `docs/launch/e2e-results.md` |
+| H-11 | **Packaging trial** (2–3 oil-filled jars Himachal → Chennai, leak/seal/weight vs 500 g slab, D-34) | 🧑‍🍳 partner | `products.packed_weight_g` update |
+| H-12 | **Soft launch** 5–10 real orders on live keys + settlement dry-run | 🔑 live keys | §10.7 |
+| H-13 | **Go-live checklist §10.8** (DNS, Vercel, live Razorpay/Shiprocket/WhatsApp, legal pages, FSSAI, analytics) — dono partners tick karein | 🧾 business + 🚀 | phase file §10.8 |
+| H-14 | Conversion rate ops dashboard me nahi — GA4 funnel se (D-57 g, phase file se conflict) | 📊 GA4 | GA4 report |
+| H-15 | DPDP deletion abhi manual SQL runbook — admin action v2 backlog | ⏭️ v2 | `docs/runbooks/dpdp-data-deletion.md` |
 
 ## 8. ⏭️ Aage ke phases me already planned (sirf yaad ke liye)
 

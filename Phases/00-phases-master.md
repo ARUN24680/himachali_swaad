@@ -31,7 +31,7 @@
 | **[phase-07-partner-mobile-packing-desk.md](./phase-07-partner-mobile-packing-desk.md)** | **Phase 7: Kitchen Partner Packing Desk PWA** | Mobile-first packing queue, label print/share, mark packed, mobile batch logger, push alerts, Hindi + English. | 3, 6 | `0005_notifications.sql` |
 | **[phase-08-tracking-notifications.md](./phase-08-tracking-notifications.md)** | **Phase 8: Customer /track & Notifications** | `/track` (order code + phone), WhatsApp/SMS templates per transition, `notifications_log`, My Orders. | 6, 7 | — |
 | **[phase-09-admin-operations-settlements.md](./phase-09-admin-operations-settlements.md)** | **Phase 9: Admin Operations, Reports & Settlements** | Full admin dashboard, orders table, cancel/refund UI, NDR/RTO queue, settings, reports/exports, expenses, settlements + partner statement view. | 5, 6, 8 | `0006_settlements.sql` |
-| **[phase-10-hardening-launch.md](./phase-10-hardening-launch.md)** | **Phase 10: Hardening, E2E Simulation & Go-Live** | Security headers, admin 2FA, load/chaos tests, backups/restore drill, physical shipping trial, live keys, go-live runbook. | 0, 1–9 | — |
+| **[phase-10-hardening-launch.md](./phase-10-hardening-launch.md)** | **Phase 10: Hardening, E2E Simulation & Go-Live** | Security headers, admin 2FA, load/chaos tests, backups/restore drill, physical shipping trial, live keys, go-live runbook. | 0, 1–9 | `0007_performance_indexes.sql` |
 
 ---
 

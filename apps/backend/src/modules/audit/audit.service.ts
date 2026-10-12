@@ -34,7 +34,8 @@ export type AuditAction =
   | 'SETTLEMENT_PAID'
   | 'SETTLEMENT_ACKNOWLEDGE'
   | 'EXPORT'
-  | 'WEBHOOK_REPLAY';
+  | 'WEBHOOK_REPLAY'
+  | 'ALERT_TEST';
 
 export interface AuditEntry {
   actorId?: string | null;

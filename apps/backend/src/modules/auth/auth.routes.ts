@@ -56,14 +56,21 @@ export const authRoutes: FastifyPluginAsyncZod<{
     '/staff/change-password',
     {
       schema: { body: ChangePasswordRequestSchema },
-      preHandler: [requireAuth, requireRole(['ADMIN', 'KITCHEN_PARTNER'])],
+      preHandler: [requireAuth, requireRole(['ADMIN', 'KITCHEN_PARTNER'], { allowWithoutMfa: true })],
     },
     c.changePassword,
   );
-  app.post('/staff/2fa/setup', { preHandler: [requireAuth, requireRole(['ADMIN'])] }, c.totpSetup);
+  app.post(
+    '/staff/2fa/setup',
+    { preHandler: [requireAuth, requireRole(['ADMIN'], { allowWithoutMfa: true })] },
+    c.totpSetup,
+  );
   app.post(
     '/staff/2fa/verify',
-    { schema: { body: TotpVerifyRequestSchema }, preHandler: [requireAuth, requireRole(['ADMIN'])] },
+    {
+      schema: { body: TotpVerifyRequestSchema },
+      preHandler: [requireAuth, requireRole(['ADMIN'], { allowWithoutMfa: true })],
+    },
     c.totpVerify,
   );
 };

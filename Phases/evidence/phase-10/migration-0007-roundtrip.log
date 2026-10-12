@@ -1,0 +1,23 @@
+$ pnpm --filter @pk/database db:up
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema up
+Applying: 0007_performance_indexes.sql
+Applied: 0007_performance_indexes.sql in 12.860209ms
+$ pnpm --filter @pk/database db:down
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema down
+Rolling back: 0007_performance_indexes.sql
+Rolled back: 0007_performance_indexes.sql in 5.394375ms
+$ pnpm --filter @pk/database db:up
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema up
+Applying: 0007_performance_indexes.sql
+Applied: 0007_performance_indexes.sql in 5.822666ms
+$ pnpm --filter @pk/database db:status
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema status
+[X] 0001_foundation.sql
+[X] 0002_catalog_inventory.sql
+[X] 0003_orders_payments.sql
+[X] 0004_logistics.sql
+[X] 0005_notifications.sql
+[X] 0006_settlements.sql
+[X] 0007_performance_indexes.sql
+Applied: 7
+Pending: 0

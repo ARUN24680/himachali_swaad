@@ -40,6 +40,20 @@ export const AdminDashboardResponseSchema = z.object({
 });
 export type AdminDashboardResponse = z.infer<typeof AdminDashboardResponseSchema>;
 
+// ── Ops metrics (Phase 10 §10.3) ──────────────────────────────────────────────────────────────────
+export const AdminOpsMetricsResponseSchema = z.object({
+  /** Last 24 IST hours, oldest first; `hour` = "YYYY-MM-DDTHH:00" (IST). Counted on confirmed_at. */
+  ordersByHour: z.array(z.object({ hour: z.string(), orders: z.number().int() })),
+  refunds30d: z.object({ count: z.number().int(), processedPaise: z.number().int() }),
+  shipped30d: z.number().int(),
+  ndrRatePercent30d: z.number(),
+  rtoRatePercent30d: z.number(),
+});
+export type AdminOpsMetricsResponse = z.infer<typeof AdminOpsMetricsResponseSchema>;
+
+export const AdminTestAlertResponseSchema = z.object({ ok: z.literal(true), message: z.string() });
+export type AdminTestAlertResponse = z.infer<typeof AdminTestAlertResponseSchema>;
+
 // ── Orders (§9.3) ─────────────────────────────────────────────────────────────────────────────────
 export const ADMIN_ORDER_TABS = [
   'all',

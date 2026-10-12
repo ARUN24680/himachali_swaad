@@ -120,6 +120,7 @@ settings · webhook_events · invoice_sequences · admin_audit_log · push_subsc
 | `0004_logistics.sql` | `shipments`, `tracking_events` | Phase 6 |
 | `0005_notifications.sql` | `push_subscriptions`, `notifications_log` | Phase 7 |
 | `0006_settlements.sql` | `expenses`, `settlements`, `settlement_items` | Phase 9 |
+| `0007_performance_indexes.sql` | indexes only (orders created/confirmed/location+status, webhook errors, notifications recipient, expenses open/settlement) — D-57 e | Phase 10 |
 | *v2 backlog* | `coupons`, `reviews`, `carts` (abandoned cart), `ndr_actions`, COD fields | Post-launch |
 
 ---

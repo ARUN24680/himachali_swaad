@@ -34,6 +34,9 @@ jobs:
         run: pnpm check:colors
       - run: pnpm test:scripts
       - run: pnpm test
+      # Phase 10 §10.1: shipped (production) dependencies must have no high / critical advisories
+      - name: Dependency audit (production deps)
+        run: pnpm audit --prod --audit-level=high
 
   integration:
     name: Integration tests (Testcontainers PG 17 + Redis)

@@ -21,8 +21,11 @@ const describe = (err: unknown) =>
       ? err.message
       : 'Something went wrong on our side. Please try again.';
 
-/** ADMIN-only: enrol an authenticator app (Phase 2 §2.3). Enforcement switches on in Phase 10. */
-export function TwoFactorCard() {
+/**
+ * ADMIN-only: enrol an authenticator app (Phase 2 §2.3). Mandatory in production from Phase 10
+ * (§10.1) — `onEnabled` lets the page send the admin back to where the API stopped them.
+ */
+export function TwoFactorCard({ onEnabled }: { onEnabled?: () => void } = {}) {
   const me = useMe();
   const codeId = useId();
   const [code, setCode] = useState('');
@@ -36,7 +39,8 @@ export function TwoFactorCard() {
   const secret = otpauthUrl ? secretFrom(otpauthUrl) : null;
 
   const submit = (value: string) => {
-    if (value.length === 6 && !verify.isPending) verify.mutate(value, { onError: () => setCode('') });
+    if (value.length === 6 && !verify.isPending)
+      verify.mutate(value, { onSuccess: () => onEnabled?.(), onError: () => setCode('') });
   };
 
   return (

@@ -478,3 +478,43 @@ export async function findWebhookEvent(q: Queryable, id: number) {
   );
   return rows[0] ?? null;
 }
+
+// ── Ops alerts + ops metrics (Phase 10 §10.3) ────────────────────────────────────────────────────
+
+export async function opsAlertCounts(q: Queryable) {
+  const { rows } = await q.query<{ ops_issues_over_1h: number; webhook_failures_1h: number; payments_stuck: number }>(
+    `SELECT
+       (SELECT count(*) FROM orders WHERE ops_issue IS NOT NULL AND updated_at < NOW() - INTERVAL '1 hour')::int AS ops_issues_over_1h,
+       (SELECT count(*) FROM webhook_events WHERE last_error IS NOT NULL AND processed_at IS NULL
+          AND received_at > NOW() - INTERVAL '1 hour')::int AS webhook_failures_1h,
+       (SELECT count(*) FROM orders WHERE status = 'PENDING_PAYMENT'
+          AND reservation_expires_at < NOW() - INTERVAL '10 minutes')::int AS payments_stuck`,
+  );
+  return rows[0]!;
+}
+
+/** Last 24 h orders per IST hour, 30-day refund / NDR / RTO figures for the ops dashboard. */
+export async function opsMetrics(q: Queryable) {
+  const [hours, rates] = await Promise.all([
+    q.query<{ hour: string; orders: number }>(
+      `SELECT to_char(h, 'YYYY-MM-DD"T"HH24:00') AS hour, count(o.id)::int AS orders
+         FROM generate_series(date_trunc('hour', NOW() AT TIME ZONE 'Asia/Kolkata') - INTERVAL '23 hours',
+                              date_trunc('hour', NOW() AT TIME ZONE 'Asia/Kolkata'), INTERVAL '1 hour') AS h
+         LEFT JOIN orders o ON o.confirmed_at IS NOT NULL
+                           AND date_trunc('hour', o.confirmed_at AT TIME ZONE 'Asia/Kolkata') = h
+        GROUP BY h ORDER BY h`,
+    ),
+    q.query<{ refunds: number; refunded_paise: number; shipped: number; ndr: number; rto: number }>(
+      `SELECT
+         (SELECT count(*) FROM refunds WHERE created_at > NOW() - INTERVAL '30 days' AND reason <> 'DUPLICATE_PAYMENT')::int AS refunds,
+         (SELECT COALESCE(sum(amount_paise), 0) FROM refunds WHERE status = 'PROCESSED'
+            AND created_at > NOW() - INTERVAL '30 days')::bigint AS refunded_paise,
+         (SELECT count(*) FROM orders WHERE shipped_at > NOW() - INTERVAL '30 days')::int AS shipped,
+         (SELECT count(DISTINCT l.order_id) FROM order_status_logs l JOIN orders o ON o.id = l.order_id
+            WHERE l.to_status = 'DELIVERY_FAILED' AND o.shipped_at > NOW() - INTERVAL '30 days')::int AS ndr,
+         (SELECT count(DISTINCT l.order_id) FROM order_status_logs l JOIN orders o ON o.id = l.order_id
+            WHERE l.to_status = 'RTO_IN_TRANSIT' AND o.shipped_at > NOW() - INTERVAL '30 days')::int AS rto`,
+    ),
+  ]);
+  return { hours: hours.rows, rates: rates.rows[0]! };
+}

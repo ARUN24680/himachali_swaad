@@ -41,6 +41,8 @@ export const queryKeys = {
   },
   // ── Phase 9 admin console ───────────────────────────────────────────────
   dashboard: ['admin', 'dashboard'] as const,
+  /** Phase 10 §10.3 — orders/hour, refunds, NDR/RTO rates (dashboard "Operations" section). */
+  opsMetrics: ['admin', 'ops', 'metrics'] as const,
   orders: {
     all: ['admin', 'orders'] as const,
     list: (q: AdminOrdersQuery) => ['admin', 'orders', 'list', q] as const,
