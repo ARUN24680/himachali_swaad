@@ -16,8 +16,8 @@
     "seed:catalog": "tsx --env-file-if-exists=../../.env scripts/seed-catalog.ts"
   },
   "dependencies": {
-    "@bull-board/api": "9.10.2",
-    "@bull-board/fastify": "9.10.2",
+    "@bull-board/api": "9.10.4",
+    "@bull-board/fastify": "9.10.4",
     "@fastify/cookie": "11.1.2",
     "@fastify/cors": "11.3.0",
     "@fastify/helmet": "13.1.1",
