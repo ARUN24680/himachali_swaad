@@ -27,6 +27,7 @@ import {
   testStorage,
 } from '../helpers/test-app';
 import { silentLogger } from '../helpers/test-logger';
+import { TEST_COURIER_TOKEN, unreachableShiprocket } from '../helpers/shiprocket';
 import { createTestDb, type TestDb } from '../helpers/test-db';
 
 /** confirmPayment() via verify + webhook (07 §4.2–4.3), late payments, refunds. */
@@ -324,5 +325,7 @@ function services() {
     gateway,
     jobs,
     allowDraftInvoice: true,
+    shiprocket: unreachableShiprocket(),
+    courierWebhookToken: TEST_COURIER_TOKEN,
   });
 }

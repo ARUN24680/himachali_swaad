@@ -155,7 +155,9 @@ function CheckoutFlow({ onLeave }: { onLeave: (orderCode: string) => void }) {
     const l = lines.get(i.productId);
     return !l || l.issue !== null || l.quantity === 0;
   });
-  const notServiceable = !!pinCheck.data && pinCheck.data.pincode === values.pincode && !pinCheck.data.serviceable;
+  // `serviceable: null` = courier partner unreachable → don't block (Phase 6 §6.3); only `false` blocks.
+  const notServiceable =
+    !!pinCheck.data && pinCheck.data.pincode === values.pincode && pinCheck.data.serviceable === false;
 
   // Adjust state during render (React-sanctioned) instead of effects:
   // 1) India Post city/state → fill when empty, or when the current values came from an earlier auto-fill.

@@ -127,7 +127,7 @@
 | → `CONFIRMED` | `COMMITTED` | no change | — |
 | `EXPIRED` → `CONFIRMED` (late pay) | new rows `COMMITTED` | `− qty` | `RESERVE` (−qty) |
 | → `CANCELLED` from `CONFIRMED`/`AWAITING_PACKING`/`PACKED`/`PICKUP_SCHEDULED` | `RELEASED` | `+ qty` | `RELEASE` (+qty) — jar kitchen se nikla hi nahi |
-| → `RTO_DELIVERED` | stays `COMMITTED` | no change (jar already sold) | none — jar physically discard hota hai, `order_status_logs` me note (D-31) |
+| → `RTO_DELIVERED` | stays `COMMITTED` | no change (jar already sold) | none — jar physically discard hota hai, `order_status_logs` me note "no restock (D-31)" + `ops_issue` (Q-04 refund decision). WASTAGE movement **nahi** — double deduction hota (D-53 f) |
 | Admin adjustment (breakage, QC fail) | — | `± qty` | `ADJUSTMENT` / `WASTAGE` |
 
 ---
@@ -363,6 +363,7 @@ export async function transitionOrder(
 
 - Webhook dedup key: `sha256(awb + current_status + event_timestamp)` → `webhook_events.event_id` (Shiprocket event id nahi bhejta).
 - Auth: `x-api-key` header = `SHIPROCKET_WEBHOOK_TOKEN` (Shiprocket dashboard me configure). Mismatch → `401`.
+- **Implementation (Phase 6, D-53):** route `POST /api/v1/webhooks/courier-tracking` (Shiprocket URL me "shiprocket"/"sr"/"kr" allow nahi). Map = `packages/shared/src/logistics/shiprocket-status-map.ts`: text first, numeric `shipment_status_id` fallback (6 SHIPPED, 7 DELIVERED, 9 RTO INITIATED, 10 RTO DELIVERED, 12 LOST, 17 OFD, 18 IN TRANSIT, 21 UNDELIVERED, 42 PICKED UP, …). `DELAYED` (22) = transit delay → store only (NDR nahi). `PICKUP ERROR` / `CANCELED` / `PARTIAL DELIVERED` / `DISPOSED OFF` → admin alert. Missed first scan (`PICKUP_SCHEDULED` → `DELIVERED`) `IN_TRANSIT` se hokar jata hai. Webhook + `POLL_TRACKING` dono `logistics.processTracking()` use karte hain.
 
 ---
 

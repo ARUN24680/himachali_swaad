@@ -1,13 +1,16 @@
 'use client';
 
 import { Input, Label, cn } from '@pk/ui';
-import { CircleAlert, CircleCheck, CircleX, Loader2, MapPin } from 'lucide-react';
+import { CircleAlert, CircleCheck, CircleX, Info, Loader2, MapPin } from 'lucide-react';
 import { useId, useState, type ReactNode } from 'react';
 import { readLastPincode } from '@/lib/last-pincode';
 import { useHydrated } from '@/lib/use-hydrated';
 import { usePincodeCheck } from '../hooks/usePincodeCheck';
 
-/** "Deliver to" checker: checking / serviceable (success) / not serviceable (destructive) / error. */
+/**
+ * "Deliver to" checker: checking / serviceable (success) / not serviceable (destructive) /
+ * unknown (info — courier partner unreachable, `serviceable: null`; never blocks ordering) / error.
+ */
 export function PincodeChecker() {
   const id = useId();
   const hydrated = useHydrated();
@@ -16,7 +19,11 @@ export function PincodeChecker() {
   const pincode = typed ?? (hydrated ? (readLastPincode() ?? '') : '');
   const check = usePincodeCheck(pincode);
 
-  let status: { tone: 'success' | 'destructive' | 'muted' | 'error'; icon: ReactNode; text: ReactNode } | null = null;
+  let status: {
+    tone: 'success' | 'destructive' | 'info' | 'muted' | 'error';
+    icon: ReactNode;
+    text: ReactNode;
+  } | null = null;
   if (check.invalid) {
     status = { tone: 'error', icon: <CircleAlert />, text: 'Enter a valid 6-digit pincode' };
   } else if (check.checking) {
@@ -40,32 +47,47 @@ export function PincodeChecker() {
     };
   } else if (check.settled && check.data) {
     const d = check.data;
-    status = d.serviceable
-      ? {
-          tone: 'success',
-          icon: <CircleCheck />,
-          text: (
-            <>
-              <span className="font-semibold">We deliver to {d.pincode}</span>
-              {d.estimatedDays && (
-                <span className="block text-foreground/80">
-                  Usually {d.estimatedDays.min}–{d.estimatedDays.max} days after dispatch
-                  {d.courierHint ? ` · ${d.courierHint}` : ''}
-                </span>
-              )}
-            </>
-          ),
-        }
-      : {
-          tone: 'destructive',
-          icon: <CircleX />,
-          text: (
-            <>
-              <span className="font-semibold">Sorry, we can&rsquo;t deliver to {d.pincode} yet.</span>
-              <span className="block">Try a nearby pincode (office or family address).</span>
-            </>
-          ),
-        };
+    if (d.serviceable === null) {
+      status = {
+        tone: 'info',
+        icon: <Info />,
+        text: (
+          <>
+            <span className="font-semibold">We&rsquo;ll confirm delivery to {d.pincode} at checkout</span>
+            <span className="block text-foreground/80">
+              Our courier partner isn&rsquo;t responding right now &mdash; you can still order.
+            </span>
+          </>
+        ),
+      };
+    } else if (d.serviceable) {
+      status = {
+        tone: 'success',
+        icon: <CircleCheck />,
+        text: (
+          <>
+            <span className="font-semibold">We deliver to {d.pincode}</span>
+            {d.estimatedDays && (
+              <span className="block text-foreground/80">
+                Usually {d.estimatedDays.min}–{d.estimatedDays.max} days after dispatch
+                {d.courierHint ? ` · ${d.courierHint}` : ''}
+              </span>
+            )}
+          </>
+        ),
+      };
+    } else {
+      status = {
+        tone: 'destructive',
+        icon: <CircleX />,
+        text: (
+          <>
+            <span className="font-semibold">Sorry, we can&rsquo;t deliver to {d.pincode} yet.</span>
+            <span className="block">Try a nearby pincode (office or family address).</span>
+          </>
+        ),
+      };
+    }
   }
 
   return (
@@ -93,6 +115,7 @@ export function PincodeChecker() {
               'flex items-start gap-2 [&>svg]:mt-0.5 [&>svg]:size-4 [&>svg]:shrink-0',
               status.tone === 'success' && 'text-success',
               status.tone === 'destructive' && 'text-destructive',
+              status.tone === 'info' && 'text-info',
               status.tone === 'error' && 'text-destructive',
               status.tone === 'muted' && 'text-muted-foreground',
             )}

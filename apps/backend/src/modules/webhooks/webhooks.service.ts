@@ -1,11 +1,14 @@
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import type { Logger } from 'pino';
 import { z } from 'zod';
 import type { Db } from '../../config/db';
 import type { ErrorReporter } from '../../config/sentry';
 import type { GatewayPayment, PaymentGateway } from '../../integrations/razorpay/gateway';
 import { AppError } from '../../utils/app-error';
+import { parseShiprocketTime } from '../../integrations/shiprocket/time';
+import { jobIds, type JobQueue } from '../../jobs/queues';
 import * as repo from './webhooks.repository';
+import type { LogisticsService } from '../logistics/logistics.service';
 import type { PaymentsService } from '../payments/payments.service';
 
 const PaymentEntity = z.object({
@@ -44,6 +47,24 @@ const toPayment = (e: z.infer<typeof PaymentEntity>): GatewayPayment => ({
 
 export type WebhookResult = { status: 'processed' | 'duplicate' | 'ignored' | 'business_error' };
 
+/** Shiprocket tracking push (fields we use; the rest is stored raw). */
+const CourierTrackingEvent = z.looseObject({
+  awb: z.union([z.string(), z.number()]).transform(String),
+  current_status: z.string().min(1),
+  current_status_id: z.coerce.number().int().nullish(),
+  shipment_status: z.string().nullish(),
+  shipment_status_id: z.coerce.number().int().nullish(),
+  current_timestamp: z.string().nullish(),
+  scans: z.array(z.looseObject({ location: z.string().nullish() })).nullish(),
+});
+
+function sameSecret(given: string | undefined, expected: string): boolean {
+  if (!given) return false;
+  const a = createHash('sha256').update(given).digest();
+  const b = createHash('sha256').update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
 /**
  * POST /webhooks/razorpay — architecture/07 §4.3. Signature on the RAW body (webhook secret, not
  * the key secret) → dedup in webhook_events → route the event. Business errors are stored and
@@ -53,10 +74,16 @@ export function createWebhooksService(deps: {
   db: Db;
   gateway: PaymentGateway;
   payments: PaymentsService;
+  logistics: LogisticsService;
+  jobs: JobQueue;
+  /** Shared token Shiprocket sends as `x-api-key` (D-35). */
+  courierWebhookToken: string;
   logger: Logger;
   reporter: ErrorReporter;
+  now?: () => Date;
 }) {
-  const { db, gateway, payments, logger, reporter } = deps;
+  const { db, gateway, payments, logistics, jobs, logger, reporter } = deps;
+  const now = deps.now ?? (() => new Date());
 
   async function route(event: z.infer<typeof RazorpayEvent>): Promise<'processed' | 'ignored'> {
     const payment = event.payload.payment?.entity;
@@ -139,6 +166,62 @@ export function createWebhooksService(deps: {
         await repo.markWebhookError(db, stored.id, (err as Error).message).catch(() => undefined);
         throw err; // infra → 5xx → Razorpay retries
       }
+    },
+
+    /**
+     * POST /webhooks/courier-tracking — Shiprocket tracking push (Phase 6 §6.9, 07 §5). Token in
+     * `x-api-key` (constant-time compare) → dedup sha256(awb + status + timestamp) → shared tracking
+     * processor. Shiprocket expects 200 for everything it sends; only a bad token (401) or an
+     * infrastructure failure (5xx, it retries) differ.
+     */
+    async handleCourierTracking(raw: Buffer, apiKey: string | undefined): Promise<WebhookResult> {
+      if (!sameSecret(apiKey, deps.courierWebhookToken)) {
+        throw new AppError('UNAUTHENTICATED', 'Invalid webhook token.');
+      }
+      let json: unknown;
+      try {
+        json = raw.length ? JSON.parse(raw.toString('utf8')) : {};
+      } catch {
+        return { status: 'ignored' }; // the panel's "test webhook" ping may be empty / non-JSON
+      }
+      const parsed = CourierTrackingEvent.safeParse(json);
+      if (!parsed.success) return { status: 'ignored' };
+      const ev = parsed.data;
+      const eventId = createHash('sha256')
+        .update(`${ev.awb}|${ev.current_status}|${ev.current_timestamp ?? ''}`)
+        .digest('hex');
+      const stored = await repo.recordWebhookEvent(db, {
+        provider: 'SHIPROCKET',
+        eventId,
+        eventType: ev.current_status.slice(0, 60),
+        payload: json,
+      });
+      if (stored.processed) return { status: 'duplicate' };
+
+      const outcome = await logistics.processTracking({
+        awb: ev.awb,
+        statusText: ev.current_status,
+        statusId: ev.shipment_status_id ?? ev.current_status_id ?? null,
+        eventTime: parseShiprocketTime(ev.current_timestamp) ?? now(),
+        location: ev.scans?.at(-1)?.location ?? null,
+        source: 'WEBHOOK',
+        raw: json,
+      });
+      if (outcome.kind === 'unknown_awb') {
+        await repo.markWebhookError(db, stored.id, `UNKNOWN_AWB: ${ev.awb}`);
+        logger.warn({ eventId }, 'courier webhook for an unknown AWB');
+        reporter.capture(new Error('Courier webhook for an unknown AWB'), { webhook: 'courier-tracking', eventId });
+        await jobs
+          .add(
+            'ADMIN_ALERT',
+            { kind: 'UNKNOWN_AWB', orderId: null, message: `Courier update for AWB ${ev.awb} not in our shipments` },
+            jobIds.alert('UNKNOWN_AWB', ev.awb),
+          )
+          .catch((err: unknown) => logger.error({ err }, 'alert enqueue failed'));
+        return { status: 'business_error' };
+      }
+      await repo.markWebhookProcessed(db, stored.id);
+      return { status: outcome.kind === 'duplicate' ? 'duplicate' : 'processed' };
     },
   };
 }

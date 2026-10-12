@@ -2,8 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import { AppError } from '../utils/app-error';
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-/** Webhooks authenticate by signature/token, not cookies (architecture/02 §4). */
-const EXEMPT_PREFIXES = ['/api/v1/webhooks/'];
+/**
+ * Webhooks authenticate by signature/token, not cookies (architecture/02 §4). The Shiprocket
+ * sandbox (dev/CI only — not registered in production) is called server-to-server by the worker.
+ */
+const EXEMPT_PREFIXES = ['/api/v1/webhooks/', '/api/v1/dev/shiprocket/'];
 
 /**
  * CSRF defence (D-20): every cookie-carrying mutation must come from an allowed browser origin.

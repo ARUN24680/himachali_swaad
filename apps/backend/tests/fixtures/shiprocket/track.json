@@ -1,0 +1,62 @@
+{
+  "tracking_data": {
+    "track_status": 1,
+    "shipment_status": 7,
+    "shipment_track": [
+      {
+        "id": 236612717,
+        "awb_code": "19041424751540",
+        "courier_company_id": 10,
+        "shipment_id": 280652512,
+        "order_id": 281248157,
+        "pickup_date": "2026-10-13 15:00:00",
+        "delivered_date": "2026-10-16 13:40:00",
+        "weight": "0.75",
+        "packages": 1,
+        "current_status": "Delivered",
+        "delivered_to": "Kullu",
+        "destination": "Kullu",
+        "consignee_name": "SANITIZED",
+        "origin": "Kullu",
+        "courier_agent_details": null,
+        "edd": null
+      }
+    ],
+    "shipment_track_activities": [
+      {
+        "date": "2026-10-16 13:40:00",
+        "status": "DLVD",
+        "activity": "Delivered",
+        "location": "Kullu_Bus_Stand (Himachal Pradesh)",
+        "sr-status": "7",
+        "sr-status-label": "DELIVERED"
+      },
+      {
+        "date": "2026-10-16 08:10:00",
+        "status": "OFD",
+        "activity": "Out for delivery",
+        "location": "Kullu_Bus_Stand (Himachal Pradesh)",
+        "sr-status": "17",
+        "sr-status-label": "OUT FOR DELIVERY"
+      },
+      {
+        "date": "2026-10-13 15:00:00",
+        "status": "PKD",
+        "activity": "Picked up",
+        "location": "Kullu_Hub (Himachal Pradesh)",
+        "sr-status": "42",
+        "sr-status-label": "PICKED UP"
+      },
+      {
+        "date": "2026-10-12 12:00:00",
+        "status": "X-UCI",
+        "activity": "Manifested - Manifest uploaded",
+        "location": "Kullu_Hub (Himachal Pradesh)",
+        "sr-status": "",
+        "sr-status-label": ""
+      }
+    ],
+    "track_url": "https://shiprocket.co/tracking/19041424751540",
+    "etd": "2026-10-16 23:59:59"
+  }
+}

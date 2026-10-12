@@ -1,0 +1,9 @@
+{"level":30,"time":1791795802135,"pid":44209,"name":"pk-worker","workers":5,"schedules":["EXPIRE_RESERVATIONS","RECONCILE_CONFIRMED","RECONCILE_REFUNDS","LEDGER_CHECK","CLEANUP_REFRESH_TOKENS","PICKUP_BATCH","POLL_TRACKING","CHECK_WALLET_BALANCE"],"msg":"worker started"}
+{"level":30,"time":1791795826283,"pid":44209,"name":"pk-worker","job":"ORDER_CONFIRMED","data":{"orderId":"9d930fdb-6ee0-4423-8d17-c6c93bfc0c02"},"phase":"Phase 8","msg":"job consumer not built yet — no-op"}
+{"level":30,"time":1791795826300,"pid":44209,"name":"pk-worker","module":"logistics","orderId":"9d930fdb-6ee0-4423-8d17-c6c93bfc0c02","deadWeightG":730,"volumetricWeightG":300,"warnings":[],"msg":"parcel computed"}
+{"level":30,"time":1791795826322,"pid":44209,"name":"pk-worker","integration":"shiprocket","endpoint":"auth/login","status":200,"ms":12,"msg":"shiprocket call"}
+{"level":30,"time":1791795826347,"pid":44209,"name":"pk-worker","integration":"shiprocket","endpoint":"orders/create","status":200,"ms":24,"msg":"shiprocket call"}
+{"level":30,"time":1791795826349,"pid":44209,"name":"pk-worker","orderCode":"PK-GFFZ9Z","invoiceNumber":"PK/2026-27/000026","msg":"invoice generated"}
+{"level":30,"time":1791795826353,"pid":44209,"name":"pk-worker","integration":"shiprocket","endpoint":"courier/serviceability","status":200,"ms":2,"msg":"shiprocket call"}
+{"level":30,"time":1791795826355,"pid":44209,"name":"pk-worker","integration":"shiprocket","endpoint":"courier/assign","status":200,"ms":1,"msg":"shiprocket call"}
+{"level":30,"time":1791795897111,"pid":44209,"name":"pk-worker","signal":"SIGTERM","msg":"worker shutting down: finish active jobs"}

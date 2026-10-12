@@ -19,4 +19,7 @@ export * from './contracts/checkout';
 export * from './contracts/payments';
 export * from './contracts/orders';
 export * from './contracts/addresses';
+export * from './logistics';
+export * from './logistics/rows';
+export * from './contracts/logistics';
 export { PHONE_REGEX, PINCODE_REGEX } from './schemas/patterns';

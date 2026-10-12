@@ -11,8 +11,8 @@ export type Processors = { [N in JobName]: Handler<N> };
 
 /**
  * One handler per job (architecture/02 §8). Each calls a module service; consumers owned by later
- * phases are logged no-ops so the deterministic job ids are already in place:
- * SHIPROCKET_* → Phase 6, ORDER_* notifications → Phase 8.
+ * phases are logged no-ops so the deterministic job ids are already in place: customer/partner/admin
+ * notifications (ORDER_*, ADMIN_ALERT) → Phase 8.
  */
 export function createProcessors(deps: {
   db: Db;
@@ -26,10 +26,17 @@ export function createProcessors(deps: {
     return { skipped: phase };
   };
   return {
-    SHIPROCKET_CREATE_ORDER: later('Phase 6'),
-    SHIPROCKET_CANCEL_SHIPMENT: later('Phase 6'),
+    SHIPROCKET_CREATE_ORDER: (d) => svc.logistics.bookShipment(d.orderId),
+    FETCH_AND_STORE_LABEL: (d) => svc.logistics.fetchAndStoreLabel(d.orderId),
+    SHIPROCKET_SCHEDULE_PICKUP: (d) => svc.logistics.schedulePickup(d.orderId),
+    SHIPROCKET_CANCEL_SHIPMENT: (d) => svc.logistics.cancelShipment(d.orderId),
+    PICKUP_BATCH: () => svc.logistics.pickupBatch(),
+    POLL_TRACKING: () => svc.logistics.pollTracking(),
+    CHECK_WALLET_BALANCE: () => svc.logistics.checkWallet(),
     ORDER_CONFIRMED: later('Phase 8'),
     ORDER_CANCELLED: later('Phase 8'),
+    ORDER_STATUS_NOTIFY: later('Phase 8'),
+    ADMIN_ALERT: later('Phase 8'),
     GENERATE_INVOICE: (d) => svc.invoices.generate(d.orderId),
     INITIATE_REFUND: (d) => svc.payments.initiateRefund(d.refundId),
     EXPIRE_RESERVATIONS: () => sweepers.expireReservations(),
@@ -47,4 +54,8 @@ export const SCHEDULES: { name: JobName; pattern?: string; every?: number }[] = 
   { name: 'RECONCILE_REFUNDS', every: 30 * 60_000 },
   { name: 'LEDGER_CHECK', pattern: '30 3 * * *' }, // 03:30 IST daily
   { name: 'CLEANUP_REFRESH_TOKENS', pattern: '45 3 * * *' },
+  // Books once today's cut-off (pickup_cutoff_hour_ist) has passed; re-runs pick up stragglers/failures
+  { name: 'PICKUP_BATCH', pattern: '*/15 * * * *' },
+  { name: 'POLL_TRACKING', pattern: '0 */3 * * *' }, // D-35
+  { name: 'CHECK_WALLET_BALANCE', pattern: '5 * * * *' }, // hourly
 ];

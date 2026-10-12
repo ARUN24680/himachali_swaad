@@ -107,10 +107,11 @@ test('server quantity adjustment is applied with an inline notice', async ({ pag
   await expect(drawer.getByRole('button', { name: /Increase quantity/ })).toBeDisabled();
 });
 
-test('pincode checker reports serviceable / not serviceable and remembers the pincode', async ({ page }) => {
+test('pincode checker reports serviceable / not serviceable / unknown and remembers the pincode', async ({ page }) => {
   await page.route('**/api/v1/shipping/check-pincode', async (route) => {
     const { pincode } = route.request().postDataJSON() as { pincode: string };
-    const serviceable = pincode !== '999999';
+    // 799999 = courier partner unreachable (Phase 6 §6.3: serviceable null, non-blocking)
+    const serviceable = pincode === '799999' ? null : pincode !== '999999';
     await route.fulfill({
       json: {
         success: true,
@@ -130,6 +131,9 @@ test('pincode checker reports serviceable / not serviceable and remembers the pi
   await expect(checker.getByText('Usually 2–4 days after dispatch')).toBeVisible();
   await input.fill('999999');
   await expect(checker.getByText(/can.t deliver to 999999/)).toBeVisible();
+  await input.fill('799999');
+  await expect(checker.getByText(/confirm delivery to 799999 at checkout/)).toBeVisible();
+  await expect(checker.getByText(/can.t deliver/)).toHaveCount(0);
   await input.fill('012345');
   await expect(checker.getByText('Enter a valid 6-digit pincode')).toBeVisible();
   await input.fill('110001');

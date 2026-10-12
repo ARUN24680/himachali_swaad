@@ -6,7 +6,13 @@ import type { Logger } from 'pino';
 import type { Db } from './config/db';
 import type { ErrorReporter } from './config/sentry';
 import type { ConversionsClient } from './integrations/meta/conversions';
-import { createStubServiceabilityProvider, type ServiceabilityProvider } from './integrations/shipping/serviceability';
+import {
+  createShiprocketServiceabilityProvider,
+  type ServiceabilityProvider,
+} from './integrations/shipping/serviceability';
+import type { ShiprocketApi } from './integrations/shiprocket/client';
+import type { ShiprocketSandbox } from './integrations/shiprocket/sandbox';
+import type { FastifyPluginAsync } from 'fastify';
 import { createIndiaPostDirectory, type PincodeDirectory } from './integrations/shipping/pincode-directory';
 import type { PaymentGateway } from './integrations/razorpay/gateway';
 import type { MockPaymentGateway } from './integrations/razorpay/mock';
@@ -36,6 +42,8 @@ import { adminSettingsRoutes } from './modules/settings/settings.routes';
 import { accountRoutes } from './modules/account/account.routes';
 import { checkoutRoutes } from './modules/checkout/checkout.routes';
 import { devPaymentRoutes } from './modules/dev-payments/dev-payments.routes';
+import { devShippingRoutes } from './modules/dev-shipping/dev-shipping.routes';
+import { labelRoutes } from './modules/logistics/logistics.routes';
 import { adminOrderRoutes, orderRoutes } from './modules/orders/orders.routes';
 import { paymentsRoutes } from './modules/payments/payments.routes';
 import { webhookRoutes } from './modules/webhooks/webhooks.routes';
@@ -67,8 +75,16 @@ export interface AppDeps {
   revalidator: StorefrontRevalidator;
   /** Meta Conversions API (disabled no-op without credentials). */
   capi: ConversionsClient;
-  /** Pincode serviceability; defaults to the stub until Phase 6 (Shiprocket). */
+  /** Pincode serviceability; defaults to Shiprocket (origin = default kitchen). */
   serviceability?: ServiceabilityProvider;
+  /** Shiprocket client (real API or the sandbox over HTTP) — Phase 6. */
+  shiprocket: ShiprocketApi;
+  /** Courier-tracking webhook token (`x-api-key`). */
+  courierWebhookToken: string;
+  /** Dev/CI: mount the Shiprocket sandbox at /api/v1/dev/shiprocket + the shipping simulator. */
+  shiprocketSandbox?: { state: ShiprocketSandbox; plugin: FastifyPluginAsync };
+  /** Clock override for logistics (tests). */
+  now?: () => Date;
   /** PIN → city/state auto-fill; defaults to India Post. */
   pincodeDirectory?: PincodeDirectory;
   /** Invoices + labels (D-11). */
@@ -145,6 +161,9 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     gateway: deps.gateway,
     jobs: deps.jobs,
     allowDraftInvoice: deps.allowDraftInvoice ?? false,
+    shiprocket: deps.shiprocket,
+    courierWebhookToken: deps.courierWebhookToken,
+    now: deps.now,
   });
   const settingsService = svc.settings;
   const inventoryService = svc.inventory;
@@ -172,7 +191,12 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     prefix: '/api/v1/shipping',
     service: createShippingService({
       redis: deps.redis,
-      provider: deps.serviceability ?? createStubServiceabilityProvider(),
+      provider:
+        deps.serviceability ??
+        createShiprocketServiceabilityProvider({
+          shiprocket: deps.shiprocket,
+          originPincode: () => svc.logistics.originPincode(),
+        }),
       directory: deps.pincodeDirectory ?? createIndiaPostDirectory(),
       logger: deps.logger,
     }),
@@ -196,6 +220,19 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(adminOrderRoutes, { prefix: '/api/v1/admin/orders', service: svc.orders, guards });
   await app.register(accountRoutes, { prefix: '/api/v1/me', service: svc.account, guards });
   await app.register(webhookRoutes, { prefix: '/api/v1/webhooks', service: svc.webhooks });
+
+  // ── Phase 6: logistics ──────────────────────────────────────────────────
+  await app.register(labelRoutes, { prefix: '/api/v1', service: svc.logistics, guards });
+  if (deps.shiprocketSandbox) {
+    await app.register(deps.shiprocketSandbox.plugin, { prefix: '/api/v1/dev/shiprocket' });
+    await app.register(devShippingRoutes, {
+      prefix: '/api/v1/dev/shipping',
+      sandbox: deps.shiprocketSandbox.state,
+      logistics: svc.logistics,
+      orders: svc.orders,
+      webhookToken: deps.courierWebhookToken,
+    });
+  }
   if (deps.gateway.kind === 'mock') {
     await app.register(devPaymentRoutes, {
       prefix: '/api/v1/dev/payments',

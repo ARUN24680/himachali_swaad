@@ -7,10 +7,12 @@ export type ErrorContext = { requestId?: string; route?: string } & Record<strin
 export interface ErrorReporter {
   /** Returns the event id when the error was sent. */
   capture: (err: unknown, context: ErrorContext) => string | undefined;
+  /** Outbound-call trail attached to the next captured error (no PII in `data`). */
+  breadcrumb?: (category: string, message: string, data?: Record<string, string | number | boolean>) => void;
 }
 
 export function initSentry(opts: { dsn?: string; environment: string; release?: string }): ErrorReporter {
-  if (!opts.dsn) return { capture: () => undefined };
+  if (!opts.dsn) return { capture: () => undefined, breadcrumb: () => undefined };
 
   Sentry.init({
     dsn: opts.dsn,
@@ -31,6 +33,7 @@ export function initSentry(opts: { dsn?: string; environment: string; release?: 
 
   return {
     capture: (err, context) => Sentry.captureException(err, { tags: { route: context.route }, extra: { ...context } }),
+    breadcrumb: (category, message, data) => Sentry.addBreadcrumb({ category, message, data, level: 'info' }),
   };
 }
 

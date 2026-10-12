@@ -1,0 +1,36 @@
+{
+  "company_auto_shipment_insurance_setting": false,
+  "covid_zones": { "delivery_zone": null, "pickup_zone": null },
+  "currency": "INR",
+  "data": {
+    "available_courier_companies": [
+      {
+        "courier_company_id": 10,
+        "courier_name": "Delhivery Surface",
+        "rate": 62.5,
+        "rating": 4.4,
+        "estimated_delivery_days": "5",
+        "etd": "Oct 17, 2026",
+        "freight_charge": 62.5,
+        "cod": 1,
+        "min_weight": 0.5
+      },
+      {
+        "courier_company_id": 33,
+        "courier_name": "Xpressbees Surface",
+        "rate": "48.0",
+        "rating": "3.2",
+        "estimated_delivery_days": "8",
+        "etd": "Oct 20, 2026",
+        "freight_charge": 48,
+        "cod": 1,
+        "min_weight": 0.5
+      }
+    ],
+    "recommended_courier_company_id": 10,
+    "shiprocket_recommended_courier_id": 10
+  },
+  "dg_courier": 0,
+  "eligible_for_insurance": 0,
+  "status": 200
+}

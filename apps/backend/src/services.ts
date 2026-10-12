@@ -3,6 +3,7 @@ import type { Logger } from 'pino';
 import type { Db } from './config/db';
 import type { ErrorReporter } from './config/sentry';
 import type { PaymentGateway } from './integrations/razorpay/gateway';
+import type { ShiprocketApi } from './integrations/shiprocket/client';
 import type { PincodeDirectory } from './integrations/shipping/pincode-directory';
 import type { ObjectStorage } from './integrations/storage/storage';
 import type { PrivateStorage } from './integrations/storage/private';
@@ -13,6 +14,7 @@ import { createCartService } from './modules/cart/cart.service';
 import { createCatalogService } from './modules/catalog/catalog.service';
 import { createCheckoutService } from './modules/checkout/checkout.service';
 import { createInventoryService } from './modules/inventory/inventory.service';
+import { createLogisticsService } from './modules/logistics/logistics.service';
 import { createInvoiceService } from './modules/orders/invoice.service';
 import { createOrdersService } from './modules/orders/orders.service';
 import { createPaymentsService } from './modules/payments/payments.service';
@@ -31,6 +33,12 @@ export interface CommerceDeps {
   jobs: JobQueue;
   /** Non-production: invoices may be issued as DRAFT while Q-02 seller details are unset. */
   allowDraftInvoice: boolean;
+  /** Real Shiprocket or the sandbox over HTTP (Phase 6). */
+  shiprocket: ShiprocketApi;
+  /** `x-api-key` the courier-tracking webhook must carry. */
+  courierWebhookToken: string;
+  /** Clock for logistics cut-off / pickup-missed logic (tests). */
+  now?: () => Date;
 }
 
 /**
@@ -76,12 +84,26 @@ export function createCommerceServices(d: CommerceDeps) {
     logger: d.logger,
     reporter: d.reporter,
   });
+  const logistics = createLogisticsService({
+    db: d.db,
+    settings,
+    shiprocket: d.shiprocket,
+    privateStorage: d.privateStorage,
+    jobs: d.jobs,
+    logger: d.logger,
+    reporter: d.reporter,
+    now: d.now,
+  });
   const webhooks = createWebhooksService({
     db: d.db,
     gateway: d.gateway,
     payments,
+    logistics,
+    jobs: d.jobs,
+    courierWebhookToken: d.courierWebhookToken,
     logger: d.logger,
     reporter: d.reporter,
+    now: d.now,
   });
   const invoices = createInvoiceService({
     db: d.db,
@@ -90,7 +112,7 @@ export function createCommerceServices(d: CommerceDeps) {
     allowDraft: d.allowDraftInvoice,
     logger: d.logger,
   });
-  return { settings, inventory, catalog, cart, account, orders, checkout, payments, webhooks, invoices };
+  return { settings, inventory, catalog, cart, account, orders, checkout, payments, webhooks, invoices, logistics };
 }
 
 export type CommerceServices = ReturnType<typeof createCommerceServices>;

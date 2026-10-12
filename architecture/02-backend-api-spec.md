@@ -73,7 +73,7 @@ Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 
 | :--- | :--- | :--- | :--- |
 | GET | `/products` | Public | → `{ freshestBatch: { batchCode, manufacturedAt, productTitle } \| null, groups: [{ productGroup, variants: [{ id, slug, productGroup, title, shortDescription, meatType, netWeightG, pricePaise, comparePricePaise, images, spiceLevel, sellableStock, stockBadge: 'IN_STOCK' \| 'LOW_STOCK' \| 'SOLD_OUT' }] }] }` (sellable = D-24 filter; `Cache-Control: public, max-age=60, stale-while-revalidate=300`; storefront tag `products`) |
 | GET | `/products/:slug` | Public | → full detail incl. ingredients, allergens, nutrition, shelfLifeDays, storageInstructions, variants (same `productGroup`), `fssaiLicenseNo`, current batch `{ batchCode, manufacturedAt, expiryDate }` (FIFO sellable). Drafts → 404 |
-| POST | `/shipping/check-pincode` | Public | `{ pincode: /^[1-9]\d{5}$/ }` → `{ pincode, serviceable, estimatedDays: { min, max } \| null, courierHint \| null }` (no COD field at launch, D-25). Redis cache 24h per pincode (weight slab added with Shiprocket, Phase 6). Phase 4: stub provider by pincode zone. |
+| POST | `/shipping/check-pincode` | Public | `{ pincode: /^[1-9]\d{5}$/ }` → `{ pincode, serviceable: boolean \| null, estimatedDays: { min, max } \| null, courierHint: null }` (no COD field at launch, D-25). Shiprocket serviceability from the default kitchen, 0.5 kg prepaid (Phase 6). `serviceable: null` = Shiprocket unreachable → "we'll confirm at checkout", never blocks, not cached. Redis `pk:svc:<origin>:<pincode>` 24 h (serviceable) / 6 h (not) (D-53 j). 30 / min per IP. |
 | POST | `/cart/quote` | Public | `{ items: [{ productId, quantity }] (≤ 20), pincode? }` → `{ items: [{ productId, slug, title, netWeightG, image, unitPricePaise, comparePricePaise, requestedQuantity, quantity, availableQuantity, lineTotalPaise, issue: 'OUT_OF_STOCK' \| 'QTY_REDUCED' \| 'INACTIVE' \| null }], subtotalPaise, shippingFeePaise, discountPaise, totalPaise, freeShippingThresholdPaise, freeShippingRemainingPaise, maxQtyPerItem }` — `quantity` = min(requested, sellable D-24, `max_qty_per_item`); duplicate lines merged. Same `quoteCart()` Phase 5 `create-order` runs (D-15, D-50). |
 | POST | `/analytics/events` | Public | `{ eventName: 'ViewContent' \| 'AddToCart' \| 'InitiateCheckout', eventId, eventSourceUrl, contentIds?, valuePaise?, consent: true }` → `202` — Meta Conversions API relay (same `eventId` as the Pixel → dedup). No-op until `META_PIXEL_ID` + token set. `Purchase` only server-side (Phase 5). |
 
@@ -107,6 +107,9 @@ Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 
 ### `POST /dev/payments/simulate` — dev/CI only (`PAYMENT_GATEWAY=mock`, refused in production)
 * `{ razorpayOrderId, outcome: 'success' | 'failure', sendWebhook?, skipClientVerify? }` → `{ razorpayOrderId, razorpayPaymentId, razorpaySignature }`; delivers the signed webhook ~2 s later through `/webhooks/razorpay`.
 
+### `POST /dev/shipping/simulate` — dev/CI only (`SHIPPING_PROVIDER=sandbox`, refused in production)
+* `{ orderCode, status, location?, sendWebhook? }` → `{ awb, status, webhook }`; the sandbox shipment gets a courier scan and the `x-api-key`-signed tracking webhook goes through `/webhooks/courier-tracking` (D-53 b). The sandbox itself (Shiprocket-shaped API) is mounted at `/api/v1/dev/shiprocket/`.
+
 ### `GET /shipping/pincode/:pincode/locality` — Public (Phase 5 §5.4)
 * → `{ pincode, city | null, state | null }` from India Post, cached 30 days; checkout auto-fill (manual override kept).
 
@@ -135,7 +138,7 @@ Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 
 | Method | Path | Verification | Handled events |
 | :--- | :--- | :--- | :--- |
 | POST | `/webhooks/razorpay` | `X-Razorpay-Signature` HMAC with **`RAZORPAY_WEBHOOK_SECRET`**; dedup `X-Razorpay-Event-Id` | `payment.captured`, `order.paid` → `confirmPayment`; `payment.failed`; `refund.processed`, `refund.failed` |
-| POST | `/webhooks/shiprocket` | `x-api-key` == `SHIPROCKET_WEBHOOK_TOKEN`; dedup `sha256(awb+status+time)` | Tracking updates → `tracking_events` + mapped transition (`07` §5) |
+| POST | `/webhooks/courier-tracking` | `x-api-key` == `SHIPROCKET_WEBHOOK_TOKEN` (constant-time) else `401`; dedup `sha256(awb+current_status+current_timestamp)` | Shiprocket tracking updates → `tracking_events` + mapped transition (`07` §5). Path can't contain "shiprocket"/"sr"/"kr" (Shiprocket rule, D-53 a). Unknown AWB / test ping → `200`. |
 | GET / POST | `/webhooks/whatsapp` | GET = Meta verify challenge; POST = `X-Hub-Signature-256` (or BSP equivalent) | Message status (`sent/delivered/read/failed`) → `notifications_log` |
 
 Rule: business errors → `webhook_events.last_error`, return `200` + admin alert; only infra errors return `5xx` (so the provider retries). Failed events can be replayed via `POST /admin/webhooks/:id/replay`.
@@ -163,7 +166,7 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | Method | Path | Request → Response |
 | :--- | :--- | :--- |
 | GET | `/partner/orders?status=AWAITING_PACKING` | → `{ orderCode, items: [{ title, netWeightG, quantity, batchCodes[] }], customerFirstName, city, state, createdAt }` — **no phone, full address or revenue** |
-| GET | `/partner/orders/:orderCode/label` | → `{ url, expiresAt }` 4×6 PDF, 5-min signed private R2 URL (D-11, D-37) |
+| GET | `/partner/orders/:orderCode/label` | → `{ url, expiresAt }` 4×6 PDF, 5-min signed private R2 URL (D-11, D-37); own kitchen's orders only (else 404); audited `LABEL_VIEW` (Phase 6) |
 | GET | `/partner/labels/a4?orders=PK-7KQ2M9,PK-...` | → signed URL of merged A4 (4-per-page) PDF for cyber-cafe printing |
 | POST | `/partner/orders/:orderCode/mark-packed` | Header `Idempotency-Key`; body `{ checklist: { sealChecked, shrinkApplied, bubbleWrapped, weightOk } }` → `AWAITING_PACKING → PACKED`, pickup job enqueued (D-36) |
 | POST / DELETE | `/partner/push-subscriptions` | `{ endpoint, keys: { p256dh, auth } }` → save / remove (PWA push, D-16) |
@@ -183,7 +186,7 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | | `POST /admin/uploads/product-image` | `{ productId, contentType: webp\|jpeg\|png, sizeBytes ≤ 5 MB }` → `{ key, uploadUrl, method: 'PUT', headers, publicUrl }`; key `products/<productId>/<uuid>.<ext>`, Content-Type + Content-Length signed. Then `PATCH images` |
 | Orders | `GET /admin/orders` | Query: `status[]`, `tab`, `q` (code/phone/AWB), `from`, `to`, `page`, `sort` |
 | | `GET /admin/orders/:orderCode` | Items, allocations (batches), payments, refunds, shipment, tracking, notifications, status log |
-| | `GET /admin/orders/:orderCode/label` | Signed label URL |
+| | `GET /admin/orders/:orderCode/label` | `{ url, expiresAt }` signed label URL, audited `LABEL_VIEW` (Phase 6) |
 | | `POST /admin/orders/:orderCode/cancel` | `{ reason }` → allowed per `07` §1.2; AWB cancel job + stock release + refund |
 | | `POST /admin/orders/:orderCode/refunds` | `{ amountPaise, reason }` → partial/full |
 | | `POST /admin/orders/:orderCode/notifications/resend` | `{ template }` |
@@ -207,18 +210,20 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 
 | Queue | Job | jobId pattern | Trigger | Retries |
 | :--- | :--- | :--- | :--- | :--- |
-| `orders` | `SHIPROCKET_CREATE_ORDER` (create order → courier select via `min_courier_rating` / `max_courier_etd_days` → AWB) | `ship:<orderId>` | `CONFIRMED` | 5, exponential (30s base); then `ops_issue` + admin alert |
-| `orders` | `FETCH_AND_STORE_LABEL` (label PDF → private R2 → `AWAITING_PACKING`) | `label:<orderId>` | AWB assigned | 5, exponential |
-| `orders` | `SHIPROCKET_SCHEDULE_PICKUP` | `pickup:<orderId>` | `PACKED` | 5, exponential |
-| `orders` | `SHIPROCKET_CANCEL_SHIPMENT` | `shipcancel:<orderId>` | Admin/customer cancel after AWB | 5 |
+| `orders` | `SHIPROCKET_CREATE_ORDER` (create order → courier select via `min_courier_rating` / `max_courier_etd_days` → AWB) | `ship-<orderId>` | `CONFIRMED` | 5, exponential (30s base), only network/5xx/429 retried (4xx → dead letter at once); then `ops_issue` + `shipments.last_error` + admin alert |
+| `documents` | `FETCH_AND_STORE_LABEL` (label PDF → private R2 `labels/<orderCode>.pdf` → `AWAITING_PACKING`) | `label-<orderId>` | AWB assigned | 5, exponential |
+| `orders` | `SHIPROCKET_SCHEDULE_PICKUP` (fixes the pickup day: before cut-off → today, else next working day) | `pickup-<orderId>` | `PACKED` | 5, exponential |
+| `orders` | `SHIPROCKET_CANCEL_SHIPMENT` (AWB cancel, else Shiprocket order cancel; no-op if nothing booked) | `shipcancel-<orderId>` | Admin/customer cancel from `CONFIRMED` on | 5; then `ops_issue` + alert |
 | `documents` | `GENERATE_INVOICE` | `inv:<orderId>` | `CONFIRMED` | 3 |
 | `documents` | `GENERATE_SETTLEMENT_PDF` | `stmt:<settlementId>` | Finalize | 3 |
 | `payments` | `INITIATE_REFUND` (`{ refundId }` — intent row already written, D-52) | `refund-<refundId>` | Cancel / stockout / mismatch / duplicate payment / RTO | 5; then `ops_issue` |
-| `notify` | `ORDER_CONFIRMED` and other templates (WhatsApp → SMS fallback / push) | `notify:<template>:<orderId>` | Transitions (`07` §6) | 3 |
+| `notify` | `ORDER_CONFIRMED`, `ORDER_CANCELLED`, `ORDER_STATUS_NOTIFY { template }` (WhatsApp → SMS fallback / push) | `notify-<template>-<orderId>` | Transitions (`07` §6) | 3 |
+| `notify` | `ADMIN_ALERT { kind, orderId, message }` (booking failed, NDR, RTO, lost, pickup missed/exception, weight discrepancy, wallet low, unknown AWB) | `alert-<kind>-<orderId \| date>` | Logistics events (Phase 6) | 3 |
 | `cron` | `EXPIRE_RESERVATIONS` | repeat 1 min | — | — |
 | `cron` | `RECONCILE_CONFIRMED` | repeat 5 min | — | — |
 | `cron` | `RECONCILE_REFUNDS` | repeat 30 min | — | — |
-| `cron` | `POLL_TRACKING` | repeat 3 hr | — | — |
+| `cron` | `PICKUP_BATCH` (one pickup + manifest per kitchen once today's `pickup_cutoff_hour_ist` has passed) | repeat 15 min | — | — |
+| `cron` | `POLL_TRACKING` (concurrency 2 + jitter; also charged weight + "pickup missed" > 48 h) | repeat 3 hr | — | — |
 | `cron` | `PARTNER_DAILY_DIGEST` | repeat 09:00 IST | — | — |
 | `cron` | `LEDGER_CHECK`, `LOW_STOCK_ALERT` | daily | — | — |
 | `cron` | `CHECK_WALLET_BALANCE` (vs `shiprocket_wallet_min_paise`) | hourly | — | — |

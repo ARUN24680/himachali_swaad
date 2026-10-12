@@ -1,4 +1,3 @@
-import { Worker, type Job } from 'bullmq';
 import { createDb } from './config/db';
 import { loadEnvOrExit } from './config/env';
 import { createLogger } from './config/logger';
@@ -6,7 +5,9 @@ import { createRedis } from './config/redis';
 import { flushSentry, initSentry } from './config/sentry';
 import { gatewayFromEnv, privateStorageFromEnv, revalidatorFromEnv, storageFromEnv } from './config/storage';
 import { createProcessors, SCHEDULES } from './jobs/processors';
-import { createBullJobQueue, JOB_QUEUE, QUEUE_NAMES, type JobName } from './jobs/queues';
+import { createBullJobQueue } from './jobs/queues';
+import { startWorkers } from './jobs/runner';
+import { shippingFromEnv } from './config/shipping';
 import { createSweepers } from './jobs/sweepers';
 import { createCommerceServices } from './services';
 
@@ -39,6 +40,8 @@ await connection.ping();
 
 const jobs = createBullJobQueue(connection);
 const gateway = gatewayFromEnv(env, connection);
+// Sandbox mode: the same client calls the API's /api/v1/dev/shiprocket (API must be running)
+const shipping = shippingFromEnv(env, connection, logger, reporter);
 const svc = createCommerceServices({
   db,
   redis: connection,
@@ -50,35 +53,20 @@ const svc = createCommerceServices({
   gateway,
   jobs,
   allowDraftInvoice: env.NODE_ENV !== 'production',
+  shiprocket: shipping.shiprocket,
+  courierWebhookToken: shipping.webhookToken,
 });
 const sweepers = createSweepers({ db, svc, gateway, jobs, logger, reporter });
 const processors = createProcessors({ db, svc, sweepers, logger });
 
-const workers: Worker[] = QUEUE_NAMES.map(
-  (queue) =>
-    new Worker(
-      queue,
-      async (job: Job) => {
-        const handler = processors[job.name as JobName];
-        if (!handler || JOB_QUEUE[job.name as JobName] !== queue) throw new Error(`Unknown job ${queue}/${job.name}`);
-        return (handler as (d: unknown, j: Job) => Promise<unknown>)(job.data, job);
-      },
-      { connection, prefix: 'pk:bull', concurrency: queue === 'cron' ? 1 : 5 },
-    ),
-);
-
-for (const w of workers) {
-  w.on('failed', (job, err) => {
-    if (!job) return;
-    const final = job.attemptsMade >= (job.opts.attempts ?? 1);
-    logger.error({ err, job: job.name, jobId: job.id, attempt: job.attemptsMade, final }, 'job failed');
-    if (!final) return;
-    reporter.capture(err, { job: job.name, jobId: job.id ?? '' });
-    if (job.name === 'INITIATE_REFUND') {
-      void svc.payments.refundGaveUp((job.data as { refundId: string }).refundId, err.message).catch(() => undefined);
-    }
-  });
-}
+const workers = startWorkers({
+  connection,
+  processors,
+  svc,
+  logger,
+  reporter,
+  concurrency: env.WORKER_CONCURRENCY,
+});
 
 const cron = jobs.queues.get('cron')!;
 for (const s of SCHEDULES) {

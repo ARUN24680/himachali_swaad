@@ -89,8 +89,11 @@ const NOT_FOUND = () => new AppError('NOT_FOUND', 'Order not found.');
 
 /** Customer statuses that can still be cancelled online (07 §1.2). */
 const CUSTOMER_CANCELLABLE: readonly OrderStatus[] = ['CONFIRMED', 'AWAITING_PACKING'];
-/** After AWB assignment a courier booking exists and must be cancelled too (Phase 6 consumer). */
-const HAS_SHIPMENT: readonly OrderStatus[] = ['AWAITING_PACKING', 'PACKED', 'PICKUP_SCHEDULED'];
+/**
+ * A Shiprocket booking may exist from CONFIRMED on (the booking job runs right after payment), so
+ * its cancel job is enqueued for all of these; the job is a no-op when nothing was booked.
+ */
+const MAY_HAVE_SHIPMENT: readonly OrderStatus[] = ['CONFIRMED', 'AWAITING_PACKING', 'PACKED', 'PICKUP_SCHEDULED'];
 
 export function createOrdersService(deps: {
   db: Db;
@@ -189,6 +192,11 @@ export function createOrdersService(deps: {
       };
     },
 
+    /** Dev tooling (shipping simulator) — order id for a code, no access check. */
+    async idForCode(orderCode: string): Promise<string | null> {
+      return (await repo.findOrderByCode(db, orderCode))?.id ?? null;
+    },
+
     /** Meta CAPI Purchase facts — only for orders that were actually confirmed. */
     async purchaseFacts(orderCode: string) {
       const order = await repo.findOrderByCode(db, orderCode);
@@ -264,7 +272,7 @@ export function createOrdersService(deps: {
 
       const { order, refundId } = outcome;
       if (refundId) await enqueue(() => jobs.add('INITIATE_REFUND', { refundId }, jobIds.refund(refundId)), 'refund');
-      if (HAS_SHIPMENT.includes(order.status)) {
+      if (MAY_HAVE_SHIPMENT.includes(order.status)) {
         await enqueue(
           () => jobs.add('SHIPROCKET_CANCEL_SHIPMENT', { orderId: order.id }, jobIds.shipCancel(order.id)),
           'ship-cancel',

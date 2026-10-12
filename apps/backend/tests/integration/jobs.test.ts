@@ -19,6 +19,7 @@ import {
   testStorage,
 } from '../helpers/test-app';
 import { silentLogger } from '../helpers/test-logger';
+import { TEST_COURIER_TOKEN, unreachableShiprocket } from '../helpers/shiprocket';
 import { createTestDb, type TestDb } from '../helpers/test-db';
 
 /** Worker side (Phase 5 §5.9): reconcile sweepers, ledger check, token cleanup, BullMQ config, bull-board. */
@@ -59,6 +60,8 @@ const deps = () => {
     gateway,
     jobs,
     allowDraftInvoice: true,
+    shiprocket: unreachableShiprocket(),
+    courierWebhookToken: TEST_COURIER_TOKEN,
   });
   const sweepers = createSweepers({ db: t.db, svc, gateway, jobs, logger: silentLogger(), reporter });
   return { svc, sweepers, processors: createProcessors({ db: t.db, svc, sweepers, logger: silentLogger() }) };
