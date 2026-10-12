@@ -81,8 +81,15 @@ export async function payAtGateway(
   };
 }
 
+/** Distinct IP per call: /payments/verify is limited to 30 / 10 min per IP across ALL test files (shared Redis). */
 export const verify = (app: FastifyInstance, body: object) =>
-  app.inject({ method: 'POST', url: '/api/v1/payments/verify', headers: fromBrowser(), payload: body });
+  app.inject({
+    method: 'POST',
+    url: '/api/v1/payments/verify',
+    remoteAddress: nextIp(),
+    headers: fromBrowser(),
+    payload: body,
+  });
 
 /** Delivers a signed Razorpay webhook (no Origin — webhooks are exempt). */
 export function sendWebhook(

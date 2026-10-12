@@ -222,6 +222,8 @@ test('a cancelled order shows "Ye order cancel ho chuka hai — pack mat karein"
 });
 
 test('Hindi ↔ English toggle on every desk screen (persisted)', async ({ page, context }, info) => {
+  // Six screens × navigation + toggles: well over 30 s on CI's cold Vite dev server
+  test.setTimeout(120_000);
   await mockDeskApi(page, context);
   const screens: { path: string; hi: string; en: string }[] = [
     { path: '/desk', hi: 'Aaj ke orders', en: 'Today’s orders' },
@@ -246,7 +248,7 @@ test('Hindi ↔ English toggle on every desk screen (persisted)', async ({ page,
   // The choice is remembered on this phone
   await page.getByRole('button', { name: 'Bhasha badlein: English' }).click();
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('New order alerts')).toBeVisible();
 });
 
