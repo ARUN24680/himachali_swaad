@@ -12,6 +12,7 @@ export function authConfigFromEnv(env: Env): AuthConfig {
   return {
     jwtSecret: env.JWT_SECRET,
     totpKey: Buffer.from(env.TOTP_ENC_KEY, 'base64'),
+    adminTotpRequired: env.NODE_ENV === 'production' || env.ADMIN_TOTP_REQUIRED === 'true',
     otpProvider,
     cookies: {
       // Host-only cookie on localhost; `.pahadikhatki.in` in staging/prod so admin + storefront share the API session

@@ -19,6 +19,7 @@ import { authOf, type AuthGuards } from '../../middleware/auth';
 import { ok } from '../../utils/response';
 import type { AdminActor, AdminService } from './admin.service';
 import type { ExportsService } from './exports.service';
+import type { OpsAlertsService } from './ops-alerts.service';
 
 const actor = (request: FastifyRequest): AdminActor => ({ auth: authOf(request), ip: request.ip ?? null });
 
@@ -29,8 +30,9 @@ const actor = (request: FastifyRequest): AdminActor => ({ auth: authOf(request),
 export const adminRoutes: FastifyPluginAsyncZod<{
   service: AdminService;
   exportsService: ExportsService;
+  opsAlerts: OpsAlertsService;
   guards: AuthGuards;
-}> = async (app, { service, exportsService, guards }) => {
+}> = async (app, { service, exportsService, opsAlerts, guards }) => {
   app.addHook('preHandler', guards.requireAuth);
   app.addHook('preHandler', guards.requireRole(['ADMIN']));
 
@@ -119,6 +121,10 @@ export const adminRoutes: FastifyPluginAsyncZod<{
   app.post('/webhooks/:id/replay', { schema: { params: WebhookIdParamsSchema } }, async (request) =>
     ok(request, await service.replayWebhook(request.params.id, actor(request))),
   );
+
+  // Phase 10 §10.3: ops metrics card + "send a test alert" button
+  app.get('/ops/metrics', async (request) => ok(request, await opsAlerts.metrics()));
+  app.post('/ops/test-alert', async (request) => ok(request, await opsAlerts.testAlert(actor(request))));
 
   app.get('/audit-log', { schema: { querystring: AuditLogQuerySchema } }, async (request) =>
     ok(request, await service.auditLog(request.query)),

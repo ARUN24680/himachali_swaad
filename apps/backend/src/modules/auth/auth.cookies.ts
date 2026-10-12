@@ -26,6 +26,11 @@ export function setSessionCookies(reply: FastifyReply, c: CookieConfig, tokens: 
   reply.setCookie(REFRESH_COOKIE, tokens.refresh, { ...base(c), path: REFRESH_COOKIE_PATH, maxAge: c.refreshTtlSec });
 }
 
+/** Replace only the access cookie (e.g. after enabling 2FA — the refresh token stays). */
+export function setAccessCookie(reply: FastifyReply, c: CookieConfig, access: string) {
+  reply.setCookie(ACCESS_COOKIE, access, { ...base(c), path: '/', maxAge: c.accessTtlSec });
+}
+
 export function clearSessionCookies(reply: FastifyReply, c: CookieConfig) {
   reply.clearCookie(ACCESS_COOKIE, { ...base(c), path: '/' });
   reply.clearCookie(REFRESH_COOKIE, { ...base(c), path: REFRESH_COOKIE_PATH });

@@ -1,4 +1,4 @@
-import { formatINR, type AdminDashboardResponse } from '@pk/shared';
+import { formatINR, type AdminDashboardResponse, type AdminOpsMetricsResponse } from '@pk/shared';
 import { cn } from '@pk/ui';
 import { useState } from 'react';
 import { formatShortDate } from '@/lib/dates';
@@ -19,8 +19,6 @@ export function DailyBars({ days, metric }: { days: Day[]; metric: 'orders' | 'r
     metric === 'orders' ? `${d.orders} order${d.orders === 1 ? '' : 's'}` : formatINR(d.grossPaise);
   const max = Math.max(1, ...days.map(value));
   const total = days.reduce((n, d) => n + value(d), 0);
-  const W = 10; // viewBox units per day
-  const H = 100;
   const shown = active != null ? days[active] : undefined;
 
   return (
@@ -47,55 +45,12 @@ export function DailyBars({ days, metric }: { days: Day[]; metric: 'orders' | 'r
           peak {metric === 'orders' ? max : compactINR(max)}
         </span>
       </figcaption>
-      <svg
-        viewBox={`0 0 ${days.length * W} ${H}`}
-        preserveAspectRatio="none"
-        className="h-48 w-full md:h-56"
-        role="img"
-        aria-label={`${metric === 'orders' ? 'Orders' : 'Revenue'} per day for the last ${days.length} days`}
-        onMouseLeave={() => setActive(null)}
-      >
-        {[0.25, 0.5, 0.75].map((f) => (
-          <line
-            key={f}
-            x1={0}
-            x2={days.length * W}
-            y1={H * f}
-            y2={H * f}
-            className="stroke-border"
-            strokeWidth={1}
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
-        {days.map((d, i) => {
-          const h = value(d) === 0 ? 0 : Math.max(1.5, (value(d) / max) * (H - 4));
-          return (
-            <g key={d.date} onMouseEnter={() => setActive(i)}>
-              {/* Hit target taller than the mark */}
-              <rect x={i * W} y={0} width={W} height={H} className="fill-transparent" />
-              <rect
-                x={i * W + 1}
-                y={H - h}
-                width={W - 2}
-                height={h}
-                rx={1.2}
-                className={cn('transition-colors', active === i ? 'fill-accent-foreground' : 'fill-primary')}
-              >
-                <title>{`${formatShortDate(d.date)}: ${fmt(d)}`}</title>
-              </rect>
-            </g>
-          );
-        })}
-        <line
-          x1={0}
-          x2={days.length * W}
-          y1={H}
-          y2={H}
-          className="stroke-input"
-          strokeWidth={1}
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
+      <Columns
+        bars={days.map((d) => ({ key: d.date, value: value(d), title: `${formatShortDate(d.date)}: ${fmt(d)}` }))}
+        active={active}
+        onActive={setActive}
+        label={`${metric === 'orders' ? 'Orders' : 'Revenue'} per day for the last ${days.length} days`}
+      />
       {days.length > 0 && (
         <div aria-hidden="true" className="flex justify-between text-xs text-muted-foreground tabular-nums">
           <span>{formatShortDate(days[0]!.date)}</span>
@@ -116,6 +71,148 @@ export function DailyBars({ days, metric }: { days: Day[]; metric: 'orders' | 'r
             <tr key={d.date}>
               <td>{formatShortDate(d.date)}</td>
               <td>{fmt(d)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </figure>
+  );
+}
+
+const W = 10; // viewBox units per column
+const H = 100;
+
+/**
+ * The shared column plot: token fills, 2px gaps, rounded tops, quarter gridlines, a hit target
+ * taller than each mark, and the active column in the gold-text ink. Callers own the readout.
+ */
+function Columns({
+  bars,
+  active,
+  onActive,
+  label,
+  className = 'h-48 w-full md:h-56',
+}: {
+  bars: { key: string; value: number; title: string }[];
+  active: number | null;
+  onActive: (i: number | null) => void;
+  label: string;
+  className?: string;
+}) {
+  const max = Math.max(1, ...bars.map((b) => b.value));
+  return (
+    <svg
+      viewBox={`0 0 ${bars.length * W} ${H}`}
+      preserveAspectRatio="none"
+      className={className}
+      role="img"
+      aria-label={label}
+      onMouseLeave={() => onActive(null)}
+    >
+      {[0.25, 0.5, 0.75].map((f) => (
+        <line
+          key={f}
+          x1={0}
+          x2={bars.length * W}
+          y1={H * f}
+          y2={H * f}
+          className="stroke-border"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
+      {bars.map((b, i) => {
+        const h = b.value === 0 ? 0 : Math.max(1.5, (b.value / max) * (H - 4));
+        return (
+          <g key={b.key} onMouseEnter={() => onActive(i)}>
+            {/* Hit target taller than the mark */}
+            <rect x={i * W} y={0} width={W} height={H} className="fill-transparent" />
+            <rect
+              x={i * W + 1}
+              y={H - h}
+              width={W - 2}
+              height={h}
+              rx={1.2}
+              className={cn('transition-colors', active === i ? 'fill-accent-foreground' : 'fill-primary')}
+            >
+              <title>{b.title}</title>
+            </rect>
+          </g>
+        );
+      })}
+      <line
+        x1={0}
+        x2={bars.length * W}
+        y1={H}
+        y2={H}
+        className="stroke-input"
+        strokeWidth={1}
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+type Hour = AdminOpsMetricsResponse['ordersByHour'][number];
+
+/** "2026-10-12T15:00" (IST wall clock) → "3 pm". */
+export const hourLabel = (hour: string) => {
+  const h = Number(hour.slice(11, 13));
+  return `${h % 12 || 12} ${h < 12 ? 'am' : 'pm'}`;
+};
+const ordersText = (n: number) => `${n} order${n === 1 ? '' : 's'}`;
+
+/** Orders per IST hour, last 24 h (Phase 10 §10.3) — same visual language as DailyBars, shorter. */
+export function HourlyBars({ hours }: { hours: Hour[] }) {
+  const [active, setActive] = useState<number | null>(null);
+  const total = hours.reduce((n, h) => n + h.orders, 0);
+  const peak = Math.max(0, ...hours.map((h) => h.orders));
+  const shown = active != null ? hours[active] : undefined;
+  const at = (i: number) => hours[i]!;
+  const span = (h: Hour) => `${formatShortDate(h.hour.slice(0, 10))}, ${hourLabel(h.hour)}`;
+
+  return (
+    <figure className="grid gap-3">
+      <figcaption className="flex flex-wrap items-baseline justify-between gap-2 text-sm" aria-live="polite">
+        {shown ? (
+          <span>
+            <span className="font-medium">{span(shown)}</span>
+            <span className="text-muted-foreground"> · {ordersText(shown.orders)}</span>
+          </span>
+        ) : (
+          <span className="text-muted-foreground">
+            Last 24 hours · <span className="font-medium text-foreground tabular-nums">{ordersText(total)}</span>
+          </span>
+        )}
+        <span className="text-xs text-muted-foreground tabular-nums">peak {peak}/hr</span>
+      </figcaption>
+      <Columns
+        bars={hours.map((h) => ({ key: h.hour, value: h.orders, title: `${span(h)}: ${ordersText(h.orders)}` }))}
+        active={active}
+        onActive={setActive}
+        label={`Orders per hour for the last ${hours.length} hours (IST)`}
+        className="h-32 w-full md:h-40"
+      />
+      {hours.length > 0 && (
+        <div aria-hidden="true" className="flex justify-between text-xs text-muted-foreground tabular-nums">
+          <span>{hourLabel(at(0).hour)}</span>
+          <span>{hourLabel(at(Math.floor(hours.length / 2)).hour)}</span>
+          <span>{hourLabel(at(hours.length - 1).hour)}</span>
+        </div>
+      )}
+      <table className="sr-only">
+        <caption>Orders per hour, last 24 hours (IST)</caption>
+        <thead>
+          <tr>
+            <th scope="col">Hour</th>
+            <th scope="col">Orders</th>
+          </tr>
+        </thead>
+        <tbody>
+          {hours.map((h) => (
+            <tr key={h.hour}>
+              <td>{span(h)}</td>
+              <td>{h.orders}</td>
             </tr>
           ))}
         </tbody>

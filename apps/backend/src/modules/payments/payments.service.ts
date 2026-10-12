@@ -14,7 +14,7 @@ export type ConfirmSource = 'CLIENT_VERIFY' | 'WEBHOOK' | 'RECONCILE';
 
 export type ConfirmOutcome =
   | { kind: 'CONFIRMED'; orderId: string; orderCode: string }
-  | { kind: 'REFUND'; orderId: string; orderCode: string; refundId: string }
+  | { kind: 'REFUND'; orderId: string; orderCode: string; refundId: string; cancelled?: true }
   | { kind: 'ALREADY_PROCESSED'; orderId: string; orderCode: string; refundId: string | null };
 
 /**
@@ -142,7 +142,7 @@ export function createPaymentsService(deps: {
             by: { type: 'RAZORPAY', id: null },
             paymentId: payment.id,
           });
-          return { kind: 'REFUND', ...base, refundId };
+          return { kind: 'REFUND', ...base, refundId, cancelled: true as const };
         }
       }
 
@@ -172,6 +172,11 @@ export function createPaymentsService(deps: {
     const refundId = outcome.kind === 'CONFIRMED' ? null : outcome.refundId;
     if (refundId) {
       await enqueue(() => jobs.add('INITIATE_REFUND', { refundId }, jobIds.refund(refundId)), 'refund');
+    }
+    // Late payment after stockout → CANCELLED: the customer hears it now, not only at refund_processed (07 §6)
+    if (outcome.kind === 'REFUND' && outcome.cancelled) {
+      const id = outcome.orderId;
+      await enqueue(() => jobs.add('ORDER_CANCELLED', { orderId: id }, jobIds.notify('order_cancelled', id)), 'notify');
     }
     if (outcome.kind === 'REFUND') {
       reporter.capture(new Error('Payment taken for an order that could not be fulfilled — refund started'), {

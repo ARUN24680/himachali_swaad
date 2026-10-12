@@ -211,6 +211,12 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | Exports | `GET /admin/exports/:type` | `type = orders \| gst \| inventory-ledger \| customers \| settlement` (`?from&to`, `?settlementId`) → CSV attachment, audited `EXPORT` |
 | Webhooks | `GET /admin/webhooks/failures`, `POST /admin/webhooks/:id/replay` | Stored events with `last_error`; replay re-runs the handler (idempotent), audited |
 | Audit log | `GET /admin/audit-log` | `?action&entityType&entityId&page` |
+| Ops (Phase 10) | `GET /admin/ops/metrics` | Confirmed orders per IST hour (24 h), refunds 30 d, NDR / RTO rate 30 d (D-57 g) |
+| | `POST /admin/ops/test-alert` | Queues a `TEST_ALERT` admin alert; audited `ALERT_TEST` |
+
+**ADMIN 2FA (Phase 10, D-57 a):** with 2FA enforcement on (always in production) an ADMIN session without TOTP gets `403 FORBIDDEN` `details: { reason: 'TOTP_ENROLLMENT_REQUIRED' }` on every ADMIN route except `GET /auth/me`, `POST /auth/staff/2fa/setup|verify` and change-password. Five failed staff logins for one e-mail in 15 min lock it for 15 min (`429 RATE_LIMITED`, `details.retryAfterSeconds`).
+
+**Health (Phase 10 §10.3):** `GET /healthz` (process up), `GET /readyz` (DB + Redis, 503 names the failing one), `GET /healthz/worker` (`{ alive, lastBeatAt, ageSec }`; 503 when the worker heartbeat is missing or older than 90 s). Not rate-limited.
 | Queues | `/api/v1/admin/queues` | bull-board UI (ADMIN, `queues:view`) — Phase 5 |
 
 ---

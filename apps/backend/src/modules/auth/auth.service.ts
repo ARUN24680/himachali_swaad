@@ -26,6 +26,10 @@ export const BCRYPT_COST = 12;
  */
 export const REFRESH_RACE_GRACE_MS = 10_000;
 const TOTP_PENDING_TTL_SEC = 10 * 60;
+/** Staff login lockout (Phase 10 §10.1, OWASP ASVS 2.2.1). */
+export const LOGIN_MAX_FAILURES = 5;
+const LOGIN_FAIL_WINDOW_SEC = 15 * 60;
+const LOGIN_LOCK_SEC = 15 * 60;
 
 // Constant-time path for unknown emails: compare against a real bcrypt hash of a random string.
 const DUMMY_HASH = bcrypt.hashSync(randomUUID(), BCRYPT_COST);
@@ -103,7 +107,12 @@ export function createAuthService(deps: AuthServiceDeps) {
       ip: ctx.ip,
     });
     const pickupLocationIds = user.role === 'KITCHEN_PARTNER' ? await repo.listPickupLocationIds(client, user.id) : [];
-    const accessToken = await tokens.signAccess({ userId: user.id, role: user.role, pickupLocationIds });
+    const accessToken = await tokens.signAccess({
+      userId: user.id,
+      role: user.role,
+      pickupLocationIds,
+      mfa: user.totp_secret_enc !== null,
+    });
     return { refreshId, session: { user: toSessionUser(user), pickupLocationIds, accessToken, refreshToken } };
   }
 
@@ -179,10 +188,25 @@ export function createAuthService(deps: AuthServiceDeps) {
       input: { email: string; password: string; totp?: string },
       ctx: RequestContext,
     ): Promise<IssuedSession> {
+      // Account lockout (Phase 10 §10.1): 5 failures in 15 min lock the e-mail for 15 min
+      const lockKey = `pk:login-lock:${emailTag(input.email)}`;
+      const failKey = `pk:login-fail:${emailTag(input.email)}`;
+      const lockTtl = await redis.ttl(lockKey);
+      if (lockTtl > 0) {
+        throw new AppError('RATE_LIMITED', 'Too many failed sign-ins. Try again later.', {
+          retryAfterSeconds: lockTtl,
+        });
+      }
       const user = await repo.findUserByEmail(db, input.email);
       const passwordOk = await bcrypt.compare(input.password, user?.password_hash ?? DUMMY_HASH);
 
       const failure = async (reason: string, u: UserRow | null) => {
+        const fails = await redis.incr(failKey);
+        if (fails === 1) await redis.expire(failKey, LOGIN_FAIL_WINDOW_SEC);
+        if (fails >= LOGIN_MAX_FAILURES) {
+          await redis.set(lockKey, '1', 'EX', LOGIN_LOCK_SEC);
+          await redis.del(failKey);
+        }
         await audit(db, {
           actorId: u?.id ?? null,
           action: 'STAFF_LOGIN_FAILED',
@@ -214,6 +238,7 @@ export function createAuthService(deps: AuthServiceDeps) {
         }
       }
 
+      await redis.del(failKey);
       return db.transaction(async (client) => {
         await repo.touchLastLogin(client, user.id);
         const { session } = await issueSession(client, user, ctx);
@@ -335,7 +360,11 @@ export function createAuthService(deps: AuthServiceDeps) {
       return { otpauthUrl: totpUrl(secret, user.email ?? user.id) };
     },
 
-    async totpVerify(userId: string, code: string, ctx: RequestContext): Promise<{ enabled: true }> {
+    async totpVerify(
+      userId: string,
+      code: string,
+      ctx: RequestContext,
+    ): Promise<{ enabled: true; accessToken: string }> {
       const pendingKey = `pk:totp:pending:${userId}`;
       const pending = await redis.get(pendingKey);
       if (!pending) throw new AppError('VALIDATION_ERROR', 'Setup expired. Start two-factor setup again.');
@@ -353,7 +382,9 @@ export function createAuthService(deps: AuthServiceDeps) {
         });
       });
       await redis.del(pendingKey);
-      return { enabled: true };
+      // Fresh access token carrying `mfa` so the admin console opens without signing in again
+      const accessToken = await tokens.signAccess({ userId, role: 'ADMIN', mfa: true });
+      return { enabled: true, accessToken };
     },
   };
 }

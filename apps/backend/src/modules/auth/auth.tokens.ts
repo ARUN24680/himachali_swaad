@@ -8,6 +8,8 @@ const AccessClaimsSchema = z.object({
   sub: z.uuid(),
   role: RoleEnum,
   locs: z.array(z.uuid()).optional(),
+  /** Second factor enrolled (ADMIN TOTP, D-19) — gates the admin console in production (Phase 10). */
+  mfa: z.boolean().optional(),
 });
 export type AccessClaims = z.infer<typeof AccessClaimsSchema>;
 
@@ -20,9 +22,10 @@ export function createTokenService(opts: { secret: string; accessTtlSec: number 
   return {
     accessTtlSec: opts.accessTtlSec,
 
-    signAccess(claims: { userId: string; role: Role; pickupLocationIds?: string[] }): Promise<string> {
+    signAccess(claims: { userId: string; role: Role; pickupLocationIds?: string[]; mfa?: boolean }): Promise<string> {
       const payload: Record<string, unknown> = { role: claims.role };
       if (claims.pickupLocationIds?.length) payload.locs = claims.pickupLocationIds;
+      if (claims.mfa) payload.mfa = true;
       return new SignJWT(payload)
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setSubject(claims.userId)

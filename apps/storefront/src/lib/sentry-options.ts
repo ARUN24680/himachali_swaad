@@ -6,6 +6,7 @@ export const sentryOptions: Parameters<typeof init>[0] = {
   dsn: env.NEXT_PUBLIC_SENTRY_DSN,
   enabled: Boolean(env.NEXT_PUBLIC_SENTRY_DSN),
   environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
+  release: env.NEXT_PUBLIC_RELEASE,
   tracesSampleRate: 0,
   dataCollection: { userInfo: false, cookies: false, httpBodies: [], urlQueryParams: false },
 };

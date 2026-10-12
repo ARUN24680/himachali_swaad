@@ -1,0 +1,13 @@
+# Security headers for the admin + partner PWA (Phase 10 §10.1, D-57).
+# `_headers` is read by Cloudflare Pages / Netlify; on another static host copy these values.
+# api.pahadikhatki.in = the API origin (signed label / invoice / statement links and bull-board).
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.pahadikhatki.in https://*.ingest.sentry.io https://*.ingest.us.sentry.io; frame-src https://api.pahadikhatki.in; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+/sw.js
+  Cache-Control: no-cache

@@ -23,6 +23,7 @@ import { createPartnerService } from './modules/partner/partner.service';
 import { createTrackingService } from './modules/tracking/tracking.service';
 import { createAdminService } from './modules/admin/admin.service';
 import { createExportsService } from './modules/admin/exports.service';
+import { createOpsAlertsService } from './modules/admin/ops-alerts.service';
 import { createSettlementsService } from './modules/settlements/settlements.service';
 import { createUsersService } from './modules/users/users.service';
 import { createInvoiceService } from './modules/orders/invoice.service';
@@ -158,6 +159,7 @@ export function createCommerceServices(d: CommerceDeps) {
     logger: d.logger,
   });
   const users = createUsersService({ db: d.db });
+  const opsAlerts = createOpsAlertsService({ db: d.db, redis: d.redis, jobs: d.jobs, logger: d.logger, now: d.now });
   return {
     settings,
     inventory,
@@ -178,6 +180,7 @@ export function createCommerceServices(d: CommerceDeps) {
     exportsService,
     settlements,
     users,
+    opsAlerts,
   };
 }
 

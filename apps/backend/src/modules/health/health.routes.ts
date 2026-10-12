@@ -7,4 +7,5 @@ export const healthRoutes: FastifyPluginAsyncZod<{ service: HealthService }> = a
   const controller = createHealthController(service);
   app.get('/healthz', controller.live);
   app.get('/readyz', controller.ready);
+  app.get('/healthz/worker', controller.worker);
 };

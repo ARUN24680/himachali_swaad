@@ -1,0 +1,17 @@
+
+ RUN  v5.0.3 /Users/arunkumar/Personal_work/untitled folder/apps/backend
+
+ ✓ |integration| tests/integration/launch-simulations.test.ts > launch simulation: happy path (order → pay → ship → deliver) > UPI payment → CONFIRMED → AWB + label → partner alert → packed → pickup → courier scans → DELIVERED, a WhatsApp per stage 143ms
+ ✓ |integration| tests/integration/launch-simulations.test.ts > launch simulation: payment drop (D-22) > customer closes the bank screen → hold expires → sweeper: EXPIRED, stock + RELEASE movement back, no messages 17ms
+ ✓ |integration| tests/integration/launch-simulations.test.ts > launch simulation: late payment after stockout > hold expires, jars sold to someone else, late payment.captured → CANCELLED + LATE_PAYMENT_STOCKOUT refund processed 40ms
+ ✓ |integration| tests/integration/launch-simulations.test.ts > launch simulation: duplicate webhooks > same Razorpay captured event 3× and same Shiprocket scan 3× → one transition each, one message each 60ms
+ ✓ |integration| tests/integration/launch-simulations.test.ts > launch simulation: Shiprocket outage > unreachable / 503 → retried → recovers; 5 × 503 → ops_issue + alert → admin retry-shipment books it 955ms
+ ✓ |integration| tests/integration/launch-simulations.test.ts > launch simulation: NDR → RTO (D-31) > UNDELIVERED → DELIVERY_FAILED (customer + admin alert) → RTO_IN_TRANSIT → RTO_DELIVERED, no restock 90ms
+ ✓ |integration| tests/integration/launch-simulations.test.ts > launch simulation: customer cancel + refund at AWAITING_PACKING > cancel → AWB cancelled at Shiprocket, stock released, refund processed, customer + partner notified 66ms
+ ✓ |integration| tests/integration/launch-simulations.test.ts > launch simulation: concurrency (last jar) > 10 concurrent checkouts for 1 remaining jar → exactly 1 reservation, 9 × OUT_OF_STOCK, stock never negative 61ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  23:55:53
+   Duration  5.11s (tests 65%, import 23%, transform 12%)
+

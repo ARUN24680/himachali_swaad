@@ -1,0 +1,22 @@
+    batch_code     | available_stock 
+-------------------+-----------------
+ PK-2605-CHK250-01 |               0
+ PK-2606-CHK250-01 |               0
+ PK-2610-CHK250-01 |               0
+(3 rows)
+
+ confirmed | orders | jars_sold 
+-----------+--------+-----------
+        20 |     20 |        20
+(1 row)
+
+ ledger_mismatches 
+-------------------
+                 0
+(1 row)
+
+ datname | deadlocks | xact_rollback 
+---------+-----------+---------------
+ pk_load |         0 |            30
+(1 row)
+

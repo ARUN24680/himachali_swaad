@@ -12,7 +12,8 @@ import { router } from './app/router';
 import { clearOfflineData } from './lib/offline-cache';
 import { initSentry } from './lib/sentry';
 import { registerPwa } from './pwa/register';
-import { setAuthFailureHandler } from './services/api/http';
+import { totpSetupUrl } from './modules/auth';
+import { setAuthFailureHandler, setTotpRequiredHandler } from './services/api/http';
 
 initSentry();
 registerPwa(); // Packing Desk PWA: service worker, install + update prompts (Phase 7)
@@ -25,6 +26,13 @@ setAuthFailureHandler(() => {
   const { pathname, search } = window.location;
   if (pathname === '/login') return;
   void router.navigate(`/login?next=${encodeURIComponent(pathname + search)}`, { replace: true });
+});
+
+// ADMIN without 2FA in production: every admin call answers 403 TOTP_ENROLLMENT_REQUIRED (Phase 10
+// §10.1). Send them to /account to enrol, remembering where they were; already there → stay put.
+setTotpRequiredHandler(() => {
+  const target = totpSetupUrl(window.location.pathname, window.location.search);
+  if (target) void router.navigate(target, { replace: true });
 });
 
 const root = document.getElementById('root');

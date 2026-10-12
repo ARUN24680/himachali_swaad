@@ -11,6 +11,7 @@ import { TableCard } from '@/components/common/TableCard';
 import { useMe } from '@/hooks/useMe';
 import { formatDateTime } from '@/lib/dates';
 import { DailyBars, ProductBars } from '../components/Charts';
+import { OpsSection } from '../components/OpsSection';
 import { useDashboard } from '../hooks/useDashboard';
 
 type View = 'orders' | 'revenue' | 'products';
@@ -174,6 +175,8 @@ export default function DashboardPage() {
           <DailyBars days={d!.ordersPerDay} metric={view} />
         )}
       </TableCard>
+
+      <OpsSection />
     </div>
   );
 }

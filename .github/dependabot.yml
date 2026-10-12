@@ -1,0 +1,23 @@
+# Phase 10 §10.1: weekly dependency + GitHub Actions updates. pnpm's minimumReleaseAge (7 days,
+# pnpm-workspace.yaml) still refuses versions younger than a week when the PR's lockfile is built.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 10
+    groups:
+      dev-tooling:
+        dependency-type: development
+        update-types: [minor, patch]
+      runtime-patches:
+        dependency-type: production
+        update-types: [patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

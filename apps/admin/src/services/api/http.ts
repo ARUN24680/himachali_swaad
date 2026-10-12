@@ -34,6 +34,13 @@ export class ApiRequestError extends Error {
 export const isApiError = (err: unknown, code?: ClientErrorCode): err is ApiRequestError =>
   err instanceof ApiRequestError && (code === undefined || err.code === code);
 
+/**
+ * Production answer for an ADMIN whose session has no TOTP yet (D-19, Phase 10 §10.1): 403 FORBIDDEN
+ * with `details.reason = 'TOTP_ENROLLMENT_REQUIRED'`. KITCHEN_PARTNER sessions never get it.
+ */
+export const isTotpEnrollmentRequired = (err: unknown): err is ApiRequestError =>
+  isApiError(err, 'FORBIDDEN') && err.details?.reason === 'TOTP_ENROLLMENT_REQUIRED';
+
 export interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
@@ -133,6 +140,19 @@ function refreshSession(): Promise<RefreshOutcome> {
   return refreshInFlight;
 }
 
+// ── 2FA-required hook (wired in main.tsx): route the admin to /account to enrol, once per burst ──
+let onTotpRequired: (() => void) | null = null;
+export function setTotpRequiredHandler(handler: (() => void) | null) {
+  onTotpRequired = handler;
+}
+let lastTotpRequiredAt = 0;
+function notifyTotpRequired() {
+  const now = Date.now();
+  if (now - lastTotpRequiredAt < 2000) return;
+  lastTotpRequiredAt = now;
+  onTotpRequired?.();
+}
+
 let lastAuthFailureAt = 0;
 function notifyAuthFailure() {
   // Many parallel queries fail together when a session dies — redirect once
@@ -145,8 +165,19 @@ function notifyAuthFailure() {
 /**
  * Envelope-aware request. On 401 it refreshes the session once (shared across concurrent calls) and
  * retries the original request; if the session can't be recovered it hands off to the auth-failure handler.
+ * A 403 TOTP_ENROLLMENT_REQUIRED (ADMIN without 2FA, production) hands off to the 2FA-required handler.
  */
 export async function http<T>(path: string, options: HttpOptions = {}): Promise<T> {
+  try {
+    return await request<T>(path, options);
+  } catch (err) {
+    // Every admin query/mutation fails the same way until TOTP is set up → one global hand-off
+    if (isTotpEnrollmentRequired(err)) notifyTotpRequired();
+    throw err;
+  }
+}
+
+async function request<T>(path: string, options: HttpOptions): Promise<T> {
   const { redirectOnAuthFailure = true } = options;
   const res = await rawRequest(path, options);
   if (res.status !== 401 || NO_REFRESH.some((p) => path.startsWith(p))) return parse<T>(res);

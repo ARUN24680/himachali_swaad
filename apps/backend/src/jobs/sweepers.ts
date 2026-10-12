@@ -81,6 +81,16 @@ export function createSweepers(deps: {
         reporter.capture(new Error(`Stock ledger mismatch on ${mismatches.length} batch(es)`), {
           batchIds: mismatches.map((m) => m.batchId).join(','),
         });
+        // Phase 10 §10.3: the admin hears about it too, not only Sentry (docs/runbooks/stock-ledger-mismatch.md)
+        await jobs.add(
+          'ADMIN_ALERT',
+          {
+            kind: 'LEDGER_MISMATCH',
+            orderId: null,
+            message: `Stock ledger mismatch on ${mismatches.length} batch(es) — do not adjust stock, follow the runbook`,
+          },
+          jobIds.alert('LEDGER_MISMATCH', new Date().toISOString().slice(0, 10)),
+        );
       }
       return mismatches.length;
     },

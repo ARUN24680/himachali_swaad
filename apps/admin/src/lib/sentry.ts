@@ -6,6 +6,7 @@ export function initSentry(): void {
   Sentry.init({
     dsn: env.VITE_SENTRY_DSN,
     environment: env.VITE_SENTRY_ENVIRONMENT ?? import.meta.env.MODE,
+    release: env.VITE_RELEASE,
     tracesSampleRate: 0,
     dataCollection: { userInfo: false, cookies: false, httpBodies: [], urlQueryParams: false },
   });

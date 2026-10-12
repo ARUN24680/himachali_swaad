@@ -23,6 +23,7 @@ export const env = {
   NEXT_PUBLIC_SITE_URL: requiredUrl('NEXT_PUBLIC_SITE_URL', process.env.NEXT_PUBLIC_SITE_URL),
   NEXT_PUBLIC_SENTRY_DSN: optional('NEXT_PUBLIC_SENTRY_DSN', process.env.NEXT_PUBLIC_SENTRY_DSN, URL.canParse),
   NEXT_PUBLIC_SENTRY_ENVIRONMENT: blank(process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT),
+  NEXT_PUBLIC_RELEASE: blank(process.env.NEXT_PUBLIC_RELEASE), // git SHA (Phase 10 §10.3)
   /** GA4 measurement id (G-XXXXXXX). Empty → GA4 never loads, even with consent. */
   NEXT_PUBLIC_GA4_ID: optional('NEXT_PUBLIC_GA4_ID', process.env.NEXT_PUBLIC_GA4_ID, (v) =>
     /^G-[A-Z0-9]{4,16}$/.test(v),

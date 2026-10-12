@@ -60,12 +60,15 @@ import { registerOriginCheck } from './plugins/csrf';
 import { createCommerceServices } from './services';
 import { registerErrorHandler } from './plugins/error-handler';
 import { registerSecurity } from './plugins/security';
+import { SERVER_ERRORS_KEY, WORKER_HEARTBEAT_KEY } from './modules/admin/ops-alerts.service';
 import { genRequestId } from './utils/request-id';
 
 export interface AuthConfig {
   jwtSecret: string;
   /** 32-byte AES key for TOTP secrets at rest. */
   totpKey: Buffer;
+  /** ADMIN API needs TOTP enrolled (always true in production, D-19). */
+  adminTotpRequired?: boolean;
   otpProvider: OtpProvider;
   cookies: CookieConfig;
 }
@@ -112,6 +115,8 @@ export interface AppDeps {
   /** Non-production may issue DRAFT invoices while seller details (Q-02) are unset. */
   allowDraftInvoice?: boolean;
   trustProxy?: boolean;
+  /** Real HTTPS deployment (HSTS etc.). */
+  production?: boolean;
   rateLimit?: { max: number; windowMs: number };
   /** create-order per IP per 10 min (default 10; CI e2e raises it). */
   checkoutIpLimit?: number;
@@ -139,19 +144,28 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     reply.header('x-request-id', request.id);
   });
 
-  registerErrorHandler(app, deps.reporter);
+  registerErrorHandler(app, deps.reporter, () => {
+    const key = `${SERVER_ERRORS_KEY}:${Math.floor(Date.now() / 60_000)}`;
+    void deps.redis
+      .multi()
+      .incr(key)
+      .expire(key, 3_600)
+      .exec()
+      .catch(() => undefined);
+  });
   await registerSecurity(app, {
     origins: deps.origins,
     redis: deps.redis,
     rateLimitMax: deps.rateLimit?.max ?? 300,
     rateLimitWindowMs: deps.rateLimit?.windowMs ?? 60_000,
+    production: deps.production ?? false,
   });
   registerOriginCheck(app, deps.origins);
   await app.register(cookie);
 
   // ── Services (one instance per app) ──────────────────────────────────────
   const tokens = createTokenService({ secret: deps.auth.jwtSecret, accessTtlSec: deps.auth.cookies.accessTtlSec });
-  const guards = createAuthGuards(tokens);
+  const guards = createAuthGuards(tokens, { adminTotpRequired: deps.auth.adminTotpRequired ?? false });
   const authService = createAuthService({
     db: deps.db,
     redis: deps.redis,
@@ -184,7 +198,9 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const catalogService = svc.catalog;
 
   // ── Routes ───────────────────────────────────────────────────────────────
-  await app.register(healthRoutes, { service: createHealthService({ db: deps.db, redis: deps.redis }) });
+  await app.register(healthRoutes, {
+    service: createHealthService({ db: deps.db, redis: deps.redis, workerHeartbeatKey: WORKER_HEARTBEAT_KEY }),
+  });
   await app.register(authRoutes, { prefix: '/api/v1/auth', service: authService, guards, cookies: deps.auth.cookies });
   await app.register(adminSettingsRoutes, {
     prefix: '/api/v1/admin/settings',
@@ -241,6 +257,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     prefix: '/api/v1/admin',
     service: svc.admin,
     exportsService: svc.exportsService,
+    opsAlerts: svc.opsAlerts,
     guards,
   });
   await app.register(adminSettlementRoutes, { prefix: '/api/v1/admin', service: svc.settlements, guards });
@@ -284,7 +301,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
       webhookDelayMs: deps.mockWebhookDelayMs ?? 2000,
     });
   }
-  if (deps.queueDashboard) await registerQueueDashboard(app, deps.queueDashboard, guards);
+  if (deps.queueDashboard) await registerQueueDashboard(app, deps.queueDashboard, guards, deps.origins);
 
   if (deps.storage.kind === 'local') {
     await app.register(devStorageRoutes, {

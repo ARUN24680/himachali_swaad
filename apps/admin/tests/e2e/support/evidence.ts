@@ -24,3 +24,22 @@ export async function evidenceShot(
     fullPage,
   });
 }
+
+/** Phase 10 evidence (Phases/evidence/phase-10/), PK_EVIDENCE=1 only. Phone shots at 390 px, desktop at 1440. */
+export const EVIDENCE_10 = fileURLToPath(new URL('../../../../../Phases/evidence/phase-10/', import.meta.url));
+export const EVIDENCE_ON = enabled;
+
+export async function phase10Shot(
+  page: Page,
+  name: string,
+  width: 390 | 1440,
+  scheme: 'light' | 'dark',
+  fullPage = true,
+) {
+  if (!enabled) return;
+  mkdirSync(EVIDENCE_10, { recursive: true });
+  // Full-page shots from the top, so the sticky top bar sits where it belongs
+  if (fullPage) await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: `${EVIDENCE_10}${name}-${width}-${scheme}.png`, fullPage });
+}

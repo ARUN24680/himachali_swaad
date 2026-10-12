@@ -44,6 +44,7 @@ export interface JobPayloads {
   POLL_TRACKING: Record<string, never>;
   CHECK_WALLET_BALANCE: Record<string, never>;
   PARTNER_DAILY_DIGEST: Record<string, never>;
+  OPS_ALERTS: Record<string, never>;
 }
 export type JobName = keyof JobPayloads;
 
@@ -72,6 +73,7 @@ export const JOB_QUEUE: Record<JobName, QueueName> = {
   POLL_TRACKING: 'cron',
   CHECK_WALLET_BALANCE: 'cron',
   PARTNER_DAILY_DIGEST: 'cron',
+  OPS_ALERTS: 'cron',
 };
 
 /**

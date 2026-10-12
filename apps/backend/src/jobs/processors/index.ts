@@ -5,6 +5,7 @@ import { cleanupRefreshTokens } from '../../modules/auth/auth.service';
 import type { CommerceServices } from '../../services';
 import type { JobName, JobPayloads } from '../queues';
 import type { Sweepers } from '../sweepers';
+import type { QueueHealth } from '../../modules/admin/ops-alerts.service';
 
 type Handler<N extends JobName> = (data: JobPayloads[N], job: Job, token?: string) => Promise<unknown>;
 
@@ -30,6 +31,8 @@ export function createProcessors(deps: {
   db: Db;
   svc: CommerceServices;
   sweepers: Sweepers;
+  /** Worker only: BullMQ queue counts for the backlog / failed-jobs alerts. */
+  queueHealth?: () => Promise<QueueHealth>;
   logger: Logger;
 }): Processors {
   const { db, svc, sweepers } = deps;
@@ -73,6 +76,7 @@ export function createProcessors(deps: {
     ADMIN_ALERT_SUMMARY: (d, job) => svc.messages.adminAlertSummary(d, { finalAttempt: finalAttempt(job) }),
     PARTNER_NEW_ORDER_ALERT: (d) => svc.notifications.partnerNewOrderAlert(d.orderId),
     PARTNER_DAILY_DIGEST: () => svc.notifications.partnerDailyDigest(),
+    OPS_ALERTS: () => svc.opsAlerts.run(deps.queueHealth),
     GENERATE_INVOICE: (d) => svc.invoices.generate(d.orderId),
     INITIATE_REFUND: (d) => svc.payments.initiateRefund(d.refundId),
     EXPIRE_RESERVATIONS: () => sweepers.expireReservations(),
@@ -95,4 +99,5 @@ export const SCHEDULES: { name: JobName; pattern?: string; every?: number }[] = 
   { name: 'POLL_TRACKING', pattern: '0 */3 * * *' }, // D-35
   { name: 'CHECK_WALLET_BALANCE', pattern: '5 * * * *' }, // hourly
   { name: 'PARTNER_DAILY_DIGEST', pattern: '0 9 * * *' }, // 09:00 IST (Phase 7 §7.3)
+  { name: 'OPS_ALERTS', every: 10 * 60_000 }, // Phase 10 §10.3
 ];

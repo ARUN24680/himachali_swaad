@@ -42,6 +42,11 @@ const EnvSchema = z.object({
   ACCESS_TOKEN_TTL_SEC: z.coerce.number().int().min(60).max(3600).default(900),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   OTP_PROVIDER: z.enum(['mock', 'msg91']).default('mock'),
+  /**
+   * D-19 / Phase 10: ADMIN must have TOTP enrolled to use the admin API. Always on in production;
+   * dev/test default off so seeded admins work without an authenticator.
+   */
+  ADMIN_TOTP_REQUIRED: z.enum(['true', 'false']).optional(),
   MSG91_AUTH_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
   MSG91_OTP_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
 
@@ -166,6 +171,13 @@ const EnvSchema = z.object({
 const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
   if (env.NODE_ENV === 'production' && env.OTP_PROVIDER === 'mock') {
     ctx.addIssue({ code: 'custom', path: ['OTP_PROVIDER'], message: 'mock OTP provider is not allowed in production' });
+  }
+  if (env.NODE_ENV === 'production' && env.ADMIN_TOTP_REQUIRED === 'false') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['ADMIN_TOTP_REQUIRED'],
+      message: 'ADMIN 2FA cannot be turned off in production',
+    });
   }
   if (env.NODE_ENV === 'production' && env.STORAGE_DRIVER === 'local') {
     ctx.addIssue({ code: 'custom', path: ['STORAGE_DRIVER'], message: 'local storage is not allowed in production' });

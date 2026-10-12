@@ -47,6 +47,7 @@ const app = await buildApp({
   reporter,
   origins: env.APP_ORIGINS,
   trustProxy: env.TRUST_PROXY,
+  production: env.NODE_ENV === 'production',
   checkoutIpLimit: env.CHECKOUT_IP_LIMIT,
   auth: authConfigFromEnv(env),
   storage: storageFromEnv(env),
