@@ -60,8 +60,11 @@ export async function confirmedOrder(
   const p = await liveProduct(db, kitchenId, { stock: 10 });
   const co = (await placeOrder(app, [{ productId: p.id, quantity }])).json().data;
   const { verifyBody } = await payAtGateway(gateway, co.razorpayOrderId);
-  await verify(app, verifyBody);
+  const verified = await verify(app, verifyBody);
   const order = await orderRow(db, co.orderCode);
+  if (order.status !== 'CONFIRMED') {
+    throw new Error(`confirmedOrder: ${co.orderCode} is ${order.status} (verify → ${verified.statusCode})`);
+  }
   return { orderId: order.id, orderCode: co.orderCode as string, productId: p.id, batchId: p.batchId! };
 }
 

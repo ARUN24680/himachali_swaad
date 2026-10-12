@@ -33,7 +33,7 @@ Kahin bhi technical complexity nahi, aur partner ko confidential business data n
 
 ### 7.2 PWA Setup
 - [x] Web App Manifest (name, icons, `display: standalone`, theme color token se derived), "Add to Home Screen" prompt UI.
-  > `apps/admin/src/pwa/build/pwa-plugin.ts` emits `manifest.webmanifest` (standalone, icons 192/512/maskable); theme colour from `src/pwa/brand-colors.ts` (`pk-allow-color`, build fails if it drifts from `globals.css`, D-51 pattern); install prompt in Settings (`desk-settings-*`).
+  > `apps/admin/src/pwa/vite-plugin/pwa-plugin.ts` emits `manifest.webmanifest` (standalone, icons 192/512/maskable); theme colour from `src/pwa/brand-colors.ts` (`pk-allow-color`, build fails if it drifts from `globals.css`, D-51 pattern); install prompt in Settings (`desk-settings-*`).
 - [x] Service worker (Vite PWA plugin ya Workbox): app shell cache, offline fallback page.
   > Hand-written `src/pwa/sw.js` (app shell precache 70 files, network-first pages → `/offline.html`, no API caching). Verified with `vite preview` + Playwright: SW controls page, offline app shell boots `/desk`. Gap: cold start offline stops at the session check (follow-up in `requirement/pending-requirements.md`).
 - [x] **Offline action queue:** "Mark Packed" offline me tap hua → IndexedDB queue → online aate hi retry (Background Sync jahan supported, warna app open par flush). UI me "⏳ Sync pending" badge.

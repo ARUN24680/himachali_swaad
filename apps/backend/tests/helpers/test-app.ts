@@ -99,6 +99,10 @@ export async function buildTestApp(base: { db: Db; redis: Redis }, overrides: Pa
     shiprocket: unreachableShiprocket(),
     courierWebhookToken: TEST_COURIER_TOKEN,
     push: createWebPushSender({}),
+    // Every app.inject comes from 127.0.0.1 and the limiter's Redis is shared by all test files,
+    // so the global 300/min would trip across files on a fast CI box. Route-level limits still
+    // apply; app.test.ts covers the global limiter with its own override.
+    rateLimit: { max: 100_000, windowMs: 60_000 },
     ...base,
     ...overrides,
   });
