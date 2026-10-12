@@ -1,0 +1,19 @@
+# Live dev run 2026-10-12 14:37 IST: API (pnpm dev, :4000, SHIPPING_PROVIDER=sandbox) + separate worker process (pnpm dev:worker)
+# create-order → /dev/payments/simulate (webhook) → worker: SHIPROCKET_CREATE_ORDER → FETCH_AND_STORE_LABEL
+ order_code |      status      | payment_status |  invoice_number   | shiprocket_order_id | shiprocket_shipment_id |  awb_code   |  courier_name   | freight_paise | dead_weight_g | volumetric_weight_g |    etd     |      label_key       | booking_attempts 
+------------+------------------+----------------+-------------------+---------------------+------------------------+-------------+-----------------+---------------+---------------+---------------------+------------+----------------------+------------------
+ PK-23K2NF  | AWAITING_PACKING | PAID           | PK/2026-27/000028 | 1003                | 501003                 | SBX50100310 | Sandbox Surface |          6250 |           730 |                 300 | 2026-10-17 | labels/PK-23K2NF.pdf |                1
+(1 row)
+
+   from_status   |    to_status     | actor_type |           reason            |   ist    
+-----------------+------------------+------------+-----------------------------+----------
+                 | PENDING_PAYMENT  | CUSTOMER   |                             | 14:36:49
+ PENDING_PAYMENT | CONFIRMED        | RAZORPAY   |                             | 14:36:51
+ CONFIRMED       | AWAITING_PACKING | SYSTEM     | AWB assigned + label stored | 14:36:52
+(3 rows)
+
+# label file in private storage:
+-rw-r--r--@ 1 arunkumar  staff  1015 Oct 12 14:36 apps/backend/.uploads-private/labels/PK-23K2NF.pdf
+%PDF-1.7
+# courier scan before pickup (out-of-order) via /dev/shipping/simulate:
+{"success":true,"data":{"awb":"SBX50100310","status":"PICKED UP","webhook":{"success":true,"data":{"status":"processed"},"error":null,"requestId":"req_5b8ff884-f119-4b92-b96f-83bda08a674b","timestamp":"2026-10-12T09:07:04.604Z"}},"error":null,"requestId":"req_a1570033-ca49-435d-b0a8-9099d433321a","timestamp":"2026-10-12T09:07:04.605Z"}

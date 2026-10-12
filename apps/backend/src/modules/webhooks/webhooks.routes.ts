@@ -1,3 +1,4 @@
+import type { FastifyRequest } from 'fastify';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { ok } from '../../utils/response';
 import type { WebhooksService } from './webhooks.service';
@@ -13,16 +14,31 @@ export const webhookRoutes: FastifyPluginAsyncZod<{ service: WebhooksService }> 
     done(null, body),
   );
 
+  const header = (request: FastifyRequest, name: string) => {
+    const v = request.headers[name];
+    return Array.isArray(v) ? v[0] : v;
+  };
+
   app.post('/razorpay', { config: { rateLimit: false } }, async (request) => {
-    const header = (name: string) => {
-      const v = request.headers[name];
-      return Array.isArray(v) ? v[0] : v;
-    };
     const result = await service.handleRazorpay(
       request.body as Buffer,
-      header('x-razorpay-signature'),
-      header('x-razorpay-event-id'),
+      header(request, 'x-razorpay-signature'),
+      header(request, 'x-razorpay-event-id'),
     );
     return ok(request, result);
   });
+
+  /**
+   * Shiprocket tracking webhook (D-35). Path avoids the words Shiprocket rejects in webhook URLs
+   * ("shiprocket", "kartrocket", "sr", "kr") — doc 02's /webhooks/shiprocket can't be registered (D-53).
+   */
+  app.post('/courier-tracking', { config: { rateLimit: false } }, async (request) =>
+    ok(
+      request,
+      await service.handleCourierTracking(
+        (request.body as Buffer | undefined) ?? Buffer.alloc(0),
+        header(request, 'x-api-key'),
+      ),
+    ),
+  );
 };

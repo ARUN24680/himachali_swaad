@@ -1,0 +1,11 @@
+{
+  "pickup_status": 1,
+  "response": {
+    "pickup_scheduled_date": "2026-10-13 10:00:00",
+    "pickup_token_number": "Reference No: 194_BIGFOOT 1966840_11122022",
+    "status": 3,
+    "others": "{\"tracking_id\":7578,\"pickup_date\":\"2026-10-13\"}",
+    "pickup_generated_date": { "date": "2026-10-12 11:00:00.000000", "timezone_type": 3, "timezone": "Asia/Kolkata" },
+    "data": "Pickup is confirmed by Delhivery For AWB :- 19041424751540"
+  }
+}

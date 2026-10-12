@@ -76,6 +76,19 @@ const EnvSchema = z.object({
   /** Separate from the key secret (Razorpay dashboard → Webhooks). */
   RAZORPAY_WEBHOOK_SECRET: z.preprocess(emptyToUndefined, z.string().min(8).optional()),
 
+  /**
+   * Logistics (Phase 6): `sandbox` = in-API Shiprocket stand-in at /api/v1/dev/shiprocket (dev/CI,
+   * refused in production), `shiprocket` = the real API with an API user (Settings → API).
+   */
+  SHIPPING_PROVIDER: z.enum(['sandbox', 'shiprocket']).default('sandbox'),
+  SHIPROCKET_API_URL: z.url().default('https://apiv2.shiprocket.in/v1/external/'),
+  SHIPROCKET_EMAIL: z.preprocess(emptyToUndefined, z.email().optional()),
+  SHIPROCKET_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(6).optional()),
+  /** Security token set on the Shiprocket webhook (sent back as `x-api-key`). */
+  SHIPROCKET_WEBHOOK_TOKEN: z.preprocess(emptyToUndefined, z.string().min(24).optional()),
+  /** BullMQ concurrency for the orders/documents/payments/notify queues (cron stays 1). */
+  WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(50).default(5),
+
   /** Storefront on-demand revalidation (POST /api/revalidate). Unset → product edits wait for cache expiry. */
   STOREFRONT_REVALIDATE_URL: z.preprocess(emptyToUndefined, z.url().optional()),
   REVALIDATE_SECRET: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
@@ -144,6 +157,23 @@ const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
       code: 'custom',
       path: ['RAZORPAY_WEBHOOK_SECRET'],
       message: 'the webhook secret must differ from the key secret',
+    });
+  }
+  if (env.NODE_ENV === 'production' && env.SHIPPING_PROVIDER === 'sandbox') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['SHIPPING_PROVIDER'],
+      message: 'the Shiprocket sandbox is not allowed in production',
+    });
+  }
+  if (
+    env.SHIPPING_PROVIDER === 'shiprocket' &&
+    (!env.SHIPROCKET_EMAIL || !env.SHIPROCKET_PASSWORD || !env.SHIPROCKET_WEBHOOK_TOKEN)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['SHIPROCKET_EMAIL'],
+      message: 'SHIPROCKET_EMAIL, SHIPROCKET_PASSWORD and SHIPROCKET_WEBHOOK_TOKEN are required for shiprocket',
     });
   }
   if (Boolean(env.STOREFRONT_REVALIDATE_URL) !== Boolean(env.REVALIDATE_SECRET)) {

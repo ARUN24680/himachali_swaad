@@ -5,11 +5,16 @@ import type { PincodeDirectory } from '../../integrations/shipping/pincode-direc
 import type { ServiceabilityProvider } from '../../integrations/shipping/serviceability';
 
 export const PINCODE_CACHE_TTL_SEC = 24 * 3600;
-const cacheKey = (pincode: string) => `pk:pincode:${pincode}`;
+/** "Not serviceable" is re-checked sooner — couriers add pincodes (Phase 6 §6.3). */
+export const NOT_SERVICEABLE_TTL_SEC = 6 * 3600;
+const cacheKey = (scope: string, pincode: string) => `pk:svc:${scope}:${pincode}`;
 export const LOCALITY_CACHE_TTL_SEC = 30 * 24 * 3600;
 const localityKey = (pincode: string) => `pk:pincode-locality:${pincode}`;
 
-/** Pincode → serviceable + delivery estimate, cached 24 h per pincode in Redis (Phase 4 §4.6). */
+/**
+ * Pincode → serviceable + delivery estimate, cached per (origin, pincode) in Redis: 24 h when
+ * serviceable, 6 h when not, never when the courier API was down (serviceable null).
+ */
 export function createShippingService(deps: {
   redis: Redis;
   provider: ServiceabilityProvider;
@@ -19,15 +24,22 @@ export function createShippingService(deps: {
   const { redis, provider, directory, logger } = deps;
   return {
     async checkPincode(pincode: string): Promise<PincodeCheckResponse> {
-      const cached = await redis.get(cacheKey(pincode)).catch((err: unknown) => {
+      const scope = await provider.scope();
+      const cached = await redis.get(cacheKey(scope, pincode)).catch((err: unknown) => {
         logger.warn({ err }, 'pincode cache read failed');
         return null;
       });
       if (cached) return JSON.parse(cached) as PincodeCheckResponse;
 
       const result: PincodeCheckResponse = { pincode, ...(await provider.check(pincode)) };
+      if (result.serviceable === null) return result;
       await redis
-        .set(cacheKey(pincode), JSON.stringify(result), 'EX', PINCODE_CACHE_TTL_SEC)
+        .set(
+          cacheKey(scope, pincode),
+          JSON.stringify(result),
+          'EX',
+          result.serviceable ? PINCODE_CACHE_TTL_SEC : NOT_SERVICEABLE_TTL_SEC,
+        )
         .catch((err: unknown) => logger.warn({ err }, 'pincode cache write failed'));
       return result;
     },

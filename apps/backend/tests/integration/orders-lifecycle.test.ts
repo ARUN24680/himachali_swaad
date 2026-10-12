@@ -30,6 +30,7 @@ import {
   TEST_API_URL,
 } from '../helpers/test-app';
 import { silentLogger } from '../helpers/test-logger';
+import { TEST_COURIER_TOKEN, unreachableShiprocket } from '../helpers/shiprocket';
 import { createTestDb, type TestDb } from '../helpers/test-db';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -63,6 +64,8 @@ const services = () =>
     gateway,
     jobs,
     allowDraftInvoice: true,
+    shiprocket: unreachableShiprocket(),
+    courierWebhookToken: TEST_COURIER_TOKEN,
   });
 
 beforeAll(async () => {

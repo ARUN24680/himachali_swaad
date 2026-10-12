@@ -9,6 +9,7 @@ let t: TestDb;
 let redis: Redis;
 let app: FastifyInstance;
 const provider = {
+  scope: async () => 'stub',
   check: vi.fn<ServiceabilityProvider['check']>(async (pincode: string) =>
     pincode.startsWith('9')
       ? { serviceable: false, estimatedDays: null, courierHint: null }
@@ -43,7 +44,7 @@ describe('POST /api/v1/shipping/check-pincode', () => {
     });
     await check('175101');
     expect(provider.check).toHaveBeenCalledTimes(1);
-    const ttl = await redis.ttl('pk:pincode:175101');
+    const ttl = await redis.ttl('pk:svc:stub:175101');
     expect(ttl).toBeGreaterThan(24 * 3600 - 10);
   });
 

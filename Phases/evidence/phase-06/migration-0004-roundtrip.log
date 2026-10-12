@@ -1,0 +1,16 @@
+$ pnpm --filter @pk/database db:down
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema down
+Rolling back: 0004_logistics.sql
+Rolled back: 0004_logistics.sql in 25.548833ms
+$ pnpm --filter @pk/database db:up
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema up
+Applying: 0004_logistics.sql
+Applied: 0004_logistics.sql in 9.297375ms
+$ pnpm --filter @pk/database db:status
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema status
+[X] 0001_foundation.sql
+[X] 0002_catalog_inventory.sql
+[X] 0003_orders_payments.sql
+[X] 0004_logistics.sql
+Applied: 4
+Pending: 0

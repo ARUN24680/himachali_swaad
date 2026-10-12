@@ -64,9 +64,10 @@ export function createSweepers(deps: {
       const stale = await orderStore.listStaleConfirmed(db, 200);
       for (const o of stale) {
         if (o.needs_invoice) await jobs.add('GENERATE_INVOICE', { orderId: o.id }, jobIds.invoice(o.id));
-        // Still CONFIRMED after 5 min = no AWB yet; the Phase 6 consumer is idempotent per order
+        // Still CONFIRMED after 5 min = booking or label not done; both jobs are idempotent per order
         if (o.status === 'CONFIRMED') await jobs.add('SHIPROCKET_CREATE_ORDER', { orderId: o.id }, jobIds.ship(o.id));
       }
+      await svc.logistics.reconcileLabels();
       return stale.length;
     },
 

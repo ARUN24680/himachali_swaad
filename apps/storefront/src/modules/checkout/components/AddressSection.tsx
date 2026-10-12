@@ -2,7 +2,7 @@
 
 import type { PincodeCheckResponse, SavedAddress } from '@pk/shared';
 import { Badge, Checkbox, Input, Label, RadioCard, RadioDot, RadioGroup, Skeleton } from '@pk/ui';
-import { AlertTriangle, Loader2, MapPin, Sparkles, Truck } from 'lucide-react';
+import { AlertTriangle, Info, Loader2, MapPin, Sparkles, Truck } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { FormField, fieldAria } from '@/components/common/FormField';
 import { fieldId, type CheckoutFormValues, type FieldErrors } from '../lib/checkout-form';
@@ -58,6 +58,17 @@ export function AddressSection({
         Checking delivery…
       </span>
     );
+  } else if (res && res.pincode === values.pincode && res.serviceable === null) {
+    // Courier partner unreachable (Phase 6 §6.3) — informational only, never blocks checkout.
+    pinHint = (
+      <span role="status" className="inline-flex items-start gap-1.5 text-foreground/80">
+        <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-info" />
+        <span>
+          Couldn&rsquo;t confirm delivery to this pincode right now &mdash; we&rsquo;ll confirm after you order. If we
+          can&rsquo;t deliver, you get a full refund.
+        </span>
+      </span>
+    );
   } else if (res && res.pincode === values.pincode && res.serviceable) {
     pinHint = (
       <span className="inline-flex items-center gap-1.5 text-success">
@@ -68,7 +79,7 @@ export function AddressSection({
       </span>
     );
   }
-  const notServiceable = !!res && res.pincode === values.pincode && !res.serviceable;
+  const notServiceable = !!res && res.pincode === values.pincode && res.serviceable === false;
   const pinError =
     errors.pincode ??
     (pincode.invalid ? 'Enter a valid 6-digit pincode' : undefined) ??

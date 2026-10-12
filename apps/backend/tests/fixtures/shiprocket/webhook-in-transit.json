@@ -1,0 +1,36 @@
+{
+  "awb": "19041424751540",
+  "courier_name": "Delhivery Surface",
+  "current_status": "IN TRANSIT",
+  "current_status_id": 20,
+  "shipment_status": "IN TRANSIT",
+  "shipment_status_id": 18,
+  "current_timestamp": "14 10 2026 11:43:52",
+  "order_id": "PK-7KQ2M9",
+  "sr_order_id": 281248157,
+  "awb_assigned_date": "2026-10-12 11:59:16",
+  "pickup_scheduled_date": "2026-10-13 10:00:00",
+  "etd": "2026-10-16 15:40:19",
+  "scans": [
+    {
+      "date": "2026-10-13 15:00:00",
+      "status": "PKD",
+      "activity": "Picked up",
+      "location": "Kullu_Hub (Himachal Pradesh)",
+      "sr-status": "42",
+      "sr-status-label": "PICKED UP"
+    },
+    {
+      "date": "2026-10-14 11:43:52",
+      "status": "IT",
+      "activity": "In transit",
+      "location": "Ambala_Hub (Haryana)",
+      "sr-status": "18",
+      "sr-status-label": "IN TRANSIT"
+    }
+  ],
+  "is_return": 0,
+  "channel_id": 3422553,
+  "pod_status": "OTP Based Delivery",
+  "pod": "Not Available"
+}

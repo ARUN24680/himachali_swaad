@@ -577,6 +577,7 @@ CREATE TABLE shipments (
   label_key               TEXT,                  -- PRIVATE R2 key (D-11)
   manifest_key            TEXT,
   dead_weight_g           INT,
+  volumetric_weight_g     INT,                   -- D-53 l: L×B×H/5 g, logged with the dead weight
   length_cm               NUMERIC(5,1),
   breadth_cm              NUMERIC(5,1),
   height_cm               NUMERIC(5,1),
@@ -584,12 +585,14 @@ CREATE TABLE shipments (
   freight_paise           BIGINT,                -- actual forward shipping charge (D-41)
   rto_freight_paise       BIGINT,
   pickup_scheduled_for    DATE,
+  pickup_requested_at     TIMESTAMPTZ,           -- D-53 l: 48 h "pickup missed" alert
   pickup_token            VARCHAR(60),
   etd                     DATE,                  -- expected delivery date from courier
   last_status_text        VARCHAR(80),
   last_status_at          TIMESTAMPTZ,
   booking_attempts        INT NOT NULL DEFAULT 0,
   last_error              TEXT,
+  cancelled_at            TIMESTAMPTZ,           -- D-53 l: AWB / Shiprocket order cancelled (idempotency)
   created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
