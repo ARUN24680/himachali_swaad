@@ -10,6 +10,11 @@ import { PDFDocument } from 'pdf-lib';
 import webpush from 'web-push';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { createWebPushSender } from '../../src/integrations/push/web-push';
+import { createProcessors } from '../../src/jobs/processors';
+import { createBullJobQueue } from '../../src/jobs/queues';
+import { startWorkers } from '../../src/jobs/runner';
+import { createSweepers } from '../../src/jobs/sweepers';
+import { silentLogger } from '../helpers/test-logger';
 import type { MockPaymentGateway } from '../../src/integrations/razorpay/mock';
 import type { ShiprocketApi } from '../../src/integrations/shiprocket/client';
 import { createLocalPrivateStorage } from '../../src/integrations/storage/private';
@@ -19,7 +24,7 @@ import { assignPickupLocation, createStaff } from '../helpers/factories';
 import { confirmedOrder, registerPickupName, workerServices } from '../helpers/logistics';
 import { staffLogin, type Jar } from '../helpers/session';
 import { startShiprocketSandbox } from '../helpers/shiprocket';
-import { buildTestApp, fromBrowser, recordingJobs, testGateway, TEST_API_URL } from '../helpers/test-app';
+import { buildTestApp, fakeReporter, fromBrowser, recordingJobs, testGateway, TEST_API_URL } from '../helpers/test-app';
 import { createTestDb, type TestDb } from '../helpers/test-db';
 
 /**
@@ -446,4 +451,52 @@ describe('Web Push + WhatsApp fallback (§7.3)', () => {
     await notifications.partnerDailyDigest();
     expect(pushHits.filter((h) => h.id === live.endpoint.split('/').pop())).toHaveLength(0);
   });
+});
+
+describe('new-order push end to end through BullMQ (§7.3 "push 10 s ke andar")', () => {
+  it('payment confirmed → PARTNER_NEW_ORDER_ALERT on the real queue → worker → push service hit, well under 10 s', async () => {
+    const connection = new Redis(inject('redisUrl'), { maxRetriesPerRequest: null });
+    const bull = createBullJobQueue(connection);
+    const liveApp = await buildTestApp({ db: t.db, redis }, { gateway, jobs: bull, privateStorage, shiprocket, push });
+    const services = workerServices({ db: t.db, redis, gateway, jobs: bull, shiprocket, privateStorage, push });
+    const reporter = fakeReporter();
+    const sweepers = createSweepers({ db: t.db, svc: services, gateway, jobs: bull, logger: silentLogger(), reporter });
+    const workers = startWorkers({
+      connection,
+      processors: createProcessors({ db: t.db, svc: services, sweepers, logger: silentLogger() }),
+      svc: services,
+      logger: silentLogger(),
+      reporter,
+      concurrency: 5,
+    });
+    try {
+      const partner = await createStaff(t.db, { role: 'KITCHEN_PARTNER' });
+      await assignPickupLocation(t.db, partner.id, actors.kitchenB.id);
+      const jar = (await staffLogin(liveApp, partner.email, partner.password)).jar;
+      const sub = fakeSubscription(`e2e-${randomUUID()}`);
+      expect((await as(liveApp, jar).post('/api/v1/partner/push-subscriptions', sub)).statusCode).toBe(201);
+      const subId = sub.endpoint.split('/').pop()!;
+
+      const started = Date.now();
+      const o = await confirmedOrder(liveApp, t.db, gateway, actors.kitchenB.id, 2);
+      const deadline = started + 10_000;
+      while (Date.now() < deadline && !pushHits.some((h) => h.id === subId)) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      const elapsedMs = Date.now() - started;
+      expect(pushHits.some((h) => h.id === subId)).toBe(true);
+      expect(elapsedMs).toBeLessThan(10_000);
+      const log = await t.db.query(
+        "SELECT status FROM notifications_log WHERE order_id = $1 AND template = 'new_order_alert' AND user_id = $2",
+        [o.orderId, partner.id],
+      );
+      expect(log.rows).toEqual([{ status: 'SENT' }]);
+      console.info(`[evidence] payment verify → push delivered to the push service in ${elapsedMs} ms`);
+    } finally {
+      await Promise.all(workers.map((w) => w.close()));
+      await bull.close();
+      await connection.quit();
+      await liveApp.close();
+    }
+  }, 30_000);
 });

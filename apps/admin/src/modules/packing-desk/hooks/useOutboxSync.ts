@@ -43,13 +43,19 @@ export function useOutboxSync(): void {
       void qc.invalidateQueries({ queryKey: queryKeys.partner.orders.all });
     };
 
+    // Back online: replay the outbox AND drop any saved (offline) lists for live ones
+    const onOnline = () => {
+      void sync();
+      void qc.invalidateQueries({ queryKey: queryKeys.partner.orders.all });
+    };
+
     void sync();
-    window.addEventListener('online', sync);
+    window.addEventListener('online', onOnline);
     document.addEventListener('visibilitychange', onVisible);
     navigator.serviceWorker?.addEventListener('message', onSwMessage);
     return () => {
       alive = false;
-      window.removeEventListener('online', sync);
+      window.removeEventListener('online', onOnline);
       document.removeEventListener('visibilitychange', onVisible);
       navigator.serviceWorker?.removeEventListener('message', onSwMessage);
     };

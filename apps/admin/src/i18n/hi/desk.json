@@ -11,7 +11,8 @@
     "errorBody": "Internet check karke dobara koshish karein.",
     "offlineBanner": "Internet nahi hai. Packing chalti rahegi — internet aate hi sync ho jayega.",
     "today": "aaj",
-    "tomorrow": "kal"
+    "tomorrow": "kal",
+    "offlineCached": "Offline — purani list dikh rahi hai, last updated {time}"
   },
   "lang": {
     "title": "Bhasha",
@@ -105,7 +106,8 @@
     "item": "{date} · {count} orders",
     "print": "🖨️ Print",
     "share": "📲 Share",
-    "shareTitle": "Pickup manifest {date}"
+    "shareTitle": "Pickup manifest {date}",
+    "offline": "Manifest ke liye internet chahiye."
   },
   "pack": {
     "back": "Saare orders",
@@ -236,6 +238,7 @@
     "androidStep2": "⋮ menu dabayein → “Install app” ya “Add to Home screen”.",
     "accountTitle": "Account",
     "signedInAs": "{name} ke roop mein sign in",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "signOutOffline": "Sign out ke liye internet chahiye."
   }
 }

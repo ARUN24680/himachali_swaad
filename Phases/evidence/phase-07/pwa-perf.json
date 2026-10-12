@@ -1,0 +1,62 @@
+{
+  "fast4g": {
+    "environment": {
+      "build": "vite build → vite preview (production bundle, gzip-compressed by vite preview; no brotli / CDN)",
+      "browser": "Chromium 153.0.8010.12 headless (desktop machine), 375×812 mobile emulation",
+      "network": {
+        "preset": "Chrome DevTools \"Fast 4G\" via CDP Network.emulateNetworkConditions",
+        "latencyMs": 165,
+        "downloadBytesPerSec": 1012500,
+        "uploadBytesPerSec": 168750,
+        "mockedApi": "+165 ms per mocked API call (Playwright-fulfilled responses bypass DevTools throttling)"
+      },
+      "cpu": "Emulation.setCPUThrottlingRate 4× (low-end Android stand-in)",
+      "runs": 5,
+      "cache": "cold — new browser context per run (no SW, HTTP cache or IndexedDB)"
+    },
+    "queueFirstLoad": {
+      "metric": "navigation start → first order card (article[data-order]) in the DOM",
+      "targetMs": 3000,
+      "medianMs": 1213,
+      "runs": [
+        {
+          "cardsVisibleMs": 1225,
+          "transferredKB": 303,
+          "requests": 20
+        },
+        {
+          "cardsVisibleMs": 1195,
+          "transferredKB": 303,
+          "requests": 20
+        },
+        {
+          "cardsVisibleMs": 1202,
+          "transferredKB": 303,
+          "requests": 20
+        },
+        {
+          "cardsVisibleMs": 1213,
+          "transferredKB": 303,
+          "requests": 20
+        },
+        {
+          "cardsVisibleMs": 1224,
+          "transferredKB": 303,
+          "requests": 20
+        }
+      ],
+      "pass": true
+    },
+    "labelOpen": {
+      "metric": "tap \"🖨️ Label Print karein\" → signed 4×6 PDF response finished in the new tab (API call + PDF fetch)",
+      "targetMs": 2000,
+      "pdfBytes": 1726,
+      "pdfMockCostMs": 167,
+      "medianMs": 433,
+      "runsMs": [445, 417, 433, 433, 440],
+      "pass": true
+    },
+    "caveat": "Emulated on a desktop CPU — NOT a real low-end Android phone; the real-device check stays open."
+  },
+  "generatedAt": "2026-10-12T11:44:37.029Z"
+}

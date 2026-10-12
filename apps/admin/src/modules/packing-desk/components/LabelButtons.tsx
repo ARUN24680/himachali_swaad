@@ -1,7 +1,8 @@
 import { Alert, Button, cn } from '@pk/ui';
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2, WifiOff } from 'lucide-react';
 import { useT, type DeskKey } from '@/i18n';
 import { useLabelActions, type LabelTarget } from '../hooks/useLabelActions';
+import { useOnline } from '../hooks/useOnline';
 
 /**
  * 🖨️ Print + 📲 Share for one label / A4 sheet / manifest (D-37). Big, full-width on phones.
@@ -26,7 +27,10 @@ export function LabelButtons({
   const printing = labels.isBusy(target, 'print');
   const sharing = labels.isBusy(target, 'share');
   const busy = printing || sharing;
-  const disabled = Boolean(disabledReason) || busy;
+  // Signed PDFs come from the server — offline, say so up front instead of failing on tap
+  const online = useOnline();
+  const offline = !online && !disabledReason;
+  const disabled = Boolean(disabledReason) || busy || offline;
 
   return (
     <div className={cn('grid gap-2', className)}>
@@ -62,6 +66,12 @@ export function LabelButtons({
         </p>
       )}
       {disabledReason && <p className="text-base text-muted-foreground">{t(disabledReason)}</p>}
+      {offline && (
+        <p className="flex items-center gap-2 text-base text-muted-foreground">
+          <WifiOff aria-hidden="true" className="size-5 shrink-0" />
+          {t('label.offline')}
+        </p>
+      )}
       {notice && (
         <Alert tone={notice.tone} className="text-base">
           <span className="grid gap-2">

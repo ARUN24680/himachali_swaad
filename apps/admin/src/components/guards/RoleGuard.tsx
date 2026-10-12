@@ -1,7 +1,7 @@
 import type { Role } from '@pk/shared';
 import type { ReactNode } from 'react';
 import { Outlet } from 'react-router';
-import { useMe } from '@/hooks/useMe';
+import { useSession } from '@/hooks/useMe';
 
 interface RoleGuardProps {
   roles: readonly Role[];
@@ -9,9 +9,12 @@ interface RoleGuardProps {
   fallback: ReactNode;
 }
 
-/** UX-only role gate — always nest inside AuthGuard. The API's requireRole() is the real enforcement. */
+/**
+ * UX-only role gate — always nest inside AuthGuard. The API's requireRole() is the real enforcement.
+ * In the desk's offline mode the role comes from the cached identity (AuthGuard only allows that on /desk).
+ */
 export function RoleGuard({ roles, fallback }: RoleGuardProps) {
-  const me = useMe();
-  if (!me.data) return null; // AuthGuard above handles loading / signed-out / error
-  return roles.includes(me.data.user.role) ? <Outlet /> : fallback;
+  const { me } = useSession();
+  if (!me) return null; // AuthGuard above handles loading / signed-out / error
+  return roles.includes(me.user.role) ? <Outlet /> : fallback;
 }
