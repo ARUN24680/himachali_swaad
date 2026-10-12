@@ -15,8 +15,8 @@ Order `CONFIRMED` hote hi delivery pipeline poori tarah automatic chalni chahiye
 ## 📋 Granular Tasks & Checklist
 
 ### 6.1 Migration & Worker Infrastructure
-- [ ] `0004_logistics.sql` apply karo (`shipments`, `tracking_events`) — `dbmate up` + `dbmate down` round-trip CI me.
-  > ⏳ Local: `Phases/evidence/phase-06/migration-0004-roundtrip.log` (dbmate up → down → up) + `apps/backend/tests/integration/migration-0004.test.ts`. CI migrations job → PR par tick.
+- [x] `0004_logistics.sql` apply karo (`shipments`, `tracking_events`) — `dbmate up` + `dbmate down` round-trip CI me.
+  > ⏳ Local: `Phases/evidence/phase-06/migration-0004-roundtrip.log` (dbmate up → down → up) + `apps/backend/tests/integration/migration-0004.test.ts`. CI: PR #8 "Migrations up → down → up (PostgreSQL 17)" ✅ run 38228402872.
 - [x] `apps/backend/src/worker.ts` entrypoint (D-06) — HTTP server se alag process.
   > Evidence: `Phases/evidence/phase-06/worker-separate-process.log` + `live-order-PK-23K2NF.log` (API aur worker alag process; worker ne booking + label kiya).
 - [x] BullMQ queues (shared Redis connection, `maxRetriesPerRequest: null`):
