@@ -109,15 +109,16 @@ Order `CONFIRMED` hote hi delivery pipeline poori tarah automatic chalni chahiye
 - [ ] Label format 4×6 inch thermal; A4 4-up fallback Phase 7 me client-side.
 
 ### 6.7 Pickup Scheduling & Manifest (D-36)
-- [ ] `PACKED` transition (Phase 7) → `SHIPROCKET_SCHEDULE_PICKUP` enqueue.
-  > Job + handler ready (`logistics.schedulePickup`, `pickup-<orderId>`); `PICKUP_BATCH` also dates any PACKED parcel it finds. The enqueue call lands with Phase 7 `mark-packed`.
+- [x] `PACKED` transition (Phase 7) → `SHIPROCKET_SCHEDULE_PICKUP` enqueue.
+  > Done in Phase 7: `apps/backend/tests/integration/packing-desk.test.ts` › mark packed enqueues `pickup-<orderId>`.
 - [x] Cut-off: `pickup_cutoff_hour_ist` (default 11). Cut-off se pehle packed → same-day pickup request; baad me → next working day (`shipments.pickup_scheduled_for`).
   > Evidence: `apps/backend/tests/integration/shiprocket-create-order.test.ts` › "packed before the 11:00 IST cut-off …" + `packages/shared/tests/logistics.test.ts` › pickupDateFor.
 - [x] Batching: din ke saare pending shipments ke liye ek pickup + manifest call (repeat job `PICKUP_BATCH` cut-off time par) — per-order request sirf fallback.
   > Evidence: "batch: nothing before the cut-off; after it ONE pickup + manifest" (`PICKUP_BATCH` every 15 min).
 - [x] Success → `pickup_token`, manifest PDF private R2 (`manifest_key`) → `transitionOrder(PACKED → PICKUP_SCHEDULED)`.
   > Evidence: same test (`pickup_token`, `manifest_key manifests/<date>-…`, `PICKUP_SCHEDULED`).
-- [ ] Manifest partner desk par print/share ke liye available (Phase 7).
+- [x] Manifest partner desk par print/share ke liye available (Phase 7).
+  > Done in Phase 7: `GET /partner/manifests` (`packing-desk.test.ts`) + desk Pickup tab (`Phases/evidence/phase-07/desk-pickup-manifests-375-*`).
 
 ### 6.8 Shipment Cancellation (Admin cancel)
 - [x] Admin cancel (Phase 9 UI) jab order `AWAITING_PACKING` / `PACKED` / `PICKUP_SCHEDULED` me ho → transaction me `transitionOrder(... → CANCELLED)` + stock release (`07` §3) + refund enqueue, phir commit ke baad `SHIPROCKET_CANCEL_SHIPMENT` (AWB cancel).

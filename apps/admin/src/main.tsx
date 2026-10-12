@@ -10,9 +10,11 @@ import { queryClient } from './app/providers/queryClient';
 import { ThemeProvider } from './app/providers/ThemeProvider';
 import { router } from './app/router';
 import { initSentry } from './lib/sentry';
+import { registerPwa } from './pwa/register';
 import { setAuthFailureHandler } from './services/api/http';
 
 initSentry();
+registerPwa(); // Packing Desk PWA: service worker, install + update prompts (Phase 7)
 
 // Session could not be refreshed → drop every cached response and send the user to sign in,
 // remembering where they were (Phase 2 §2.7).

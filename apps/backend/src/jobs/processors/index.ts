@@ -37,6 +37,9 @@ export function createProcessors(deps: {
     ORDER_CANCELLED: later('Phase 8'),
     ORDER_STATUS_NOTIFY: later('Phase 8'),
     ADMIN_ALERT: later('Phase 8'),
+    WHATSAPP_SEND: later('Phase 8'),
+    PARTNER_NEW_ORDER_ALERT: (d) => svc.notifications.partnerNewOrderAlert(d.orderId),
+    PARTNER_DAILY_DIGEST: () => svc.notifications.partnerDailyDigest(),
     GENERATE_INVOICE: (d) => svc.invoices.generate(d.orderId),
     INITIATE_REFUND: (d) => svc.payments.initiateRefund(d.refundId),
     EXPIRE_RESERVATIONS: () => sweepers.expireReservations(),
@@ -58,4 +61,5 @@ export const SCHEDULES: { name: JobName; pattern?: string; every?: number }[] = 
   { name: 'PICKUP_BATCH', pattern: '*/15 * * * *' },
   { name: 'POLL_TRACKING', pattern: '0 */3 * * *' }, // D-35
   { name: 'CHECK_WALLET_BALANCE', pattern: '5 * * * *' }, // hourly
+  { name: 'PARTNER_DAILY_DIGEST', pattern: '0 9 * * *' }, // 09:00 IST (Phase 7 §7.3)
 ];

@@ -8,8 +8,10 @@ import { AuthGuard } from '@/components/guards/AuthGuard';
 import { RoleGuard } from '@/components/guards/RoleGuard';
 import { useMe } from '@/hooks/useMe';
 import { AdminLayout } from '@/layouts/AdminLayout';
+import { PartnerLayout } from '@/layouts/PartnerLayout';
 import { NotStaffNotice } from '@/modules/auth';
 import { BatchesListPage } from '@/modules/inventory';
+import { BatchLoggerPage, DeskSettingsPage, HisaabPage, PackingQueuePage, PackOrderPage } from '@/modules/packing-desk';
 import { ProductEditorPage, ProductsListPage } from '@/modules/products';
 
 const LoginPage = lazy(() => import('@/modules/auth/pages/LoginPage'));
@@ -27,11 +29,11 @@ function PublicRoute() {
   );
 }
 
-/** Start page per role: ADMIN → overview; KITCHEN_PARTNER → batches (their only section for now). */
+/** Start page per role: ADMIN → overview; KITCHEN_PARTNER → the Packing Desk PWA (Phase 7). */
 function IndexRoute() {
   const me = useMe();
   if (!me.data) return null;
-  return can(me.data.user.role, 'dashboard:revenue') ? <HomePage /> : <Navigate to="/batches" replace />;
+  return can(me.data.user.role, 'dashboard:revenue') ? <HomePage /> : <Navigate to="/desk" replace />;
 }
 
 export const router = createBrowserRouter([
@@ -49,6 +51,24 @@ export const router = createBrowserRouter([
       {
         element: <RoleGuard roles={STAFF} fallback={<NotStaffNotice />} />,
         children: [
+          {
+            // Packing Desk PWA (Phase 7, D-16): KITCHEN_PARTNER + ADMIN, own mobile shell
+            path: 'desk',
+            element: <RoleGuard roles={rolesFor('packing:operate')} fallback={<NoAccess />} />,
+            children: [
+              {
+                element: <PartnerLayout />,
+                children: [
+                  { index: true, element: <PackingQueuePage /> },
+                  { path: 'pack/:orderCode', element: <PackOrderPage /> },
+                  { path: 'batches', element: <BatchLoggerPage /> },
+                  { path: 'hisaab', element: <HisaabPage /> },
+                  { path: 'settings', element: <DeskSettingsPage /> },
+                  { path: '*', element: <NotFound /> },
+                ],
+              },
+            ],
+          },
           {
             element: <AdminLayout />,
             children: [

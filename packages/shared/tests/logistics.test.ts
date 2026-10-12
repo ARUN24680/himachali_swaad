@@ -83,3 +83,13 @@ describe('pickupDateFor (D-36)', () => {
     expect(isPastCutoff(ist(2026, 10, 12, 11), 11)).toBe(true);
   });
 });
+
+describe('nextCutoff (packing deadline)', () => {
+  const ist = (y: number, m: number, d: number, h: number) => new Date(Date.UTC(y, m - 1, d, h, 0) - 5.5 * 3600_000);
+  it('today 11:00 IST before the cut-off, next working day after it', async () => {
+    const { nextCutoff } = await import('../src/logistics');
+    expect(nextCutoff(ist(2026, 10, 12, 9), 11).toISOString()).toBe(ist(2026, 10, 12, 11).toISOString());
+    expect(nextCutoff(ist(2026, 10, 12, 12), 11).toISOString()).toBe(ist(2026, 10, 13, 11).toISOString());
+    expect(nextCutoff(ist(2026, 10, 17, 12), 11).toISOString()).toBe(ist(2026, 10, 19, 11).toISOString());
+  });
+});

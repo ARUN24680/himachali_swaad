@@ -22,3 +22,10 @@ export function pickupDateFor(packedAt: Date, cutoffHourIst: number): string {
 export function isPastCutoff(now: Date, cutoffHourIst: number): boolean {
   return new Date(now.getTime() + IST_OFFSET_MS).getUTCHours() >= cutoffHourIst;
 }
+
+/** The next pickup cut-off instant at or after `now` (IST, working days) — the partner's "pack by". */
+export function nextCutoff(now: Date, cutoffHourIst: number): Date {
+  const day = pickupDateFor(now, cutoffHourIst); // 'YYYY-MM-DD'
+  const [y, m, d] = day.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d, cutoffHourIst, 0) - IST_OFFSET_MS);
+}

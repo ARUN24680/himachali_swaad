@@ -164,6 +164,10 @@ export function createPaymentsService(deps: {
       await enqueue(() => jobs.add('SHIPROCKET_CREATE_ORDER', { orderId: id }, jobIds.ship(id)), 'ship');
       await enqueue(() => jobs.add('GENERATE_INVOICE', { orderId: id }, jobIds.invoice(id)), 'invoice');
       await enqueue(() => jobs.add('ORDER_CONFIRMED', { orderId: id }, jobIds.notify('order_confirmed', id)), 'notify');
+      await enqueue(
+        () => jobs.add('PARTNER_NEW_ORDER_ALERT', { orderId: id }, jobIds.notify('new_order_alert', id)),
+        'partner-alert',
+      );
     }
     const refundId = outcome.kind === 'CONFIRMED' ? null : outcome.refundId;
     if (refundId) {

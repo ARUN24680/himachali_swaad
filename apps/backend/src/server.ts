@@ -11,7 +11,7 @@ import {
   revalidatorFromEnv,
   storageFromEnv,
 } from './config/storage';
-import { SANDBOX_PATH, shippingFromEnv } from './config/shipping';
+import { pushFromEnv, SANDBOX_PATH, shippingFromEnv } from './config/shipping';
 import { createShiprocketSandbox } from './integrations/shiprocket/sandbox';
 import { joinUrl } from './integrations/storage/storage';
 import { createBullJobQueue } from './jobs/queues';
@@ -58,6 +58,7 @@ const app = await buildApp({
   allowDraftInvoice: env.NODE_ENV !== 'production',
   shiprocket: shipping.shiprocket,
   courierWebhookToken: shipping.webhookToken,
+  push: pushFromEnv(env),
   // env.ts refuses the sandbox in production
   ...(shipping.sandbox
     ? { shiprocketSandbox: createShiprocketSandbox({ baseUrl: () => joinUrl(env.API_PUBLIC_URL, SANDBOX_PATH) }) }

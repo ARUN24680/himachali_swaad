@@ -1,3 +1,4 @@
+import { createWebPushSender, type PushSender } from '../../src/integrations/push/web-push';
 import type { FastifyInstance } from 'fastify';
 import type { Redis } from 'ioredis';
 import type { Db, Queryable } from '../../src/config/db';
@@ -22,6 +23,7 @@ export function workerServices(d: {
   privateStorage: PrivateStorage;
   now?: () => Date;
   reporter?: ReturnType<typeof fakeReporter>;
+  push?: PushSender;
 }) {
   return createCommerceServices({
     db: d.db,
@@ -36,6 +38,7 @@ export function workerServices(d: {
     allowDraftInvoice: true,
     shiprocket: d.shiprocket,
     courierWebhookToken: TEST_COURIER_TOKEN,
+    push: d.push ?? createWebPushSender({}),
     now: d.now,
   });
 }

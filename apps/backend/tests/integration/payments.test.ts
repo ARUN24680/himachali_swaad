@@ -1,3 +1,4 @@
+import { createWebPushSender } from '../../src/integrations/push/web-push';
 import type { FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
@@ -88,7 +89,14 @@ describe('verify → CONFIRMED', () => {
       jobsFor(order.id)
         .map((j) => j.jobId)
         .sort(),
-    ).toEqual([`inv-${order.id}`, `notify-order_confirmed-${order.id}`, `ship-${order.id}`].sort());
+    ).toEqual(
+      [
+        `inv-${order.id}`,
+        `notify-order_confirmed-${order.id}`,
+        `notify-new_order_alert-${order.id}`,
+        `ship-${order.id}`,
+      ].sort(),
+    );
     const pay = await t.db.query('SELECT status, amount_paise, method FROM payments WHERE order_id = $1', [order.id]);
     expect(pay.rows).toEqual([{ status: 'CAPTURED', amount_paise: co.amountPaise, method: 'upi' }]);
   });
@@ -149,7 +157,7 @@ describe('webhook', () => {
     expect((await statusLog(t.db, order.id)).filter((l) => l.to_status === 'CONFIRMED')).toHaveLength(1);
     expect((await t.db.query('SELECT 1 FROM payments WHERE order_id = $1', [order.id])).rowCount).toBe(1);
     // Every enqueue used the same deterministic id → BullMQ keeps one job each
-    expect(new Set(jobsFor(order.id).map((j) => j.jobId)).size).toBe(3);
+    expect(new Set(jobsFor(order.id).map((j) => j.jobId)).size).toBe(4);
   });
 
   it('payment.failed records the attempt; the order stays payable', async () => {
@@ -327,5 +335,6 @@ function services() {
     allowDraftInvoice: true,
     shiprocket: unreachableShiprocket(),
     courierWebhookToken: TEST_COURIER_TOKEN,
+    push: createWebPushSender({}),
   });
 }

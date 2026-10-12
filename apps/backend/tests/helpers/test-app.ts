@@ -15,6 +15,7 @@ import type { JobName, JobPayloads, JobQueue } from '../../src/jobs/queues';
 import type { StorefrontRevalidator } from '../../src/integrations/storefront/revalidate';
 import { silentLogger } from './test-logger';
 import { TEST_COURIER_TOKEN, unreachableShiprocket } from './shiprocket';
+import { createWebPushSender } from '../../src/integrations/push/web-push';
 
 export const TEST_ORIGIN = 'http://localhost:3000';
 export const TEST_JWT_SECRET = 'test-secret-that-is-definitely-longer-than-32-chars';
@@ -97,6 +98,7 @@ export async function buildTestApp(base: { db: Db; redis: Redis }, overrides: Pa
     capi: { enabled: false, send: vi.fn(async () => undefined) },
     shiprocket: unreachableShiprocket(),
     courierWebhookToken: TEST_COURIER_TOKEN,
+    push: createWebPushSender({}),
     ...base,
     ...overrides,
   });

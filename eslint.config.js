@@ -124,7 +124,12 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/tests/**', '**/*.test.ts', '**/*.config.{ts,js,mjs}', 'scripts/**'],
+    // Packing Desk service worker (Phase 7): plain JS template, runs in the SW global scope
+    files: ['apps/admin/src/pwa/sw.js'],
+    languageOptions: { globals: { ...globals.serviceworker } },
+  },
+  {
+    files: ['**/tests/**', '**/*.test.ts', '**/*.config.{ts,js,mjs}', 'scripts/**', 'apps/*/scripts/**'],
     rules: { 'no-console': 'off', '@typescript-eslint/no-non-null-assertion': 'off' },
   },
 );

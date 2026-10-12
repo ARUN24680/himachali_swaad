@@ -12,6 +12,8 @@ import { joinUrl } from './storage';
 export interface PrivateStorage {
   readonly kind: 'r2' | 'local';
   put(key: string, body: Uint8Array, contentType: string): Promise<void>;
+  /** Server-side read (e.g. merging labels into an A4 sheet). null when the key doesn't exist. */
+  get(key: string): Promise<Uint8Array | null>;
   signedGetUrl(key: string, ttlSec: number): Promise<{ url: string; expiresAt: Date }>;
 }
 
@@ -39,6 +41,12 @@ export function createR2PrivateStorage(cfg: {
         'r2 private put',
       );
       if (!res.ok) throw new Error(`R2 PUT failed with ${res.status}`);
+    },
+    async get(key) {
+      const res = await withTimeout(client.fetch(objectUrl(key)), 20_000, 'r2 private get');
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`R2 GET failed with ${res.status}`);
+      return new Uint8Array(await res.arrayBuffer());
     },
     async signedGetUrl(key, ttlSec) {
       const url = new URL(objectUrl(key));
@@ -86,6 +94,14 @@ export function createLocalPrivateStorage(cfg: {
       const file = pathFor(key);
       await mkdir(dirname(file), { recursive: true });
       await writeFile(file, body);
+    },
+    async get(key) {
+      try {
+        return new Uint8Array(await readFile(pathFor(key)));
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+        throw err;
+      }
     },
     async signedGetUrl(key, ttlSec) {
       const expiresAt = new Date(now() + ttlSec * 1000);

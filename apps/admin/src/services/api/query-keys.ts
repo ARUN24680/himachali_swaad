@@ -1,4 +1,4 @@
-import type { BatchListQuery } from '@pk/shared';
+import type { BatchListQuery, PartnerOrdersQuery } from '@pk/shared';
 
 /** Central TanStack Query keys (architecture/09 §3.3). Hierarchical so a prefix invalidates a family. */
 export const queryKeys = {
@@ -15,4 +15,13 @@ export const queryKeys = {
     productOptions: ['batches', 'product-options'] as const,
   },
   pickupLocations: ['partner', 'pickup-locations'] as const,
+  /** Packing desk (Phase 7). `partner.orders.all` invalidates every status tab. */
+  partner: {
+    orders: {
+      all: ['partner', 'orders'] as const,
+      list: (status: NonNullable<PartnerOrdersQuery['status']>) => ['partner', 'orders', status] as const,
+    },
+    manifests: ['partner', 'manifests'] as const,
+    push: ['partner', 'push-subscriptions'] as const,
+  },
 };

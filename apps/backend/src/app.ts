@@ -10,6 +10,7 @@ import {
   createShiprocketServiceabilityProvider,
   type ServiceabilityProvider,
 } from './integrations/shipping/serviceability';
+import type { PushSender } from './integrations/push/web-push';
 import type { ShiprocketApi } from './integrations/shiprocket/client';
 import type { ShiprocketSandbox } from './integrations/shiprocket/sandbox';
 import type { FastifyPluginAsync } from 'fastify';
@@ -37,7 +38,6 @@ import { inventoryRoutes } from './modules/inventory/inventory.routes';
 import { shippingRoutes } from './modules/shipping/shipping.routes';
 import { createShippingService } from './modules/shipping/shipping.service';
 import { partnerRoutes } from './modules/partner/partner.routes';
-import { createPartnerService } from './modules/partner/partner.service';
 import { adminSettingsRoutes } from './modules/settings/settings.routes';
 import { accountRoutes } from './modules/account/account.routes';
 import { checkoutRoutes } from './modules/checkout/checkout.routes';
@@ -83,6 +83,8 @@ export interface AppDeps {
   courierWebhookToken: string;
   /** Dev/CI: mount the Shiprocket sandbox at /api/v1/dev/shiprocket + the shipping simulator. */
   shiprocketSandbox?: { state: ShiprocketSandbox; plugin: FastifyPluginAsync };
+  /** Web Push sender (Phase 7). */
+  push: PushSender;
   /** Clock override for logistics (tests). */
   now?: () => Date;
   /** PIN → city/state auto-fill; defaults to India Post. */
@@ -163,6 +165,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     allowDraftInvoice: deps.allowDraftInvoice ?? false,
     shiprocket: deps.shiprocket,
     courierWebhookToken: deps.courierWebhookToken,
+    push: deps.push,
     now: deps.now,
   });
   const settingsService = svc.settings;
@@ -180,7 +183,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   });
   await app.register(partnerRoutes, {
     prefix: '/api/v1/partner',
-    service: createPartnerService({ db: deps.db }),
+    service: svc.partner,
+    notifications: svc.notifications,
     guards,
   });
 

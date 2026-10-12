@@ -38,6 +38,8 @@ export interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   signal?: AbortSignal;
+  /** Extra request headers (e.g. `Idempotency-Key` for mark-packed, Phase 7). */
+  headers?: Record<string, string>;
   /**
    * When the session can't be recovered, call the global auth-failure handler (clear cache →
    * /login?next=…). Default true. Callers that render their own signed-out UI (useMe/AuthGuard) pass false.
@@ -57,15 +59,17 @@ export function setAuthFailureHandler(handler: () => void) {
   onAuthFailure = handler;
 }
 
-async function rawRequest(path: string, { method = 'GET', body, signal }: HttpOptions): Promise<Response> {
+async function rawRequest(path: string, { method = 'GET', body, signal, headers }: HttpOptions): Promise<Response> {
   try {
     return await fetch(`${env.VITE_API_URL}/api/v1${path}`, {
       method,
       credentials: 'include', // httpOnly cookie sessions (D-20) — tokens never reach JS
-      headers:
-        body === undefined
+      headers: {
+        ...headers,
+        ...(body === undefined
           ? { accept: 'application/json' }
-          : { 'content-type': 'application/json', accept: 'application/json' },
+          : { 'content-type': 'application/json', accept: 'application/json' }),
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal,
     });

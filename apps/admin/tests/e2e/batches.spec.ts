@@ -127,7 +127,9 @@ test('filters live in the URL and in a bottom sheet on phones', async ({ page },
 test('partner: role-aware nav and routes', async ({ page }) => {
   await mockCatalogApi(page, { role: 'KITCHEN_PARTNER' });
   await page.goto('/');
-  await expect(page).toHaveURL(/\/batches$/);
+  await expect(page).toHaveURL(/\/desk$/); // Phase 7: partners land on the Packing Desk
+  await expect(page.getByRole('link', { name: 'Products' })).toHaveCount(0);
+  await page.goto('/batches');
   await expect(page.getByRole('link', { name: 'Products' })).toHaveCount(0);
   await page.goto('/products');
   await expect(page.getByRole('heading', { name: 'This page isn’t part of your role' })).toBeVisible();

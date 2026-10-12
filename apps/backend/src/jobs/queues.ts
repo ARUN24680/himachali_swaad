@@ -20,6 +20,10 @@ export interface JobPayloads {
   ORDER_STATUS_NOTIFY: { orderId: string; template: NotifyTemplate };
   /** Ops alert for the admin (WhatsApp/push in Phase 8; ops_issue + Sentry already carry it). */
   ADMIN_ALERT: { kind: string; orderId: string | null; message: string };
+  /** Push to the kitchen's partners (Phase 7 §7.3); WhatsApp fallback via WHATSAPP_SEND. */
+  PARTNER_NEW_ORDER_ALERT: { orderId: string };
+  /** WhatsApp template to a user (partner fallback now, customers in Phase 8) — Phase 8 consumer. */
+  WHATSAPP_SEND: { template: string; userId: string | null; orderId: string | null };
   EXPIRE_RESERVATIONS: Record<string, never>;
   RECONCILE_CONFIRMED: Record<string, never>;
   RECONCILE_REFUNDS: Record<string, never>;
@@ -28,6 +32,7 @@ export interface JobPayloads {
   PICKUP_BATCH: Record<string, never>;
   POLL_TRACKING: Record<string, never>;
   CHECK_WALLET_BALANCE: Record<string, never>;
+  PARTNER_DAILY_DIGEST: Record<string, never>;
 }
 export type JobName = keyof JobPayloads;
 
@@ -42,6 +47,8 @@ export const JOB_QUEUE: Record<JobName, QueueName> = {
   ORDER_CANCELLED: 'notify',
   ORDER_STATUS_NOTIFY: 'notify',
   ADMIN_ALERT: 'notify',
+  PARTNER_NEW_ORDER_ALERT: 'notify',
+  WHATSAPP_SEND: 'notify',
   EXPIRE_RESERVATIONS: 'cron',
   RECONCILE_CONFIRMED: 'cron',
   RECONCILE_REFUNDS: 'cron',
@@ -50,6 +57,7 @@ export const JOB_QUEUE: Record<JobName, QueueName> = {
   PICKUP_BATCH: 'cron',
   POLL_TRACKING: 'cron',
   CHECK_WALLET_BALANCE: 'cron',
+  PARTNER_DAILY_DIGEST: 'cron',
 };
 
 /**
@@ -80,6 +88,8 @@ const RETRIES: Partial<Record<JobName, number>> = {
   ORDER_CANCELLED: 3,
   ORDER_STATUS_NOTIFY: 3,
   ADMIN_ALERT: 3,
+  PARTNER_NEW_ORDER_ALERT: 3,
+  WHATSAPP_SEND: 3,
 };
 
 export const DEFAULT_BACKOFF_MS = 30_000;

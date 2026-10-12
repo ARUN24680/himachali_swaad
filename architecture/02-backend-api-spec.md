@@ -165,11 +165,13 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 
 | Method | Path | Request → Response |
 | :--- | :--- | :--- |
-| GET | `/partner/orders?status=AWAITING_PACKING` | → `{ orderCode, items: [{ title, netWeightG, quantity, batchCodes[] }], customerFirstName, city, state, createdAt }` — **no phone, full address or revenue** |
+| GET | `/partner/orders?status=AWAITING_PACKING\|PACKED\|PICKUP_SCHEDULED` | → `{ toPack, cutoffHourIst, orders: [{ orderCode, status, items: [{ title, sku, netWeightG, quantity, batches: [{ batchCode, quantity }] }], customerFirstName, city, state, courierName, awbCode, labelReady, confirmedAt, packBy, pickupDate }] }` oldest first — **no phone, full address or revenue** (D-54 c) |
 | GET | `/partner/orders/:orderCode/label` | → `{ url, expiresAt }` 4×6 PDF, 5-min signed private R2 URL (D-11, D-37); own kitchen's orders only (else 404); audited `LABEL_VIEW` (Phase 6) |
-| GET | `/partner/labels/a4?orders=PK-7KQ2M9,PK-...` | → signed URL of merged A4 (4-per-page) PDF for cyber-cafe printing |
-| POST | `/partner/orders/:orderCode/mark-packed` | Header `Idempotency-Key`; body `{ checklist: { sealChecked, shrinkApplied, bubbleWrapped, weightOk } }` → `AWAITING_PACKING → PACKED`, pickup job enqueued (D-36) |
-| POST / DELETE | `/partner/push-subscriptions` | `{ endpoint, keys: { p256dh, auth } }` → save / remove (PWA push, D-16) |
+| GET | `/partner/labels/a4?orders=PK-7KQ2M9,PK-...` | 1–20 codes → `{ url, expiresAt }` merged A4 (4-per-page) PDF for cyber-cafe printing; each label audited |
+| GET | `/partner/manifests` | → `{ manifests: [{ pickupDate, kitchenCode, orderCodes, url, expiresAt }] }` latest pickup manifests (Phase 6 batches) |
+| POST | `/partner/orders/:orderCode/mark-packed` | Header `Idempotency-Key` (uuid); body `{ checklist: { correctBatch, weighed, sealChecked, shrinkApplied, bubbleWrapped, labelApplied } }` (all `true`, D-54 a) → `{ orderCode, status, changed, pickupDate }`; `AWAITING_PACKING → PACKED`, `SHIPROCKET_SCHEDULE_PICKUP` enqueued (D-36). Already packed → 200 `changed: false`; cancelled → 409 `ORDER_CANCELLED` |
+| GET | `/partner/push-subscriptions` | → `{ vapidPublicKey \| null, subscribed }` (null = push not configured → WhatsApp alerts) |
+| POST / DELETE | `/partner/push-subscriptions` | `{ endpoint (https), keys: { p256dh, auth } }` → `201` save / `{ endpoint }` remove (PWA push, D-16) |
 | GET | `/partner/settlements` | Finalized/paid settlements, read-only (D-40) |
 | GET | `/partner/settlements/:id` | Statement + line items + expenses + signed PDF URL |
 | POST | `/partner/settlements/:id/acknowledge` | Sets `partner_acknowledged_at` |
@@ -218,13 +220,15 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | `documents` | `GENERATE_SETTLEMENT_PDF` | `stmt:<settlementId>` | Finalize | 3 |
 | `payments` | `INITIATE_REFUND` (`{ refundId }` — intent row already written, D-52) | `refund-<refundId>` | Cancel / stockout / mismatch / duplicate payment / RTO | 5; then `ops_issue` |
 | `notify` | `ORDER_CONFIRMED`, `ORDER_CANCELLED`, `ORDER_STATUS_NOTIFY { template }` (WhatsApp → SMS fallback / push) | `notify-<template>-<orderId>` | Transitions (`07` §6) | 3 |
+| `notify` | `PARTNER_NEW_ORDER_ALERT { orderId }` (Web Push to the kitchen's partners → `notifications_log`; unreached partners → `WHATSAPP_SEND`) | `notify-new_order_alert-<orderId>` | `CONFIRMED` (D-54 e) | 3 |
+| `notify` | `WHATSAPP_SEND { template, userId, orderId }` (Phase 8 sender) | `notify-wa-<template>-<subject>-<userId>` | Push fallback | 3 |
 | `notify` | `ADMIN_ALERT { kind, orderId, message }` (booking failed, NDR, RTO, lost, pickup missed/exception, weight discrepancy, wallet low, unknown AWB) | `alert-<kind>-<orderId \| date>` | Logistics events (Phase 6) | 3 |
 | `cron` | `EXPIRE_RESERVATIONS` | repeat 1 min | — | — |
 | `cron` | `RECONCILE_CONFIRMED` | repeat 5 min | — | — |
 | `cron` | `RECONCILE_REFUNDS` | repeat 30 min | — | — |
 | `cron` | `PICKUP_BATCH` (one pickup + manifest per kitchen once today's `pickup_cutoff_hour_ist` has passed) | repeat 15 min | — | — |
 | `cron` | `POLL_TRACKING` (concurrency 2 + jitter; also charged weight + "pickup missed" > 48 h) | repeat 3 hr | — | — |
-| `cron` | `PARTNER_DAILY_DIGEST` | repeat 09:00 IST | — | — |
+| `cron` | `PARTNER_DAILY_DIGEST` ("Aaj N orders pack karne hain", only N > 0; push → WhatsApp fallback) | repeat 09:00 IST | — | — |
 | `cron` | `LEDGER_CHECK`, `LOW_STOCK_ALERT` | daily | — | — |
 | `cron` | `CHECK_WALLET_BALANCE` (vs `shiprocket_wallet_min_paise`) | hourly | — | — |
 

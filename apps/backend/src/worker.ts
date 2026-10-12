@@ -7,7 +7,7 @@ import { gatewayFromEnv, privateStorageFromEnv, revalidatorFromEnv, storageFromE
 import { createProcessors, SCHEDULES } from './jobs/processors';
 import { createBullJobQueue } from './jobs/queues';
 import { startWorkers } from './jobs/runner';
-import { shippingFromEnv } from './config/shipping';
+import { pushFromEnv, shippingFromEnv } from './config/shipping';
 import { createSweepers } from './jobs/sweepers';
 import { createCommerceServices } from './services';
 
@@ -55,6 +55,7 @@ const svc = createCommerceServices({
   allowDraftInvoice: env.NODE_ENV !== 'production',
   shiprocket: shipping.shiprocket,
   courierWebhookToken: shipping.webhookToken,
+  push: pushFromEnv(env),
 });
 const sweepers = createSweepers({ db, svc, gateway, jobs, logger, reporter });
 const processors = createProcessors({ db, svc, sweepers, logger });

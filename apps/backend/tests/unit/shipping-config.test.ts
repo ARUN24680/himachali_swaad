@@ -40,3 +40,15 @@ describe('shipping env (Phase 6)', () => {
     expect(env.SHIPPING_PROVIDER).toBe('shiprocket');
   });
 });
+
+describe('web push env (Phase 7)', () => {
+  it('VAPID keys are optional but all-or-nothing; subject must be mailto: or https:', () => {
+    expect(parseEnv(valid).VAPID_PUBLIC_KEY).toBeUndefined();
+    expect(() => parseEnv({ ...valid, VAPID_PUBLIC_KEY: 'B'.repeat(87) })).toThrow(/VAPID_PUBLIC_KEY/);
+    const keys = { VAPID_PUBLIC_KEY: 'B'.repeat(87), VAPID_PRIVATE_KEY: 'k'.repeat(43) };
+    expect(() => parseEnv({ ...valid, ...keys, VAPID_SUBJECT: 'ops@pahadikhatki.in' })).toThrow(/VAPID_SUBJECT/);
+    expect(parseEnv({ ...valid, ...keys, VAPID_SUBJECT: 'mailto:ops@pahadikhatki.in' }).VAPID_SUBJECT).toBe(
+      'mailto:ops@pahadikhatki.in',
+    );
+  });
+});

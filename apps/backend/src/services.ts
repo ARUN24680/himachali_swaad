@@ -3,6 +3,7 @@ import type { Logger } from 'pino';
 import type { Db } from './config/db';
 import type { ErrorReporter } from './config/sentry';
 import type { PaymentGateway } from './integrations/razorpay/gateway';
+import type { PushSender } from './integrations/push/web-push';
 import type { ShiprocketApi } from './integrations/shiprocket/client';
 import type { PincodeDirectory } from './integrations/shipping/pincode-directory';
 import type { ObjectStorage } from './integrations/storage/storage';
@@ -15,6 +16,8 @@ import { createCatalogService } from './modules/catalog/catalog.service';
 import { createCheckoutService } from './modules/checkout/checkout.service';
 import { createInventoryService } from './modules/inventory/inventory.service';
 import { createLogisticsService } from './modules/logistics/logistics.service';
+import { createNotificationsService } from './modules/notifications/notifications.service';
+import { createPartnerService } from './modules/partner/partner.service';
 import { createInvoiceService } from './modules/orders/invoice.service';
 import { createOrdersService } from './modules/orders/orders.service';
 import { createPaymentsService } from './modules/payments/payments.service';
@@ -37,6 +40,8 @@ export interface CommerceDeps {
   shiprocket: ShiprocketApi;
   /** `x-api-key` the courier-tracking webhook must carry. */
   courierWebhookToken: string;
+  /** Web Push for partner alerts (Phase 7); disabled sender without VAPID keys. */
+  push: PushSender;
   /** Clock for logistics cut-off / pickup-missed logic (tests). */
   now?: () => Date;
 }
@@ -112,7 +117,30 @@ export function createCommerceServices(d: CommerceDeps) {
     allowDraft: d.allowDraftInvoice,
     logger: d.logger,
   });
-  return { settings, inventory, catalog, cart, account, orders, checkout, payments, webhooks, invoices, logistics };
+  const notifications = createNotificationsService({ db: d.db, push: d.push, jobs: d.jobs, logger: d.logger });
+  const partner = createPartnerService({
+    db: d.db,
+    settings,
+    jobs: d.jobs,
+    privateStorage: d.privateStorage,
+    logger: d.logger,
+    now: d.now,
+  });
+  return {
+    settings,
+    inventory,
+    catalog,
+    cart,
+    account,
+    orders,
+    checkout,
+    payments,
+    webhooks,
+    invoices,
+    logistics,
+    notifications,
+    partner,
+  };
 }
 
 export type CommerceServices = ReturnType<typeof createCommerceServices>;

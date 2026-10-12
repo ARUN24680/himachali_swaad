@@ -1,0 +1,21 @@
+$ pnpm --filter @pk/database db:up
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema up
+Applying: 0005_notifications.sql
+Applied: 0005_notifications.sql in 39.759542ms
+$ pnpm --filter @pk/database db:down
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema down
+Rolling back: 0005_notifications.sql
+Rolled back: 0005_notifications.sql in 14.721125ms
+$ pnpm --filter @pk/database db:up
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema up
+Applying: 0005_notifications.sql
+Applied: 0005_notifications.sql in 14.782458ms
+$ pnpm --filter @pk/database db:status
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema status
+[X] 0001_foundation.sql
+[X] 0002_catalog_inventory.sql
+[X] 0003_orders_payments.sql
+[X] 0004_logistics.sql
+[X] 0005_notifications.sql
+Applied: 5
+Pending: 0

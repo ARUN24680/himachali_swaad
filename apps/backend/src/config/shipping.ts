@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
+import { createWebPushSender, type PushSender } from '../integrations/push/web-push';
 import { createShiprocketClient, type ShiprocketApi } from '../integrations/shiprocket/client';
 import { joinUrl } from '../integrations/storage/storage';
 import type { ErrorReporter } from './sentry';
@@ -33,4 +34,13 @@ export function shippingFromEnv(env: Env, redis: Redis, logger: Logger, reporter
   const webhookToken =
     env.SHIPROCKET_WEBHOOK_TOKEN ?? createHash('sha256').update(`pk-courier-webhook:${env.JWT_SECRET}`).digest('hex');
   return { shiprocket, webhookToken, sandbox };
+}
+
+/** Web Push sender (Phase 7). Disabled (WhatsApp fallback only) until VAPID keys are set. */
+export function pushFromEnv(env: Env): PushSender {
+  return createWebPushSender({
+    publicKey: env.VAPID_PUBLIC_KEY,
+    privateKey: env.VAPID_PRIVATE_KEY,
+    subject: env.VAPID_SUBJECT,
+  });
 }

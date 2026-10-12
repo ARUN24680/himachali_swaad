@@ -1,3 +1,4 @@
+import { createWebPushSender } from '../../src/integrations/push/web-push';
 import type { FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from 'vitest';
@@ -66,6 +67,7 @@ const services = () =>
     allowDraftInvoice: true,
     shiprocket: unreachableShiprocket(),
     courierWebhookToken: TEST_COURIER_TOKEN,
+    push: createWebPushSender({}),
   });
 
 beforeAll(async () => {

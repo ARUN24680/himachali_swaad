@@ -1,5 +1,5 @@
 import { can, type Capability, type Role } from '@pk/shared';
-import { Boxes, LayoutDashboard, Package, type LucideIcon } from 'lucide-react';
+import { Boxes, ClipboardCheck, LayoutDashboard, Package, type LucideIcon } from 'lucide-react';
 
 export interface NavItem {
   to: string;
@@ -15,6 +15,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, capability: 'dashboard:revenue', end: true },
   { to: '/products', label: 'Products', icon: Package, capability: 'catalog:manage' },
   { to: '/batches', label: 'Batches', icon: Boxes, capability: 'batches:manage' },
+  { to: '/desk', label: 'Packing desk', icon: ClipboardCheck, capability: 'packing:operate' },
 ];
 
 export const navItemsFor = (role: Role): NavItem[] => NAV_ITEMS.filter((item) => can(role, item.capability));

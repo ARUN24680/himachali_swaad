@@ -86,6 +86,19 @@ const EnvSchema = z.object({
   SHIPROCKET_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(6).optional()),
   /** Security token set on the Shiprocket webhook (sent back as `x-api-key`). */
   SHIPROCKET_WEBHOOK_TOKEN: z.preprocess(emptyToUndefined, z.string().min(24).optional()),
+  /**
+   * Web Push for the partner PWA (Phase 7, D-16) — `npx web-push generate-vapid-keys`. Unset →
+   * push disabled, partner alerts fall back to WhatsApp. Subject = mailto: or https: contact.
+   */
+  VAPID_PUBLIC_KEY: z.preprocess(emptyToUndefined, z.string().min(40).optional()),
+  VAPID_PRIVATE_KEY: z.preprocess(emptyToUndefined, z.string().min(20).optional()),
+  VAPID_SUBJECT: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .regex(/^(mailto:|https:\/\/)/)
+      .optional(),
+  ),
   /** BullMQ concurrency for the orders/documents/payments/notify queues (cron stays 1). */
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(50).default(5),
 
@@ -174,6 +187,14 @@ const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
       code: 'custom',
       path: ['SHIPROCKET_EMAIL'],
       message: 'SHIPROCKET_EMAIL, SHIPROCKET_PASSWORD and SHIPROCKET_WEBHOOK_TOKEN are required for shiprocket',
+    });
+  }
+  const vapid = [env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY, env.VAPID_SUBJECT].filter(Boolean).length;
+  if (vapid !== 0 && vapid !== 3) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['VAPID_PUBLIC_KEY'],
+      message: 'set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT together',
     });
   }
   if (Boolean(env.STOREFRONT_REVALIDATE_URL) !== Boolean(env.REVALIDATE_SECRET)) {

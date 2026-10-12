@@ -37,11 +37,14 @@ export function ErrorState({
   message,
   onRetry,
   retrying,
+  retryLabel = 'Try again',
 }: {
   title?: string;
   message?: ReactNode;
   onRetry?: () => void;
   retrying?: boolean;
+  /** Translated label for the retry button (Packing Desk i18n). */
+  retryLabel?: string;
 }) {
   return (
     <div role="alert" className="grid justify-items-center gap-3 px-4 py-12 text-center md:py-16">
@@ -58,7 +61,7 @@ export function ErrorState({
       {onRetry && (
         <Button variant="outline" onClick={onRetry} disabled={retrying}>
           <RotateCw className={retrying ? 'animate-spin motion-reduce:animate-none' : undefined} aria-hidden="true" />
-          Try again
+          {retryLabel}
         </Button>
       )}
     </div>

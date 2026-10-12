@@ -1,3 +1,4 @@
+import { createWebPushSender } from '../../src/integrations/push/web-push';
 import type { FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -62,6 +63,7 @@ const deps = () => {
     allowDraftInvoice: true,
     shiprocket: unreachableShiprocket(),
     courierWebhookToken: TEST_COURIER_TOKEN,
+    push: createWebPushSender({}),
   });
   const sweepers = createSweepers({ db: t.db, svc, gateway, jobs, logger: silentLogger(), reporter });
   return { svc, sweepers, processors: createProcessors({ db: t.db, svc, sweepers, logger: silentLogger() }) };
