@@ -7,6 +7,7 @@ import { toast } from '@/store/toast.store';
 import { packingDeskApi } from '../api/packingDeskApi';
 import { failedItem, requestBackgroundSync } from '../offline/flush';
 import { outboxDb } from '../offline/outbox-db';
+import { queueCache } from '../offline/queue-cache';
 import { isRetryable } from '../offline/retryable';
 import { useChecklistStore } from '../store/checklist.store';
 import { useDeskUiStore } from '../store/desk-ui.store';
@@ -56,6 +57,7 @@ export function useMarkPacked() {
     },
     onMutate: async ({ order }) => {
       useDeskUiStore.getState().startLeaving(order.orderCode);
+      void queueCache.removeToPack(order.orderCode); // offline cold start must not show it again
       await qc.cancelQueries({ queryKey: listKey });
       const snapshot = qc.getQueryData<PartnerOrdersResponse>(listKey);
       qc.setQueryData<PartnerOrdersResponse>(listKey, (prev) =>

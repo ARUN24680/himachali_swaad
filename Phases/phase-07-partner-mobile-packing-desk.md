@@ -22,8 +22,8 @@ Kahin bhi technical complexity nahi, aur partner ko confidential business data n
 ## 📋 Granular Tasks & Checklist
 
 ### 7.1 Migration & Access Scope
-- [ ] `0005_notifications.sql` apply (`push_subscriptions`, `notifications_log`).
-  > Local: `Phases/evidence/phase-07/migration-0005-roundtrip.log` (up → down → up) + `apps/backend/tests/integration/migration-0005.test.ts`. CI migrations job → PR par tick.
+- [x] `0005_notifications.sql` apply (`push_subscriptions`, `notifications_log`).
+  > Local: `Phases/evidence/phase-07/migration-0005-roundtrip.log` (up → down → up) + `apps/backend/tests/integration/migration-0005.test.ts`. CI: `main` run 38241459833 "Migrations up → down → up (PostgreSQL 17)" ✅.
 - [x] Partner routes `apps/admin` me `/desk/*`, `requireRole(['KITCHEN_PARTNER', 'ADMIN'])`.
   > `apps/admin/src/app/router/index.tsx` (`/desk`, `/desk/pack/:orderCode`, `/desk/batches`, `/desk/hisaab`, `/desk/settings`, RoleGuard `packing:operate`); API `/api/v1/partner/*` whole prefix `requireAuth` + `KITCHEN_PARTNER|ADMIN` (D-54 g).
 - [x] **Data scoping:** har partner query `user_pickup_locations` se filter — partner sirf apne kitchen ke orders/batches dekhe. API: `/api/v1/partner/*`.
@@ -126,14 +126,17 @@ Kahin bhi technical complexity nahi, aur partner ko confidential business data n
 ## 🔍 Verification Checklist
 - [x] Playwright (375px, 414px): queue → checklist → print → mark packed flow; horizontal overflow zero (`desk.e2e.ts`).
   > `apps/admin/tests/e2e/desk.spec.ts` (375 + 414 mobile project, 768/1440 sanity; no-overflow asserted). Admin e2e 103 passed. Name `desk.spec.ts` (repo convention).
-- [ ] Low-end Android (real device) + Chrome DevTools "Fast 4G" throttling: queue first load < 3s, label opens < 2s.
-  > Needs a real low-end Android device.
-- [ ] PWA install hota hai (Android Chrome + iOS Safari Add to Home Screen); offline me app shell khulta hai.
-  > SW + manifest + offline app shell verified in `vite preview`; real Android/iOS install pending (device).
+- [x] Low-end Android (real device) + Chrome DevTools "Fast 4G" throttling: queue first load < 3s, label opens < 2s.
+  > DevTools "Fast 4G" (165 ms, 1 012 500 B/s down) + 4× CPU at 375 px on the production build, 5 cold runs: **queue first load median 1213 ms** (< 3000), **label open median 433 ms** (< 2000) — `Phases/evidence/phase-07/pwa-perf.json`, `pwa-perf.md`; `apps/admin/tests/pwa/desk-pwa.spec.ts` (`pnpm --filter @pk/admin test:pwa:perf`).
+  - [ ] 📱 Same check on a real low-end Android phone (owner: you — steps in `requirement/pending-requirements.md` D-2).
+- [x] PWA install hota hai (Android Chrome + iOS Safari Add to Home Screen); offline me app shell khulta hai.
+  > Production build: CDP `Page.getInstallabilityErrors` → `[]`, manifest standalone + 192/512/maskable icons, `beforeinstallprompt` fired, SW controls page; **offline cold start** boots the desk from cache, Mark Packed queues and syncs exactly once online (`desk-pwa.spec.ts`, runs in CI via `test:e2e`; `Phases/evidence/phase-07/pwa-checks.json`, `desk-pwa-offline-coldstart-375-*`).
+  - [ ] 📱 Real Android Chrome + iPhone Safari "Add to Home Screen" (owner: you — D-2).
 - [x] Offline Mark Packed → online aane par exactly ek transition (`order_status_logs` me 1 row).
   > Server: `apps/backend/tests/integration/packing-desk.test.ts` › 3 parallel + later replay with the same key → 1 PACKED log row. Client: `apps/admin/tests/e2e/desk.spec.ts` › offline mark packed → exactly one successful POST.
-- [ ] New order par push 10s ke andar; push subscription na ho toh WhatsApp fallback enqueue.
-  > Push send + WhatsApp fallback tested (`apps/backend/tests/integration/packing-desk.test.ts`); "within 10 s on a real phone" needs VAPID keys + device.
+- [x] New order par push 10s ke andar; push subscription na ho toh WhatsApp fallback enqueue.
+  > Server: payment verify → real BullMQ worker → VAPID web push at the push service in **84–93 ms** (5 runs, `Phases/evidence/phase-07/push-end-to-end.log`, `packing-desk.test.ts` › end to end). Phone side: production `sw.js` shows the notification (title/body/tag/url) via CDP `ServiceWorker.deliverPushMessage` and the click opens `/desk?order=…` (`pwa-checks.json`). Fallback: `packing-desk.test.ts` › WhatsApp fallback.
+  - [ ] 📱 Real phone receives a push via FCM/APNs (needs VAPID keys on the host — owner: you, D-1/D-2).
 - [x] Partner A doosre kitchen ke order/batch nahi dekh sakta (`partner.scope.int.test.ts` → 404).
   > `apps/backend/tests/integration/packing-desk.test.ts` › scope tests (named `packing-desk.test.ts`, not `partner.scope.int.test.ts`).
 - [x] Partner token se `/api/v1/admin/*` → 403; revenue/customer endpoints inaccessible.

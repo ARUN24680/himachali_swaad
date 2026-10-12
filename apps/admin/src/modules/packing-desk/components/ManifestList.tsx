@@ -1,7 +1,8 @@
 import { Skeleton } from '@pk/ui';
-import { FileText } from 'lucide-react';
+import { FileText, WifiOff } from 'lucide-react';
 import { useT } from '@/i18n';
 import { formatCalendarDate } from '@/lib/dates';
+import { useOnline } from '../hooks/useOnline';
 import { useManifests } from '../hooks/usePartnerOrders';
 import { DeskSection } from './DeskSection';
 import { LabelButtons } from './LabelButtons';
@@ -10,9 +11,15 @@ import { LabelButtons } from './LabelButtons';
 export function ManifestList() {
   const t = useT();
   const manifests = useManifests();
+  const online = useOnline();
   return (
     <DeskSection title={t('manifests.title')}>
-      {manifests.isPending ? (
+      {!online && !manifests.data ? (
+        <p className="flex items-center gap-2 text-base text-muted-foreground">
+          <WifiOff aria-hidden="true" className="size-5 shrink-0" />
+          {t('manifests.offline')}
+        </p>
+      ) : manifests.isPending ? (
         <div role="status" aria-label={t('queue.loading')} className="grid gap-2">
           <Skeleton className="h-6 w-1/2" />
           <Skeleton className="h-12" />

@@ -11,7 +11,8 @@
     "errorBody": "Check your internet and try again.",
     "offlineBanner": "You’re offline. Packing still works — it will sync when internet is back.",
     "today": "today",
-    "tomorrow": "tomorrow"
+    "tomorrow": "tomorrow",
+    "offlineCached": "Offline — showing the saved list, last updated {time}"
   },
   "lang": {
     "title": "Language",
@@ -105,7 +106,8 @@
     "item": "{date} · {count} orders",
     "print": "🖨️ Print",
     "share": "📲 Share",
-    "shareTitle": "Pickup manifest {date}"
+    "shareTitle": "Pickup manifest {date}",
+    "offline": "Manifests need internet."
   },
   "pack": {
     "back": "All orders",
@@ -236,6 +238,7 @@
     "androidStep2": "Tap the ⋮ menu → “Install app” or “Add to Home screen”.",
     "accountTitle": "Account",
     "signedInAs": "Signed in as {name}",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "signOutOffline": "Signing out needs internet."
   }
 }

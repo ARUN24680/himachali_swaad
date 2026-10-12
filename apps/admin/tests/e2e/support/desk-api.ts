@@ -10,14 +10,13 @@ import {
   type PartnerOrderCard,
 } from '@pk/shared';
 import type { BrowserContext, Page, Route } from '@playwright/test';
-import { API, mockCatalogApi } from './catalog-api';
+import { API, mockCatalogApi, ORIGIN } from './catalog-api';
 
 /**
  * Stateful mock of the Phase 7 partner API (/partner/*) on top of the catalog mock (auth + batches).
  * Every fixture and response goes through the @pk/shared Zod contracts, so contract drift fails the spec.
  */
 export const LABELS = 'https://labels.pahadikhatki.test';
-const ORIGIN = 'http://localhost:5173';
 const cors = {
   'access-control-allow-origin': ORIGIN,
   'access-control-allow-credentials': 'true',
@@ -133,7 +132,7 @@ export interface MarkPackedCall {
 }
 
 /** Partner session + catalog/batches mock + /partner/* mock + signed-PDF host. */
-export async function mockDeskApi(page: Page, context: BrowserContext, opts: DeskMockOptions = {}) {
+export async function mockDeskApi(page: Page | BrowserContext, context: BrowserContext, opts: DeskMockOptions = {}) {
   const catalog = await mockCatalogApi(page, { role: 'KITCHEN_PARTNER' });
   const orders = deskSeed();
   if (opts.emptyQueue) orders.AWAITING_PACKING = [];

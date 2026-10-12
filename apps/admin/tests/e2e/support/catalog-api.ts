@@ -14,14 +14,15 @@ import {
   type Movement,
   type PickupLocationSummary,
 } from '@pk/shared';
-import type { Page, Route } from '@playwright/test';
+import type { BrowserContext, Page, Route } from '@playwright/test';
 
 /**
  * Stateful in-memory mock of the Phase 3 catalog + batch API (page.route). Every fixture and every
  * response is parsed through the @pk/shared Zod schemas, so a contract drift fails the spec.
  */
 export const API = 'http://localhost:4000/api/v1';
-const ORIGIN = 'http://localhost:5173';
+/** App origin for CORS — the PWA spec runs against `vite preview` on another port (playwright.pwa.config.ts). */
+export const ORIGIN = process.env.PK_E2E_ORIGIN ?? 'http://localhost:5173';
 const CDN = 'https://cdn.pahadikhatki.test';
 const STORAGE = 'https://r2-upload.pahadikhatki.test';
 const BUFFER = 52; // 45 + 7 (D-24)
@@ -246,7 +247,8 @@ export interface MockOptions {
 }
 
 /** Install the mock; returns live state + recorded request bodies for assertions. */
-export async function mockCatalogApi(page: Page, opts: MockOptions = {}) {
+/** `page` may be a BrowserContext: the PWA spec mocks every page + the service worker at context level. */
+export async function mockCatalogApi(page: Page | BrowserContext, opts: MockOptions = {}) {
   const role = opts.role ?? 'ADMIN';
   const state = seed();
   if (opts.empty) {

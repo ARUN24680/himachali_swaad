@@ -111,7 +111,8 @@ async function parse<T>(res: Response): Promise<T> {
   });
 }
 
-type RefreshOutcome = 'refreshed' | 'race' | 'failed';
+/** `network`: the refresh call never got an answer (offline) — that is NOT a dead session. */
+type RefreshOutcome = 'refreshed' | 'race' | 'failed' | 'network';
 let refreshInFlight: Promise<RefreshOutcome> | null = null;
 
 /** Single-flight: every request that hits 401 at the same moment shares ONE POST /auth/refresh. */
@@ -123,6 +124,7 @@ function refreshSession(): Promise<RefreshOutcome> {
     } catch (err) {
       // `race`: another tab rotated the token first and already set fresh cookies — just retry
       if (isApiError(err) && err.details?.reason === 'race') return 'race';
+      if (isApiError(err, 'NETWORK_ERROR')) return 'network';
       return 'failed';
     }
   })().finally(() => {
@@ -150,6 +152,9 @@ export async function http<T>(path: string, options: HttpOptions = {}): Promise<
   if (res.status !== 401 || NO_REFRESH.some((p) => path.startsWith(p))) return parse<T>(res);
 
   const outcome = await refreshSession();
+  // Lost the connection mid-refresh: report "offline" (the desk can run from cache), never "signed out"
+  if (outcome === 'network')
+    throw new ApiRequestError({ code: 'NETWORK_ERROR', message: 'You seem to be offline.', status: 0 });
   if (outcome !== 'failed') {
     const retried = await rawRequest(path, options);
     if (retried.status !== 401) return parse<T>(retried);

@@ -1,11 +1,14 @@
 import { Button } from '@pk/ui';
 import { Download, RefreshCw, WifiOff, X } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
+import { useSession } from '@/hooks/useMe';
 import { useT } from '@/i18n';
+import { formatDateTime } from '@/lib/dates';
 import { usePwaStore } from '@/pwa/pwa.store';
 import { applyUpdate, promptInstall } from '@/pwa/register';
 import { useFlushNow } from '../hooks/useOutboxSync';
 import { useOnline } from '../hooks/useOnline';
+import { selectOldestCachedAt, useDeskOfflineStore } from '../store/offline.store';
 import { selectPendingCodes, useOutboxStore } from '../store/outbox.store';
 
 /** "⏳ Sync pending (N)" in the header — tap to retry now (Phase 7 §7.2). */
@@ -33,17 +36,30 @@ export function SyncBadge() {
   );
 }
 
-/** Offline strip under the header. */
+/**
+ * Offline strip under the header. Shown when the phone is offline, when the desk runs from the
+ * cached identity (offline cold start), or when a list on screen is the SAVED copy — then it also
+ * says how old that list is.
+ */
 export function OfflineBanner() {
   const t = useT();
   const online = useOnline();
-  if (online) return null;
+  const { offline: offlineSession } = useSession();
+  const cachedAt = useDeskOfflineStore(selectOldestCachedAt);
+  if (online && !offlineSession && cachedAt === null) return null;
   return (
-    <div role="status" className="border-b border-warning/30 bg-warning/15 text-warning">
-      <p className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-2.5 text-base font-medium md:px-6">
-        <WifiOff aria-hidden="true" className="size-5 shrink-0" />
-        {t('common.offlineBanner')}
-      </p>
+    <div role="status" data-testid="offline-banner" className="border-b border-warning/30 bg-warning/15 text-warning">
+      <div className="mx-auto flex max-w-5xl items-start gap-2 px-4 py-2.5 md:px-6">
+        <WifiOff aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+        <p className="grid min-w-0 gap-0.5 text-base">
+          {cachedAt !== null && (
+            <span className="font-semibold">
+              {t('common.offlineCached', { time: formatDateTime(new Date(cachedAt).toISOString()) })}
+            </span>
+          )}
+          <span className="font-medium">{t('common.offlineBanner')}</span>
+        </p>
+      </div>
     </div>
   );
 }

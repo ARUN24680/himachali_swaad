@@ -100,10 +100,9 @@
 
 | # | Kya bacha hai | Blocked on | Kya karna hai |
 | :-- | :-- | :-- | :-- |
-| D-1 | **VAPID keys** generate karke env me (`VAPID_PUBLIC_KEY/PRIVATE_KEY/SUBJECT`) — tab tak push off, alerts WhatsApp fallback job par | 🔑 (`npx web-push generate-vapid-keys`) | `.env` / host secrets |
-| D-2 | Real **Android + iOS install** (Add to Home Screen) + push 10 s ke andar aata hai | 📱 device, D-1 | Manual evidence |
-| D-3 | Low-end Android + Fast 4G: queue < 3 s, label < 2 s | 📱 device, 🚀 | Manual evidence |
-| D-4 | **Offline cold start**: app shell offline khulta hai par session check par ruk jata hai — last session cache ya guard ka offline mode decide karna | 🧾 decision → 🛠️ | `apps/admin` AuthGuard / `pwa` |
+| D-1 | **VAPID keys** — local `.env` me dev keys ban gayi; **production keys** host secrets me (alag generate karo) (`VAPID_PUBLIC_KEY/PRIVATE_KEY/SUBJECT`) — tab tak push off, alerts WhatsApp fallback job par | 🔑 (`npx web-push generate-vapid-keys`) | `.env` / host secrets |
+| D-2 | 📱 **Real phone checks (10–15 min, aap karoge):** (1) Android Chrome me admin URL kholo → menu → *Install app*; iPhone Safari → Share → *Add to Home Screen*. (2) Desk → Settings → "Naye order ka alert" ON. (3) Ek test order pay karo → phone par push 10 s me aaye. (4) Airplane mode → app kholo → order pack karo → airplane off → sync ho jaye. (5) Sasta Android + 4G par queue < 3 s, label < 2 s. Screenshot/video `Phases/evidence/phase-07/` me | 📱 device + D-1 + deploy (HTTPS) | Emulated sab pass ho chuka (`pwa-checks.json`, `pwa-perf.json`) |
+| D-4 | ✅ Done: offline cold start (cached identity + queue, 401 → login) | — | — |
 | D-5 | **R2 private bucket CORS GET** rule admin origin ke liye — warna label "Share" file share nahi kar payega (sirf "Open label" link) | 🔑 Cloudflare (I-3) | Bucket CORS |
 | D-6 | WhatsApp `new_order_alert` / digest fallback ka asli **sender** | ⏭️ Phase 8 (B-11) | `WHATSAPP_SEND` consumer |
 | D-7 | Partner ka real-phone walkthrough (bina training ke install → push → pack → Mark Packed) — phase DoD | 📱 + partner | Manual evidence |

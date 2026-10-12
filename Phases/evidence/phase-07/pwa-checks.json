@@ -1,0 +1,99 @@
+{
+  "installability": {
+    "check": "CDP Page.getInstallabilityErrors on the production build (vite preview), persistent profile",
+    "browser": "Chromium 153.0.8010.12 headless, 375×812 mobile emulation",
+    "installabilityErrors": [],
+    "manifestParseErrors": [],
+    "manifest": {
+      "name": "Pahadi Khatki — Packing Desk",
+      "short_name": "PK Desk",
+      "start_url": "/desk",
+      "scope": "/",
+      "display": "standalone"
+    },
+    "icons": [
+      {
+        "src": "/icons/icon-192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any",
+        "actual": "192x192"
+      },
+      {
+        "src": "/icons/icon-512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any",
+        "actual": "512x512"
+      },
+      {
+        "src": "/icons/maskable-512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "maskable",
+        "actual": "512x512"
+      }
+    ],
+    "serviceWorkerControlsPage": true,
+    "beforeInstallPromptFired": true,
+    "note": "Desktop Chromium in mobile emulation; a real Android Chrome / iOS Safari install is still a device check."
+  },
+  "generatedAt": "2026-10-12T11:50:43.510Z",
+  "offlineAuthBoundary": {
+    "check": "/auth/me 401 → /login?next=/desk; pk-desk-identity + pk-desk-cache cleared; offline afterwards → \"Can't reach the server\", no desk",
+    "passed": true
+  },
+  "push": {
+    "check": "CDP ServiceWorker.deliverPushMessage into the production sw.js (no push service / VAPID involved)",
+    "payload": {
+      "title": "Naya order PK-7KQ2M9",
+      "body": "2 × Chicken 250 g, 1 × Mutton 250 g — 11 baje tak pack karein",
+      "url": "/desk?order=PK-7KQ2M9",
+      "tag": "PK-7KQ2M9"
+    },
+    "shownNotification": {
+      "title": "Naya order PK-7KQ2M9",
+      "body": "2 × Chicken 250 g, 1 × Mutton 250 g — 11 baje tak pack karein",
+      "tag": "PK-7KQ2M9",
+      "icon": "http://localhost:4173/icons/icon-192.png",
+      "data": {
+        "url": "/desk?order=PK-7KQ2M9"
+      }
+    },
+    "pushToNotificationMs": 119,
+    "notificationClick": {
+      "existingWindow": "notification closed, client.focus() called once, window navigated to /desk?order=PK-7KQ2M9",
+      "noWindowOffsiteUrl": "openWindow(http://localhost:4173/desk) — foreign URL ignored",
+      "method": "handler dispatched inside the SW with focus()/openWindow() recorded — a real click can't be simulated headless"
+    },
+    "note": "Real delivery through FCM/APNs within 10 s on a phone needs VAPID keys + a device (still open)."
+  },
+  "offlineColdStart": {
+    "check": "Production build + active SW; page closed; context offline + API unreachable; /desk opened in a new page",
+    "shellFromServiceWorker": true,
+    "rendersCachedQueue": {
+      "cards": 3,
+      "banner": "Offline — purani list dikh rahi hai, last updated <time>"
+    },
+    "labelButtonsOffline": "disabled + \"Label ke liye internet chahiye.\"",
+    "markPackedOffline": {
+      "queuedInOutbox": true,
+      "idempotencyKey": "6e37784e-3ff6-4646-91bb-dfbc85870669"
+    },
+    "onReconnect": {
+      "markPackedCalls": [
+        {
+          "orderCode": "PK-6AB19C",
+          "key": "6e37784e-3ff6-4646-91bb-dfbc85870669",
+          "status": 200
+        }
+      ],
+      "successfulCalls": 1
+    },
+    "screenshots": [
+      "desk-pwa-offline-coldstart-375-light.png",
+      "desk-pwa-offline-coldstart-375-dark.png",
+      "desk-pwa-offline-sync-pending-375-light.png"
+    ]
+  }
+}

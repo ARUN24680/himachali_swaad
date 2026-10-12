@@ -1,6 +1,7 @@
 import type { MeResponse, StaffLoginRequest } from '@pk/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
+import { clearOfflineData } from '@/lib/offline-cache';
 import { isApiError } from '@/services/api/http';
 import { queryKeys } from '@/services/api/query-keys';
 import { authApi } from '../api/authApi';
@@ -23,6 +24,7 @@ export function useSignOut({ everywhere = false }: { everywhere?: boolean } = {}
   const navigate = useNavigate();
   const done = () => {
     qc.clear();
+    void clearOfflineData(); // offline desk identity + cached queues (Phase 7)
     void navigate('/login', { replace: true });
   };
   return useMutation({
