@@ -8,9 +8,9 @@ import type { PrivateStorage } from '../../src/integrations/storage/private';
 import type { JobQueue } from '../../src/jobs/queues';
 import { transitionOrder } from '../../src/modules/orders/orders.service';
 import { createCommerceServices } from '../../src/services';
-import { liveProduct, orderRow, payAtGateway, placeOrder, verify } from './checkout';
+import { liveProduct, orderBody, orderRow, payAtGateway, placeOrder, uniquePhone, verify } from './checkout';
 import { TEST_COURIER_TOKEN } from './shiprocket';
-import { fakeReporter, spyRevalidator, testStorage } from './test-app';
+import { fakeReporter, spyRevalidator, testMessaging, testStorage } from './test-app';
 import { silentLogger } from './test-logger';
 
 /** Worker-side service graph against the sandbox (optionally with a fixed clock). */
@@ -24,6 +24,7 @@ export function workerServices(d: {
   now?: () => Date;
   reporter?: ReturnType<typeof fakeReporter>;
   push?: PushSender;
+  messaging?: ReturnType<typeof testMessaging>;
 }) {
   return createCommerceServices({
     db: d.db,
@@ -39,6 +40,7 @@ export function workerServices(d: {
     shiprocket: d.shiprocket,
     courierWebhookToken: TEST_COURIER_TOKEN,
     push: d.push ?? createWebPushSender({}),
+    messaging: d.messaging ?? testMessaging(d.redis),
     now: d.now,
   });
 }
@@ -56,16 +58,26 @@ export async function confirmedOrder(
   gateway: MockPaymentGateway,
   kitchenId: string,
   quantity = 1,
+  opts: { phone?: string; whatsappOptIn?: boolean } = {},
 ) {
   const p = await liveProduct(db, kitchenId, { stock: 10 });
-  const co = (await placeOrder(app, [{ productId: p.id, quantity }])).json().data;
+  const items = [{ productId: p.id, quantity }];
+  const body = orderBody(items, opts.phone ?? uniquePhone());
+  body.consent.whatsappOptIn = opts.whatsappOptIn ?? false;
+  const co = (await placeOrder(app, items, { body })).json().data;
   const { verifyBody } = await payAtGateway(gateway, co.razorpayOrderId);
   const verified = await verify(app, verifyBody);
   const order = await orderRow(db, co.orderCode);
   if (order.status !== 'CONFIRMED') {
     throw new Error(`confirmedOrder: ${co.orderCode} is ${order.status} (verify → ${verified.statusCode})`);
   }
-  return { orderId: order.id, orderCode: co.orderCode as string, productId: p.id, batchId: p.batchId! };
+  return {
+    orderId: order.id,
+    orderCode: co.orderCode as string,
+    productId: p.id,
+    batchId: p.batchId!,
+    phone: body.customer.phone,
+  };
 }
 
 /** Partner packs it (Phase 7 does this through the packing desk). */

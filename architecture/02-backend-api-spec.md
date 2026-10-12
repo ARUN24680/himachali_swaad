@@ -110,6 +110,9 @@ Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 
 ### `POST /dev/shipping/simulate` — dev/CI only (`SHIPPING_PROVIDER=sandbox`, refused in production)
 * `{ orderCode, status, location?, sendWebhook? }` → `{ awb, status, webhook }`; the sandbox shipment gets a courier scan and the `x-api-key`-signed tracking webhook goes through `/webhooks/courier-tracking` (D-53 b). The sandbox itself (Shiprocket-shaped API) is mounted at `/api/v1/dev/shiprocket/`.
 
+### `/dev/messages` — dev/CI only (`WHATSAPP_PROVIDER=mock` + `SMS_PROVIDER=mock`, refused in production)
+* `GET /dev/messages` → last 100 rendered WhatsApp + SMS messages (Redis outbox). `POST /dev/messages/status { providerMessageId, status }` → plays Meta's signed delivery receipt through `/webhooks/whatsapp`.
+
 ### `GET /shipping/pincode/:pincode/locality` — Public (Phase 5 §5.4)
 * → `{ pincode, city | null, state | null }` from India Post, cached 30 days; checkout auto-fill (manual override kept).
 
@@ -120,14 +123,14 @@ Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 
 | GET | `/orders/:orderCode/status` | Public with `?phone=` (E.164) **or** session owner | → `OrderStatusResponse` (`packages/shared/src/contracts/orders.ts`): status, paymentStatus, items, totals, shippingCity (never the full address), refund, invoiceAvailable, canCancel, whatsappOptIn, retryPayment (`/order/[orderCode]` page polls until webhook confirms) |
 | GET | `/orders/:orderCode/invoice` | Session owner (or `?phone=`) | → `{ url, expiresAt }` signed private R2 URL (D-11, D-32) |
 | POST | `/orders/:orderCode/cancel` | Session owner | `{ reason }` → allowed only in `CONFIRMED` / `AWAITING_PACKING`; triggers refund |
-| POST | `/track` | Public | `{ orderCode, phone }` **both required** (D-39) → `{ orderCode, status, timeline: [{ status, label, at, location? }], courierName?, awbCode?, trackingUrl?, etd? }`. Mismatch → `NOT_FOUND`. |
+| POST | `/track` | Public | `{ orderCode, phone (10-digit or +91…) }` **both required** (D-39) → `TrackResponse` (`packages/shared/src/contracts/tracking.ts`): `{ orderCode, customerFirstName, destinationCity, status, paymentStatus, items[{ title, netWeightG, quantity, batchCode, manufacturedAt }], courier{ name, awb, trackingUrl }\|null, etd, refund, timeline[{ key, label, at, detail, tone }], updatedAt }`. Mismatch / unpaid → generic `NOT_FOUND`. 60 s cache (D-55 b). |
 
 ### Customer Account (CUSTOMER)
 
 | Method | Path | Notes |
 | :--- | :--- | :--- |
-| GET | `/me/orders` | Paginated, own orders only |
-| GET | `/me/orders/:orderCode` | Detail + timeline + invoice availability |
+| GET | `/me/orders?page&pageSize` | → `{ orders[{ orderCode, status, paymentStatus, totalPaise, itemCount, firstItemTitle, createdAt }], page, pageSize, total }` — own + guest orders with the OTP-verified phone (D-55 d) |
+| GET | `/me/orders/:orderCode` | → tracking view + `{ totalPaise, subtotalPaise, shippingFeePaise, invoiceAvailable, canCancel, createdAt }`; not yours → 404 |
 | GET / POST | `/me/addresses` | List / create (max 10) |
 | PATCH / DELETE | `/me/addresses/:id` | Update / delete; `isDefault` toggles unique default |
 
@@ -139,7 +142,7 @@ Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 
 | :--- | :--- | :--- | :--- |
 | POST | `/webhooks/razorpay` | `X-Razorpay-Signature` HMAC with **`RAZORPAY_WEBHOOK_SECRET`**; dedup `X-Razorpay-Event-Id` | `payment.captured`, `order.paid` → `confirmPayment`; `payment.failed`; `refund.processed`, `refund.failed` |
 | POST | `/webhooks/courier-tracking` | `x-api-key` == `SHIPROCKET_WEBHOOK_TOKEN` (constant-time) else `401`; dedup `sha256(awb+current_status+current_timestamp)` | Shiprocket tracking updates → `tracking_events` + mapped transition (`07` §5). Path can't contain "shiprocket"/"sr"/"kr" (Shiprocket rule, D-53 a). Unknown AWB / test ping → `200`. |
-| GET / POST | `/webhooks/whatsapp` | GET = Meta verify challenge; POST = `X-Hub-Signature-256` (or BSP equivalent) | Message status (`sent/delivered/read/failed`) → `notifications_log` |
+| GET / POST | `/webhooks/whatsapp` | GET = Meta verify challenge (`WHATSAPP_VERIFY_TOKEN`); POST = `X-Hub-Signature-256` HMAC of the raw body with `WHATSAPP_APP_SECRET` (bad → 401) | Message status (`sent/delivered/read/failed`) → `notifications_log`, monotonic (D-55 h) |
 
 Rule: business errors → `webhook_events.last_error`, return `200` + admin alert; only infra errors return `5xx` (so the provider retries). Failed events can be replayed via `POST /admin/webhooks/:id/replay`.
 
@@ -221,7 +224,9 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | `payments` | `INITIATE_REFUND` (`{ refundId }` — intent row already written, D-52) | `refund-<refundId>` | Cancel / stockout / mismatch / duplicate payment / RTO | 5; then `ops_issue` |
 | `notify` | `ORDER_CONFIRMED`, `ORDER_CANCELLED`, `ORDER_STATUS_NOTIFY { template }` (WhatsApp → SMS fallback / push) | `notify-<template>-<orderId>` | Transitions (`07` §6) | 3 |
 | `notify` | `PARTNER_NEW_ORDER_ALERT { orderId }` (Web Push to the kitchen's partners → `notifications_log`; unreached partners → `WHATSAPP_SEND`) | `notify-new_order_alert-<orderId>` | `CONFIRMED` (D-54 e) | 3 |
-| `notify` | `WHATSAPP_SEND { template, userId, orderId }` (Phase 8 sender) | `notify-wa-<template>-<subject>-<userId>` | Push fallback | 3 |
+| `notify` | `REFUND_PROCESSED { refundId }` → `refund_processed` | `notify-refund_processed-<refundId>` | refund settled | 3 |
+| `notify` | `ADMIN_ALERT_SUMMARY { kind, window }` (delayed 10 min, "N more …") | `alert-summary-<kind>-<window>` | 2nd+ alert of a kind in a window | 3 |
+| `notify` | `WHATSAPP_SEND { template, userId, orderId, variables }` (staff WhatsApp; quiet-hours templates delayed to 08:00 IST) | `notify-wa-<template>-<subject>-<userId>` | Push fallback | 3 |
 | `notify` | `ADMIN_ALERT { kind, orderId, message }` (booking failed, NDR, RTO, lost, pickup missed/exception, weight discrepancy, wallet low, unknown AWB) | `alert-<kind>-<orderId \| date>` | Logistics events (Phase 6) | 3 |
 | `cron` | `EXPIRE_RESERVATIONS` | repeat 1 min | — | — |
 | `cron` | `RECONCILE_CONFIRMED` | repeat 5 min | — | — |

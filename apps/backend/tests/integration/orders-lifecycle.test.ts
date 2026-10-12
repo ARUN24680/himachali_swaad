@@ -29,6 +29,7 @@ import {
   testGateway,
   testStorage,
   TEST_API_URL,
+  testMessaging,
 } from '../helpers/test-app';
 import { silentLogger } from '../helpers/test-logger';
 import { TEST_COURIER_TOKEN, unreachableShiprocket } from '../helpers/shiprocket';
@@ -68,6 +69,7 @@ const services = () =>
     shiprocket: unreachableShiprocket(),
     courierWebhookToken: TEST_COURIER_TOKEN,
     push: createWebPushSender({}),
+    messaging: testMessaging(redis),
   });
 
 beforeAll(async () => {

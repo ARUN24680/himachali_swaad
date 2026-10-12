@@ -378,7 +378,7 @@ describe('Web Push + WhatsApp fallback (§7.3)', () => {
         channel: 'PUSH',
         template: 'new_order_alert',
         status: 'SENT',
-        variables: { orderCode: o.orderCode, jars: 2 },
+        variables: { order_code: o.orderCode, jars: 2 },
       }),
       expect.objectContaining({ status: 'FAILED', error: 'subscription gone (410)' }),
     ]);
@@ -409,7 +409,12 @@ describe('Web Push + WhatsApp fallback (§7.3)', () => {
     expect(jobs.jobs).toEqual([
       {
         name: 'WHATSAPP_SEND',
-        data: { template: 'new_order_alert', userId: partnerB.id, orderId: o.orderId },
+        data: {
+          template: 'new_order_alert',
+          userId: partnerB.id,
+          orderId: o.orderId,
+          variables: { order_code: o.orderCode, jars: '1' },
+        },
         jobId: `notify-wa-new_order_alert-${o.orderId}-${partnerB.id}`,
       },
     ]);
@@ -443,7 +448,7 @@ describe('Web Push + WhatsApp fallback (§7.3)', () => {
     expect(first.kitchens).toBeGreaterThanOrEqual(1);
     expect(pushHits.some((h) => h.id === live.endpoint.split('/').pop())).toBe(true);
     const log = await t.db.query(
-      "SELECT variables FROM notifications_log WHERE template = 'partner_daily_digest' AND user_id = $1 AND status = 'SENT'",
+      "SELECT variables FROM notifications_log WHERE template = 'packing_digest' AND user_id = $1 AND status = 'SENT'",
       [actors.partner.id],
     );
     expect(log.rows[0]!.variables).toMatchObject({ count: expect.any(Number) });

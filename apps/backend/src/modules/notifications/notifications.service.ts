@@ -11,7 +11,7 @@ import * as repo from './notifications.repository';
 /** How far back "already pushed" is checked when a job retries. */
 const RESEND_WINDOW_MS = 24 * 3600_000;
 
-export type PartnerTemplate = 'new_order_alert' | 'partner_daily_digest';
+export type PartnerTemplate = 'new_order_alert' | 'packing_digest' | 'order_cancelled_partner';
 
 /**
  * Partner alerts (Phase 7 §7.3): Web Push to every subscribed device of the kitchen's partners,
@@ -22,11 +22,17 @@ export function createNotificationsService(deps: { db: Db; push: PushSender; job
   const { db, push, jobs, logger } = deps;
   const log = logger.child({ module: 'notifications' });
 
-  async function whatsappFallback(template: PartnerTemplate, userId: string, orderId: string | null, subject: string) {
+  async function whatsappFallback(
+    template: PartnerTemplate,
+    userId: string,
+    orderId: string | null,
+    subject: string,
+    variables: Record<string, string>,
+  ) {
     try {
       await jobs.add(
         'WHATSAPP_SEND',
-        { template, userId, orderId },
+        { template, userId, orderId, variables },
         jobIds.notify(`wa-${template}`, `${subject}-${userId}`),
       );
     } catch (err) {
@@ -83,7 +89,13 @@ export function createNotificationsService(deps: { db: Db; push: PushSender; job
     let fallbacks = 0;
     for (const partner of partners) {
       if (reached.has(partner.id)) continue;
-      await whatsappFallback(p.template, partner.id, p.orderId, p.subject);
+      await whatsappFallback(
+        p.template,
+        partner.id,
+        p.orderId,
+        p.subject,
+        Object.fromEntries(Object.entries(p.variables).map(([k, v]) => [k, String(v)])),
+      );
       fallbacks += 1;
     }
     if (partners.length === 0)
@@ -128,8 +140,28 @@ export function createNotificationsService(deps: { db: Db; push: PushSender; job
           url: `/desk?order=${order.order_code}`,
           tag: order.order_code,
         },
-        variables: { orderCode: order.order_code, jars },
+        variables: { order_code: order.order_code, jars },
         subject: order.id,
+        since: new Date(Date.now() - RESEND_WINDOW_MS),
+      });
+    },
+
+    /** ORDER_CANCELLED after packing started → "pack mat karein" to the kitchen (Phase 8 §8.5). */
+    async partnerCancelAlert(orderId: string) {
+      const order = await orderStore.findById(db, orderId);
+      if (!order) return { skipped: true };
+      return alertKitchen({
+        pickupLocationId: order.pickup_location_id,
+        orderId,
+        template: 'order_cancelled_partner',
+        payload: {
+          title: '⛔ Order cancel',
+          body: `${order.order_code} — pack mat karein`,
+          url: '/desk',
+          tag: `cancel-${order.order_code}`,
+        },
+        variables: { order_code: order.order_code },
+        subject: `cancel-${order.id}`,
         since: new Date(Date.now() - RESEND_WINDOW_MS),
       });
     },
@@ -144,14 +176,14 @@ export function createNotificationsService(deps: { db: Db; push: PushSender; job
         await alertKitchen({
           pickupLocationId: k.pickup_location_id,
           orderId: null,
-          template: 'partner_daily_digest',
+          template: 'packing_digest',
           payload: {
             title: '🏔️ Aaj ke orders',
             body: `Aaj ${k.n} order pack karne hain`,
             url: '/desk',
             tag: `digest-${today}`,
           },
-          variables: { count: k.n, date: today },
+          variables: { count: k.n },
           subject: `${today}-${k.pickup_location_id}`,
           since: new Date(`${today}T00:00:00+05:30`),
         });

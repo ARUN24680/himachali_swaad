@@ -16,6 +16,8 @@ import type { StorefrontRevalidator } from '../../src/integrations/storefront/re
 import { silentLogger } from './test-logger';
 import { TEST_COURIER_TOKEN, unreachableShiprocket } from './shiprocket';
 import { createWebPushSender } from '../../src/integrations/push/web-push';
+import { createLogEmailSender, createMockMessageProvider } from '../../src/integrations/messaging/mock';
+import type { MessagingDeps } from '../../src/config/messaging';
 
 export const TEST_ORIGIN = 'http://localhost:3000';
 export const TEST_JWT_SECRET = 'test-secret-that-is-definitely-longer-than-32-chars';
@@ -62,6 +64,7 @@ export interface RecordedJob {
   name: JobName;
   data: unknown;
   jobId: string | undefined;
+  delayMs?: number;
 }
 
 /** JobQueue that records instead of enqueuing; `ids()` = distinct job ids (BullMQ dedups by id). */
@@ -69,8 +72,8 @@ export function recordingJobs(): JobQueue & { jobs: RecordedJob[]; ids: () => st
   const jobs: RecordedJob[] = [];
   return {
     jobs,
-    async add<N extends JobName>(name: N, data: JobPayloads[N], jobId?: string) {
-      jobs.push({ name, data, jobId });
+    async add<N extends JobName>(name: N, data: JobPayloads[N], jobId?: string, opts?: { delayMs?: number }) {
+      jobs.push({ name, data, jobId, ...(opts?.delayMs ? { delayMs: opts.delayMs } : {}) });
     },
     ids: () => [...new Set(jobs.map((j) => j.jobId ?? ''))],
     clear: () => {
@@ -80,6 +83,28 @@ export function recordingJobs(): JobQueue & { jobs: RecordedJob[]; ids: () => st
 }
 
 export const TEST_PINCODES = { '175101': { city: 'Kullu', state: 'Himachal Pradesh' } };
+
+export const TEST_WHATSAPP_SECRET = 'test-whatsapp-app-secret';
+export const TEST_WHATSAPP_VERIFY = 'test-whatsapp-verify-token';
+export const TEST_ADMIN_PHONE = '+919811100001';
+
+/** Mock WhatsApp + SMS (Redis outbox) and a log e-mail sender. */
+export function testMessaging(redis: Redis, overrides: Partial<MessagingDeps['config']> = {}) {
+  const logger = silentLogger();
+  return {
+    whatsapp: createMockMessageProvider({ channel: 'WHATSAPP', redis, logger }),
+    sms: createMockMessageProvider({ channel: 'SMS', redis, logger }),
+    email: createLogEmailSender(logger),
+    config: {
+      storefrontUrl: 'https://pahadikhatki.test',
+      adminPhones: [TEST_ADMIN_PHONE],
+      adminEmail: 'ops@pahadikhatki.test',
+      customerLanguage: 'en' as const,
+      ...overrides,
+    },
+    webhook: { appSecret: TEST_WHATSAPP_SECRET, verifyToken: TEST_WHATSAPP_VERIFY },
+  };
+}
 
 export async function buildTestApp(base: { db: Db; redis: Redis }, overrides: Partial<AppDeps> = {}) {
   return buildApp({
@@ -99,6 +124,7 @@ export async function buildTestApp(base: { db: Db; redis: Redis }, overrides: Pa
     shiprocket: unreachableShiprocket(),
     courierWebhookToken: TEST_COURIER_TOKEN,
     push: createWebPushSender({}),
+    messaging: testMessaging(base.redis),
     // Every app.inject comes from 127.0.0.1 and the limiter's Redis is shared by all test files,
     // so the global 300/min would trip across files on a fast CI box. Route-level limits still
     // apply; app.test.ts covers the global limiter with its own override.

@@ -23,4 +23,6 @@ export * from './logistics';
 export * from './logistics/rows';
 export * from './contracts/logistics';
 export * from './contracts/partner';
+export * from './contracts/tracking';
+export * from './notifications';
 export { PHONE_REGEX, PINCODE_REGEX } from './schemas/patterns';

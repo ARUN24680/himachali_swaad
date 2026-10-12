@@ -4,3 +4,4 @@ export { SignInDialog } from './components/SignInDialog';
 export { useSession, sessionKeys, type Session } from './hooks/useSession';
 export { useSignOut } from './hooks/useAuthMutations';
 export { openSignIn } from './store/account-ui.store';
+export { AccountGate, SignedOutState } from './components/AccountGate';

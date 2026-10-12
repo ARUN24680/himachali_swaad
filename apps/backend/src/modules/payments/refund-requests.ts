@@ -64,3 +64,5 @@ export async function requestRefund(
 
 /** The order's latest order-level refund (status page). */
 export const latestOrderRefund = (q: Queryable, orderId: string) => repo.latestOrderRefund(q, orderId);
+/** Refund row for other modules (refund_processed message). */
+export const findRefund = (q: Queryable, refundId: string) => repo.findRefundById(q, refundId);

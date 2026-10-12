@@ -99,6 +99,53 @@ const EnvSchema = z.object({
       .regex(/^(mailto:|https:\/\/)/)
       .optional(),
   ),
+  /**
+   * Customer / staff messages (Phase 8, D-38): `mock` = Redis outbox + /api/v1/dev/messages (dev/CI,
+   * refused in production). `cloud` = WhatsApp Cloud API; `msg91` = MSG91 Flow SMS (TRAI DLT).
+   */
+  WHATSAPP_PROVIDER: z.enum(['mock', 'cloud']).default('mock'),
+  WHATSAPP_PHONE_NUMBER_ID: z.preprocess(emptyToUndefined, z.string().regex(/^\d+$/).optional()),
+  WHATSAPP_ACCESS_TOKEN: z.preprocess(emptyToUndefined, z.string().min(20).optional()),
+  /** Meta app secret — verifies X-Hub-Signature-256 on /webhooks/whatsapp. */
+  WHATSAPP_APP_SECRET: z.preprocess(emptyToUndefined, z.string().min(16).optional()),
+  /** Our token for Meta's GET verification challenge. */
+  WHATSAPP_VERIFY_TOKEN: z.preprocess(emptyToUndefined, z.string().min(16).optional()),
+  WHATSAPP_API_VERSION: z
+    .string()
+    .regex(/^v\d+\.\d+$/)
+    .default('v21.0'),
+  SMS_PROVIDER: z.enum(['mock', 'msg91']).default('mock'),
+  /** JSON { "<template>": "<MSG91 flow id>" } for the critical templates (DLT approved). */
+  MSG91_SMS_TEMPLATES: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .transform((v, ctx) => {
+        try {
+          return z.record(z.string(), z.string().min(1)).parse(JSON.parse(v));
+        } catch {
+          ctx.addIssue({ code: 'custom', message: 'must be a JSON object of template → flow id' });
+          return z.NEVER;
+        }
+      })
+      .optional(),
+  ),
+  /** Admin alert recipients (comma-separated E.164) + e-mail fallback (Phase 8 §8.6). */
+  ADMIN_ALERT_PHONES: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.string().regex(/^\+91[6-9]\d{9}$/, 'E.164 Indian mobile'))),
+  ADMIN_ALERT_EMAIL: z.preprocess(emptyToUndefined, z.email().optional()),
+  /** Public storefront origin used in message links (/track?code=…). */
+  STOREFRONT_PUBLIC_URL: z.url().default('http://localhost:3000'),
+  /** Language of customer messages until the checkout records a preference. */
+  CUSTOMER_MESSAGE_LANGUAGE: z.enum(['en', 'hi']).default('en'),
   /** BullMQ concurrency for the orders/documents/payments/notify queues (cron stays 1). */
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(50).default(5),
 
@@ -187,6 +234,34 @@ const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
       code: 'custom',
       path: ['SHIPROCKET_EMAIL'],
       message: 'SHIPROCKET_EMAIL, SHIPROCKET_PASSWORD and SHIPROCKET_WEBHOOK_TOKEN are required for shiprocket',
+    });
+  }
+  if (env.NODE_ENV === 'production' && (env.WHATSAPP_PROVIDER === 'mock' || env.SMS_PROVIDER === 'mock')) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['WHATSAPP_PROVIDER'],
+      message: 'mock message providers are not allowed in production',
+    });
+  }
+  if (
+    env.WHATSAPP_PROVIDER === 'cloud' &&
+    (!env.WHATSAPP_PHONE_NUMBER_ID ||
+      !env.WHATSAPP_ACCESS_TOKEN ||
+      !env.WHATSAPP_APP_SECRET ||
+      !env.WHATSAPP_VERIFY_TOKEN)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['WHATSAPP_PHONE_NUMBER_ID'],
+      message:
+        'WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN, WHATSAPP_APP_SECRET and WHATSAPP_VERIFY_TOKEN are required for cloud',
+    });
+  }
+  if (env.SMS_PROVIDER === 'msg91' && (!env.MSG91_AUTH_KEY || !env.MSG91_SMS_TEMPLATES)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['MSG91_SMS_TEMPLATES'],
+      message: 'MSG91_AUTH_KEY and MSG91_SMS_TEMPLATES are required for msg91 SMS',
     });
   }
   const vapid = [env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY, env.VAPID_SUBJECT].filter(Boolean).length;

@@ -109,3 +109,115 @@ export async function awaitingPackingByKitchen(q: Queryable): Promise<{ pickup_l
   );
   return rows;
 }
+
+// ── Template messages (Phase 8) ────────────────────────────────────────────────────────────────
+
+/** Already delivered on WhatsApp or SMS? (dedup across job retries / duplicate triggers). */
+export async function wasDelivered(
+  q: Queryable,
+  p: { orderId: string | null; template: string; recipient: string; since: Date },
+): Promise<boolean> {
+  const { rowCount } = await q.query(
+    `SELECT 1 FROM notifications_log
+      WHERE template = $2 AND recipient = $3 AND channel IN ('WHATSAPP', 'SMS')
+        AND status IN ('SENT', 'DELIVERED', 'READ') AND created_at >= $4
+        AND ($1::uuid IS NULL AND order_id IS NULL OR order_id = $1)
+      LIMIT 1`,
+    [p.orderId, p.template, p.recipient, p.since],
+  );
+  return (rowCount ?? 0) > 0;
+}
+
+/** The QUEUED row a previous (retried) attempt left, or a new one. */
+export async function openMessageRow(
+  q: Queryable,
+  m: {
+    orderId: string | null;
+    userId: string | null;
+    channel: 'WHATSAPP' | 'SMS';
+    recipient: string;
+    template: string;
+    variables: Record<string, unknown>;
+    provider: string;
+  },
+): Promise<string> {
+  const existing = await q.query<{ id: string }>(
+    `SELECT id FROM notifications_log
+      WHERE channel = $1::notification_channel AND template = $2 AND recipient = $3 AND status = 'QUEUED'
+        AND ($4::uuid IS NULL AND order_id IS NULL OR order_id = $4)
+      ORDER BY created_at DESC LIMIT 1`,
+    [m.channel, m.template, m.recipient, m.orderId],
+  );
+  if (existing.rows[0]) return existing.rows[0].id;
+  const { rows } = await q.query<{ id: string }>(
+    `INSERT INTO notifications_log (order_id, user_id, channel, recipient, template, variables, provider, status)
+     VALUES ($1, $2, $3::notification_channel, $4, $5, $6, $7, 'QUEUED') RETURNING id`,
+    [m.orderId, m.userId, m.channel, m.recipient, m.template, m.variables, m.provider],
+  );
+  return rows[0]!.id;
+}
+
+export async function markMessageSent(q: Queryable, id: string, providerMessageId: string): Promise<void> {
+  await q.query(
+    `UPDATE notifications_log SET status = 'SENT', provider_message_id = $2, sent_at = NOW(), error = NULL WHERE id = $1`,
+    [id, providerMessageId],
+  );
+}
+
+export async function markMessageError(q: Queryable, id: string, error: string, final: boolean): Promise<void> {
+  await q.query(
+    `UPDATE notifications_log SET error = $2, status = CASE WHEN $3 THEN 'FAILED'::notification_status ELSE status END
+      WHERE id = $1`,
+    [id, error.slice(0, 500), final],
+  );
+}
+
+const RANK =
+  "CASE status WHEN 'QUEUED' THEN 0 WHEN 'SENT' THEN 1 WHEN 'DELIVERED' THEN 2 WHEN 'READ' THEN 3 ELSE -1 END";
+
+/**
+ * Provider delivery receipt (WhatsApp webhook). Monotonic: SENT → DELIVERED → READ never goes
+ * back; FAILED only before DELIVERED. Returns false for an unknown message id.
+ */
+export async function applyDeliveryStatus(
+  q: Queryable,
+  p: { providerMessageId: string; status: 'SENT' | 'DELIVERED' | 'READ' | 'FAILED'; at: Date; error: string | null },
+): Promise<boolean> {
+  const newRank = { SENT: 1, DELIVERED: 2, READ: 3, FAILED: -1 }[p.status];
+  const { rowCount } = await q.query(
+    `UPDATE notifications_log
+        SET status = CASE
+              WHEN $2 = 'FAILED' AND ${RANK} < 2 THEN 'FAILED'::notification_status
+              WHEN $2 <> 'FAILED' AND ${RANK} < $3 THEN $2::notification_status
+              ELSE status END,
+            delivered_at = CASE WHEN $2 IN ('DELIVERED', 'READ') THEN COALESCE(delivered_at, $4) ELSE delivered_at END,
+            error = CASE WHEN $2 = 'FAILED' AND ${RANK} < 2 THEN $5 ELSE error END
+      WHERE provider_message_id = $1`,
+    [p.providerMessageId, p.status, newRank, p.at, p.error],
+  );
+  return (rowCount ?? 0) > 0;
+}
+
+export async function findUserPhone(q: Queryable, userId: string): Promise<string | null> {
+  const { rows } = await q.query<{ phone: string | null }>('SELECT phone FROM users WHERE id = $1 AND is_active', [
+    userId,
+  ]);
+  return rows[0]?.phone ?? null;
+}
+
+/** The status the order was cancelled FROM (partner "pack mat karein" alert). */
+export async function cancelledFrom(q: Queryable, orderId: string): Promise<string | null> {
+  const { rows } = await q.query<{ from_status: string | null }>(
+    `SELECT from_status FROM order_status_logs WHERE order_id = $1 AND to_status = 'CANCELLED' ORDER BY id DESC LIMIT 1`,
+    [orderId],
+  );
+  return rows[0]?.from_status ?? null;
+}
+
+export async function findShipmentForMessage(q: Queryable, orderId: string) {
+  const { rows } = await q.query<{ courier_name: string | null; awb_code: string | null; etd: string | null }>(
+    'SELECT courier_name, awb_code, etd FROM shipments WHERE order_id = $1',
+    [orderId],
+  );
+  return rows[0] ?? null;
+}
