@@ -10,6 +10,7 @@ import {
   type PartnerOrderCard,
 } from '@pk/shared';
 import type { BrowserContext, Page, Route } from '@playwright/test';
+import { installAdminRoutes } from './admin-api';
 import { API, mockCatalogApi, ORIGIN } from './catalog-api';
 
 /**
@@ -253,5 +254,8 @@ export async function mockDeskApi(page: Page | BrowserContext, context: BrowserC
     return fail(route, 404, 'NOT_FOUND', `No desk mock for ${method} ${path}`);
   });
 
-  return { catalog, orders, markPacked, labelRequests, pushBodies };
+  // Hisaab tab (Phase 9): the partner's finalized / paid settlements
+  const settlements = await installAdminRoutes(page, { role: 'KITCHEN_PARTNER' });
+
+  return { catalog, orders, markPacked, labelRequests, pushBodies, settlements };
 }

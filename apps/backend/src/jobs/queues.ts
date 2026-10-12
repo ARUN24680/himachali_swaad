@@ -29,6 +29,8 @@ export interface JobPayloads {
     orderId: string | null;
     variables?: Record<string, string>;
   };
+  /** Admin "resend" (Phase 9 §9.4): bypasses the message dedup on purpose. */
+  NOTIFY_RESEND: { orderId: string; template: string };
   /** Customer refund_processed message (Phase 8 §8.5). */
   REFUND_PROCESSED: { refundId: string };
   /** End of an admin-alert batching window: one summary message with the count (Phase 8 §8.6). */
@@ -59,6 +61,7 @@ export const JOB_QUEUE: Record<JobName, QueueName> = {
   PARTNER_NEW_ORDER_ALERT: 'notify',
   WHATSAPP_SEND: 'notify',
   REFUND_PROCESSED: 'notify',
+  NOTIFY_RESEND: 'notify',
   ADMIN_ALERT_SUMMARY: 'notify',
   EXPIRE_RESERVATIONS: 'cron',
   RECONCILE_CONFIRMED: 'cron',
@@ -102,6 +105,7 @@ const RETRIES: Partial<Record<JobName, number>> = {
   PARTNER_NEW_ORDER_ALERT: 3,
   WHATSAPP_SEND: 3,
   REFUND_PROCESSED: 3,
+  NOTIFY_RESEND: 3,
   ADMIN_ALERT_SUMMARY: 3,
 };
 

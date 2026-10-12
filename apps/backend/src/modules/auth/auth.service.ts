@@ -68,6 +68,9 @@ const INVALID_OTP = 'That code is incorrect or has expired. Request a new one.';
 /** Short, non-reversible tag for logging which email failed without storing the email (PII). */
 const emailTag = (email: string) => createHash('sha256').update(email.toLowerCase()).digest('hex').slice(0, 12);
 
+/** Admin "force logout" (Phase 9 staff management): revoke every refresh-token family of a user. */
+export const revokeAllSessions = (q: Queryable, userId: string) => repo.revokeAllForUser(q, userId);
+
 export function toSessionUser(u: UserRow): SessionUser {
   return {
     id: u.id,

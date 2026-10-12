@@ -110,6 +110,16 @@ export const TEMPLATES = {
       hi: 'Order {{order_code}} cancel ho gaya — pack mat karein, courier ko mat dein.',
     },
   },
+  settlement_ready: {
+    audience: 'PARTNER',
+    critical: false,
+    quietHours: true,
+    variables: ['period', 'payout'],
+    text: {
+      en: 'Settlement for {{period}} is ready — your payout {{payout}}. Please review and acknowledge in the desk app.',
+      hi: '{{period}} ka hisaab taiyaar hai — aapka payout {{payout}}. Desk app me dekh kar acknowledge karein.',
+    },
+  },
   packing_digest: {
     audience: 'PARTNER',
     critical: false,

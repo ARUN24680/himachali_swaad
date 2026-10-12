@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve, sep } from 'node:path';
 import { AwsClient, AwsV4Signer } from 'aws4fetch';
 import { withTimeout } from '../../utils/with-timeout';
-import { joinUrl } from './storage';
+import { joinUrl, UPLOAD_URL_TTL_SEC } from './storage';
 
 /**
  * PRIVATE documents — invoices now, shipping labels / settlement PDFs later (D-11). Never public:
@@ -15,6 +15,13 @@ export interface PrivateStorage {
   /** Server-side read (e.g. merging labels into an A4 sheet). null when the key doesn't exist. */
   get(key: string): Promise<Uint8Array | null>;
   signedGetUrl(key: string, ttlSec: number): Promise<{ url: string; expiresAt: Date }>;
+  /** Browser upload straight to the bucket (expense receipts) — type + size are signed. */
+  presignPut(input: { key: string; contentType: string; sizeBytes: number }): Promise<{
+    url: string;
+    method: 'PUT';
+    headers: Record<string, string>;
+    expiresInSec: number;
+  }>;
 }
 
 export const SIGNED_URL_TTL_SEC = 300;
@@ -62,15 +69,39 @@ export function createR2PrivateStorage(cfg: {
       }).sign();
       return { url: signed.url.toString(), expiresAt: new Date(Date.now() + ttlSec * 1000) };
     },
+    async presignPut({ key, contentType, sizeBytes }) {
+      const url = new URL(objectUrl(key));
+      url.searchParams.set('X-Amz-Expires', String(UPLOAD_URL_TTL_SEC));
+      const signed = await new AwsV4Signer({
+        method: 'PUT',
+        url: url.toString(),
+        headers: { 'content-type': contentType, 'content-length': String(sizeBytes) },
+        accessKeyId: cfg.accessKeyId,
+        secretAccessKey: cfg.secretAccessKey,
+        service: 's3',
+        region: 'auto',
+        signQuery: true,
+        allHeaders: true,
+      }).sign();
+      return {
+        url: signed.url.toString(),
+        method: 'PUT',
+        headers: { 'content-type': contentType },
+        expiresInSec: UPLOAD_URL_TTL_SEC,
+      };
+    },
   };
 }
 
 export const LOCAL_PRIVATE_PATH = '/api/v1/dev-storage/private';
+export const LOCAL_PRIVATE_UPLOAD_PATH = '/api/v1/dev-storage/private-upload';
 
 export interface LocalPrivateStorage extends PrivateStorage {
   readonly kind: 'local';
   /** Checks a signed link minted by signedGetUrl; returns the file or null. */
   readSigned(key: string, exp: string, sig: string): Promise<Buffer | null>;
+  /** Checks an upload token minted by presignPut. */
+  verifyUpload(token: string): { key: string; contentType: string; sizeBytes: number } | null;
 }
 
 /** Dev/test stand-in (STORAGE_DRIVER=local, refused in production): HMAC-signed, expiring links served by the API. */
@@ -110,6 +141,34 @@ export function createLocalPrivateStorage(cfg: {
       url.searchParams.set('exp', exp);
       url.searchParams.set('sig', sign(key, exp));
       return { url: url.toString(), expiresAt };
+    },
+    async presignPut({ key, contentType, sizeBytes }) {
+      const payload = Buffer.from(
+        JSON.stringify({ key, contentType, sizeBytes, exp: now() + UPLOAD_URL_TTL_SEC * 1000 }),
+      ).toString('base64url');
+      const url = new URL(joinUrl(cfg.apiBaseUrl, LOCAL_PRIVATE_UPLOAD_PATH));
+      url.searchParams.set('token', `${payload}.${sign(payload, 'upload')}`);
+      return {
+        url: url.toString(),
+        method: 'PUT',
+        headers: { 'content-type': contentType },
+        expiresInSec: UPLOAD_URL_TTL_SEC,
+      };
+    },
+    verifyUpload(token) {
+      const [payload, sig] = token.split('.');
+      if (!payload || !sig) return null;
+      const expected = Buffer.from(sign(payload, 'upload'));
+      const given = Buffer.from(sig);
+      if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
+      const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
+        key: string;
+        contentType: string;
+        sizeBytes: number;
+        exp: number;
+      };
+      if (claims.exp < now()) return null;
+      return { key: claims.key, contentType: claims.contentType, sizeBytes: claims.sizeBytes };
     },
     async readSigned(key, exp, sig) {
       const expected = Buffer.from(sign(key, exp));

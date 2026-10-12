@@ -20,7 +20,7 @@ export async function registerSecurity(app: FastifyInstance, opts: SecurityOptio
     origin: opts.origins,
     credentials: true, // httpOnly cookie sessions (D-20)
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    exposedHeaders: ['x-request-id', 'retry-after'],
+    exposedHeaders: ['x-request-id', 'retry-after', 'content-disposition'],
   });
 
   await app.register(rateLimit, {

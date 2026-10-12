@@ -1,18 +1,22 @@
-import { SHELF_STATUSES, type Batch, type BatchListQuery, type ShelfStatus } from '@pk/shared';
+import { can, SHELF_STATUSES, type Batch, type BatchListQuery, type ShelfStatus } from '@pk/shared';
 import { Button } from '@pk/ui';
-import { AlarmClock, Boxes, CircleSlash, PackageCheck, PackagePlus, SearchX } from 'lucide-react';
+import { AlarmClock, Boxes, CalendarCheck2, CircleSlash, PackageCheck, PackagePlus, SearchX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
+import { DataTableSkeleton } from '@/components/common/DataTable';
+import { FilterPills } from '@/components/common/FilterPills';
 import { KpiCard, KpiGrid } from '@/components/common/KpiCard';
 import { PageHeader } from '@/components/common/PageHeader';
 import { EmptyState, ErrorState, ListSkeleton } from '@/components/common/StateBlocks';
 import { TableCard } from '@/components/common/TableCard';
+import { useMe } from '@/hooks/useMe';
 import { AdjustStockDialog } from '../components/AdjustStockDialog';
 import { BatchesTable } from '../components/BatchesTable';
 import { BatchFilters, type BatchFilterState } from '../components/BatchFilters';
 import { CreateBatchModal } from '../components/CreateBatchModal';
+import { ExpiryAlertsTable } from '../components/ExpiryAlertsTable';
 import { MovementsSheet } from '../components/MovementsSheet';
-import { useBatches, useBatchProductOptions } from '../hooks/useBatches';
+import { useBatches, useBatchProductOptions, useExpiryAlerts } from '../hooks/useBatches';
 
 const isShelfStatus = (v: string | null): v is ShelfStatus => SHELF_STATUSES.includes(v as ShelfStatus);
 
@@ -36,6 +40,11 @@ export default function BatchesListPage() {
   const overview = useBatches({});
   const list = useBatches(query);
   const productOptions = useBatchProductOptions();
+  // Expiry alerts are an ADMIN endpoint (Phase 9 §9.6); partners keep the plain batch list
+  const me = useMe();
+  const isAdmin = me.data ? can(me.data.user.role, 'dashboard:revenue') : false;
+  const alerts = useExpiryAlerts(isAdmin);
+  const view: 'batches' | 'alerts' = isAdmin && params.get('view') === 'alerts' ? 'alerts' : 'batches';
 
   const [createOpen, setCreateOpen] = useState(false);
   const [ledgerFor, setLedgerFor] = useState<Batch | null>(null);
@@ -134,13 +143,36 @@ export default function BatchesListPage() {
         label="Batch list"
         controls={
           <>
-            <BatchFilters
-              value={filters}
-              onChange={setFilters}
-              products={productOptions.data}
-              resultCount={list.data?.batches.length}
-            />
-            {list.isFetching && !list.isPending && (
+            {isAdmin && (
+              <FilterPills
+                label="Inventory view"
+                value={view}
+                onChange={(v) =>
+                  setParams(
+                    (prev) => {
+                      const p = new URLSearchParams(prev);
+                      if (v === 'alerts') p.set('view', 'alerts');
+                      else p.delete('view');
+                      return p;
+                    },
+                    { replace: true },
+                  )
+                }
+                options={[
+                  { value: 'batches', label: 'Batches' },
+                  { value: 'alerts', label: 'Expiry alerts', count: alerts.data?.length, alert: true },
+                ]}
+              />
+            )}
+            {view === 'batches' && (
+              <BatchFilters
+                value={filters}
+                onChange={setFilters}
+                products={productOptions.data}
+                resultCount={list.data?.batches.length}
+              />
+            )}
+            {view === 'batches' && list.isFetching && !list.isPending && (
               <span role="status" className="text-xs text-muted-foreground">
                 Updating…
               </span>
@@ -148,12 +180,33 @@ export default function BatchesListPage() {
           </>
         }
         footer={
-          list.data && list.data.batches.length > 0
-            ? `${list.data.batches.length} batch${list.data.batches.length === 1 ? '' : 'es'} · sellable means ≥ ${list.data.sellableBufferDays} days to expiry (D-24)`
-            : undefined
+          view === 'alerts'
+            ? 'Batches whose sellable window (expiry minus the D-24 buffer) closes in the next 14 days.'
+            : list.data && list.data.batches.length > 0
+              ? `${list.data.batches.length} batch${list.data.batches.length === 1 ? '' : 'es'} · sellable means ≥ ${list.data.sellableBufferDays} days to expiry (D-24)`
+              : undefined
         }
       >
-        {list.isPending ? (
+        {view === 'alerts' ? (
+          alerts.isPending ? (
+            <DataTableSkeleton rows={3} label="Loading expiry alerts" />
+          ) : alerts.isError ? (
+            <ErrorState
+              title="Couldn’t load expiry alerts"
+              message={alerts.error.message}
+              onRetry={() => void alerts.refetch()}
+              retrying={alerts.isFetching}
+            />
+          ) : alerts.data.length === 0 ? (
+            <EmptyState
+              icon={CalendarCheck2}
+              title="Nothing close to expiry"
+              description="No batch stops being sellable in the next 14 days."
+            />
+          ) : (
+            <ExpiryAlertsTable alerts={alerts.data} />
+          )
+        ) : list.isPending ? (
           <ListSkeleton label="Loading batches" />
         ) : list.isError ? (
           <ErrorState

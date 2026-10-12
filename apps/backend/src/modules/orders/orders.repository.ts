@@ -156,6 +156,16 @@ export async function listStatusLogs(q: Queryable, orderId: string) {
   return rows.map((r) => StatusLogRowSchema.parse(r));
 }
 
+/** Admin "resolve issue": clears ops_issue, returns what it was (audit before). */
+export async function clearOpsIssue(q: Queryable, orderId: string): Promise<string | null> {
+  const { rows } = await q.query<{ ops_issue: string | null }>(
+    'SELECT ops_issue FROM orders WHERE id = $1 FOR UPDATE',
+    [orderId],
+  );
+  await q.query('UPDATE orders SET ops_issue = NULL WHERE id = $1', [orderId]);
+  return rows[0]?.ops_issue ?? null;
+}
+
 /** Appends to ops_issue (NOT NULL = needs admin attention). */
 export async function appendOpsIssue(q: Queryable, orderId: string, issue: string): Promise<void> {
   await q.query(

@@ -306,6 +306,7 @@ export const orderStore = {
   setPickupLocation: repo.setPickupLocation,
   setGatewayOrderId: repo.setGatewayOrderId,
   appendOpsIssue: repo.appendOpsIssue,
+  clearOpsIssue: repo.clearOpsIssue,
   defaultPickupLocationId: repo.findDefaultPickupLocationId,
   listExpiredPending: repo.listExpiredPendingOrders,
   listStaleConfirmed: repo.listStaleConfirmedOrders,

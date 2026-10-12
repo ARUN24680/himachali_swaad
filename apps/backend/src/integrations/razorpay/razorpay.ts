@@ -19,6 +19,8 @@ interface RzpPayment {
   amount: number;
   status: GatewayPaymentStatus;
   method?: string | null;
+  fee?: number | null;
+  tax?: number | null;
   error_code?: string | null;
   error_description?: string | null;
 }
@@ -38,6 +40,8 @@ export const toGatewayPayment = (p: RzpPayment): GatewayPayment => ({
   method: p.method ?? null,
   errorCode: p.error_code ?? null,
   errorDescription: p.error_description ?? null,
+  feePaise: p.fee ?? null,
+  taxPaise: p.tax ?? null,
 });
 
 export const toGatewayRefund = (r: RzpRefund): GatewayRefund => ({

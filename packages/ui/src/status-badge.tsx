@@ -38,6 +38,8 @@ export const STATUS_TONES: Record<string, StatusTone> = {
   // Product catalog status (Phase 3 §3.7)
   LIVE: 'success',
   DRAFT: 'neutral',
+  // Settlements (Phase 9 §9.9): DRAFT → FINALIZED → PAID (DRAFT reuses the product entry: neutral)
+  FINALIZED: 'info',
   // Storefront stock badge (D-49 d) — label carries the real count ("Only 4 jars left")
   IN_STOCK: 'success',
   LOW_STOCK: 'warning',

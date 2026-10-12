@@ -2,7 +2,7 @@
 
 > **Kyun yeh file:** abhi focus poora system end-to-end complete karne par hai. Jo kaam kisi bahar ki cheez (account, keys, CA/lawyer, business decision, deploy) par atka hai, ya jise jaan-boojh kar baad ke liye chhoda gaya, woh sab yahan ek jagah hai — taaki baad me yeh "sub-flows" jod sakein.
 > **Source:** `Phases/phase-0X-*.md` ke unticked checklist items, `architecture/08-decisions-log.md` (Q-01…Q-07, PROPOSED decisions, D-52/D-53 notes).
-> **Last updated:** 2026-10-12 (Phase 8 tracking + notifications).
+> **Last updated:** 2026-10-12 (Phase 9 admin console + settlements).
 > **Rule:** kuch bhi pura karo toh yahan `[x]` + evidence likho **aur** asli phase file me bhi tick karo (AGENTS.md §4).
 
 **Legend:** 🔑 = account/keys chahiye · 🧾 = CA/lawyer/business decision · 🚀 = deploy/public URL chahiye · 🧑‍🍳 = kitchen/physical kaam · 🛠️ = code baaki · ⏭️ = aage ke phase me plan
@@ -51,10 +51,10 @@
 | R-1 | **Q-04 RTO refund policy** (full refund vs freight kaat ke) + transit damage policy (unboxing video?) | 🧾 Admin | Legal refund page + admin refund action (Phase 9). Abhi RTO_DELIVERED par sirf `ops_issue` "decide refund (Q-04)" lagta hai | P0/P6 |
 | R-2 | **`rto_freight_paise` capture** (settlement D-41 me minus hota hai) | 🔑 S-1 (billing data) | `shipments.rto_freight_paise` | P6 §6.11 |
 | R-3 | **NDR actions** (reattempt / address update) abhi manual Shiprocket panel se; automation + `ndr_actions` table | ⏭️ v2 | — | v2 |
-| R-4 | NDR admin tab (DELIVERY_FAILED queue) | ⏭️ Phase 9 | admin UI | P9 |
+| R-4 | ✅ Done (Phase 9): orders tab `ndr` | — | — | P9 |
 | R-5 | **Undeliverable pincode refund**: checkout copy kehta hai "deliver nahi kar paaye toh full refund", par booking fail hone par refund **automatic nahi** — dead letter + admin alert hota hai, admin cancel + refund karega. Ya toh auto-cancel+refund jodo, ya copy badlo | 🧾 decision | `logistics.service.ts › jobGaveUp` / `AddressSection.tsx` copy | P6 |
-| R-6 | Admin "Retry booking" button — completed/failed BullMQ job same id se re-add = no-op, isliye pehle `job.retry()` / remove | ⏭️ Phase 9 | `POST /admin/orders/:code/retry-shipment` | P9 |
-| R-7 | Partial refund admin action | ⏭️ Phase 9 | `POST /admin/orders/:code/refunds` | P9 |
+| R-6 | ✅ Done (Phase 9): retry uses a fresh job id (D-56 g) | — | — | P9 |
+| R-7 | ✅ Done (Phase 9): partial / full admin refunds | — | — | P9 |
 
 ## 4. 💳 Razorpay / Payments (abhi `PAYMENT_GATEWAY=mock`)
 
@@ -119,6 +119,17 @@
 | M-6 | Customer message language — abhi `CUSTOMER_MESSAGE_LANGUAGE=en`; checkout par language choice chahiye ho toh decide | 🧾 decision | — |
 | M-7 | Partner phone numbers `users.phone` me hon (WhatsApp fallback ke liye) | 🧾 Admin (staff setup) | Phase 9 staff screen |
 
+## 7c. 📊 Phase 9 — Admin & Settlements
+
+| # | Kya bacha hai | Blocked on | Kya karna hai |
+| :-- | :-- | :-- | :-- |
+| A-1 | **Real settlement cycle on staging** (generate → finalize → pay → partner acknowledge) — phase DoD | 🚀 staging + real orders | Manual run + screenshot |
+| A-2 | **Q-05 settlement cycle** weekly / monthly (UI kisi bhi period ke liye kaam karta hai) | 🧾 Dono partners | — |
+| A-3 | **D-41 formula sign-off** (PROPOSED) + `partner_split_bp` default 50 % confirm | 🧾 Dono partners + CA | `settings.partner_split_bp` |
+| A-4 | Real `packaging_cost_per_jar_paise` (abhi ₹32 estimate) | 🧑‍🍳 procurement | Settings page |
+| A-5 | bull-board embed ke liye API CSP `frame-ancestors` me admin origin (warna "Open job queues" link chalta hai) | 🚀 deploy | `plugins/security.ts` |
+| A-6 | Large exports streaming (abhi in-memory CSV — launch volume ke liye theek) | ⏭️ jab orders badhein | `exports.service.ts` |
+
 ## 8. ⏭️ Aage ke phases me already planned (sirf yaad ke liye)
 
 | # | Kya | Kab |
@@ -127,7 +138,7 @@
 | N-2 | ✅ Done (Phase 7): manifests + A4 4-up label sheet on the desk | — |
 | N-3 | ✅ Done (Phase 8): notification consumers send (mock until M-1/M-2) | — |
 | N-4 | ✅ Done (Phase 8): `/me/orders` includes guest orders with the verified phone | — |
-| N-5 | Admin UI: cancel/refund, retry booking, ops-issue resolve, settings edit, webhook replay | Phase 9 |
+| N-5 | ✅ Done (Phase 9): admin console (orders actions, settings, staff, expenses, settlements, exports, webhooks, audit) | — |
 | N-6 | Phase 2 checklist ka "expired refresh tokens daily cleanup" — **code Phase 5 me ho gaya** (`CLEANUP_REFRESH_TOKENS` 03:45 IST); Phase 2 file me evidence ke saath tick karna baaki | housekeeping |
 
 ---

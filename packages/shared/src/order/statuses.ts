@@ -48,5 +48,7 @@ export const REFUND_REASONS = [
   'LOST',
   /** A second captured payment on an already-paid order — refunded, order untouched. */
   'DUPLICATE_PAYMENT',
+  /** Admin courtesy refund (Phase 9 §9.4). */
+  'GOODWILL',
 ] as const;
 export type RefundReason = (typeof REFUND_REASONS)[number];

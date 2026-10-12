@@ -135,6 +135,16 @@ export async function sumOrderRefunds(q: Queryable, orderId: string) {
   return rows[0]!;
 }
 
+/** Order-level refunds that are not FAILED (pending + processed). */
+export async function sumActiveOrderRefunds(q: Queryable, orderId: string): Promise<number> {
+  const { rows } = await q.query<{ refunded: number }>(
+    `SELECT COALESCE(SUM(amount_paise), 0)::bigint AS refunded FROM refunds
+      WHERE order_id = $1 AND status <> 'FAILED' AND reason <> 'DUPLICATE_PAYMENT'`,
+    [orderId],
+  );
+  return rows[0]!.refunded;
+}
+
 export async function latestOrderRefund(q: Queryable, orderId: string) {
   const { rows } = await q.query(
     "SELECT * FROM refunds WHERE order_id = $1 AND reason <> 'DUPLICATE_PAYMENT' ORDER BY created_at DESC LIMIT 1",

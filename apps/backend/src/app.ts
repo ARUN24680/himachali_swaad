@@ -46,6 +46,9 @@ import { devPaymentRoutes } from './modules/dev-payments/dev-payments.routes';
 import { devShippingRoutes } from './modules/dev-shipping/dev-shipping.routes';
 import { labelRoutes } from './modules/logistics/logistics.routes';
 import { myOrdersRoutes, trackRoutes } from './modules/tracking/tracking.routes';
+import { adminRoutes } from './modules/admin/admin.routes';
+import { adminSettlementRoutes, partnerSettlementRoutes } from './modules/settlements/settlements.routes';
+import { staffRoutes } from './modules/users/users.routes';
 import { whatsappWebhookRoutes } from './modules/notifications/whatsapp-webhook.routes';
 import { devMessageRoutes } from './modules/dev-messages/dev-messages.routes';
 import type { MockMessageProvider } from './integrations/messaging/mock';
@@ -232,6 +235,17 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(adminOrderRoutes, { prefix: '/api/v1/admin/orders', service: svc.orders, guards });
   await app.register(accountRoutes, { prefix: '/api/v1/me', service: svc.account, guards });
   await app.register(webhookRoutes, { prefix: '/api/v1/webhooks', service: svc.webhooks });
+
+  // ── Phase 9: admin console ──────────────────────────────────────────────
+  await app.register(adminRoutes, {
+    prefix: '/api/v1/admin',
+    service: svc.admin,
+    exportsService: svc.exportsService,
+    guards,
+  });
+  await app.register(adminSettlementRoutes, { prefix: '/api/v1/admin', service: svc.settlements, guards });
+  await app.register(partnerSettlementRoutes, { prefix: '/api/v1/partner', service: svc.settlements, guards });
+  await app.register(staffRoutes, { prefix: '/api/v1/admin/staff', service: svc.users, guards });
 
   // ── Phase 8: tracking ───────────────────────────────────────────────────
   await app.register(trackRoutes, { prefix: '/api/v1', service: svc.tracking });

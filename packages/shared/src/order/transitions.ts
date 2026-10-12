@@ -48,6 +48,8 @@ export const PAYMENT_TRANSITIONS: readonly { from: PaymentStatus; to: PaymentSta
   { from: 'REFUND_PENDING', to: 'PARTIALLY_REFUNDED' },
   { from: 'REFUND_PENDING', to: 'REFUNDED' },
   { from: 'REFUND_PENDING', to: 'PAID' },
+  // A further partial refund after an earlier one settled (Phase 9 admin refunds, D-56)
+  { from: 'PARTIALLY_REFUNDED', to: 'REFUND_PENDING' },
 ];
 
 export function canPaymentTransition(from: PaymentStatus, to: PaymentStatus): boolean {

@@ -692,7 +692,9 @@ CREATE TABLE settlements (
   net_profit_paise              BIGINT NOT NULL DEFAULT 0,
   partner_share_paise           BIGINT NOT NULL DEFAULT 0,
   admin_share_paise             BIGINT NOT NULL DEFAULT 0,
-  partner_payout_paise          BIGINT NOT NULL DEFAULT 0,   -- raw cost reimbursement + partner share
+  expense_reimbursement_paise   BIGINT NOT NULL DEFAULT 0,   -- D-56: partner-paid expenses paid back
+  partner_payout_paise          BIGINT NOT NULL DEFAULT 0,   -- raw cost + partner share + reimbursement (CHECK)
+  warnings                      JSONB NOT NULL DEFAULT '[]', -- D-56: missing freight / gateway fee → finalize blocked
   bank_reference                VARCHAR(80),
   statement_key                 TEXT,                         -- private R2 PDF
   finalized_by                  UUID REFERENCES users(id),
@@ -712,6 +714,8 @@ CREATE TABLE settlement_items (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   settlement_id         UUID NOT NULL REFERENCES settlements(id) ON DELETE CASCADE,  -- only DRAFTs are ever deleted
   order_id              UUID NOT NULL UNIQUE REFERENCES orders(id),                  -- an order is settled exactly once
+  closed_at             TIMESTAMPTZ NOT NULL,                                        -- D-56
+  jars                  INT NOT NULL,                                                -- D-56
   revenue_ex_gst_paise  BIGINT NOT NULL,
   raw_cost_paise        BIGINT NOT NULL,
   packaging_cost_paise  BIGINT NOT NULL,

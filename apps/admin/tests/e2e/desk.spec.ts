@@ -15,6 +15,8 @@ const isMobile = (info: TestInfo) => info.project.name.startsWith('mobile');
 
 /** Evidence: every shot on phones; only `wide` shots at 768 / 1440. */
 async function shot(page: Page, info: TestInfo, name: string, scheme: string, wide = false) {
+  // Evidence only on demand — a normal test run must not rewrite the committed screenshots
+  if (process.env.PK_EVIDENCE !== '1') return;
   if (!isMobile(info) && !wide) return;
   await page.screenshot({ path: `${EVIDENCE}desk-${name}-${width(page)}-${scheme}.png`, fullPage: true });
 }
@@ -230,7 +232,7 @@ test('Hindi ↔ English toggle on every desk screen (persisted)', async ({ page,
     { path: '/desk/pack/PK-7KQ2M9', hi: '3. Packing checklist', en: '3. Packing checklist' },
     { path: '/desk/batches', hi: 'Kaunsa achaar?', en: 'Which pickle?' },
     { path: '/desk/batches?tab=stock', hi: 'Mera stock', en: 'My stock' },
-    { path: '/desk/hisaab', hi: 'Jaldi aa raha hai', en: 'Coming soon' },
+    { path: '/desk/hisaab', hi: 'Aapko milega', en: 'Your payout' },
     { path: '/desk/settings', hi: 'Naye order ka alert', en: 'New order alerts' },
   ];
   for (const s of screens) {

@@ -135,14 +135,24 @@ test('partner: role-aware nav and routes', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'This page isn’t part of your role' })).toBeVisible();
 });
 
-test('admin nav has Overview, Products and Batches', async ({ page }, info) => {
+test('admin nav: sidebar on tablet/desktop, primary tabs + "More" sheet on phones', async ({ page }, info) => {
   await mockCatalogApi(page);
   await page.goto('/batches');
   const nav = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
-  for (const name of ['Overview', 'Products', 'Batches']) await expect(nav.getByRole('link', { name })).toBeVisible();
-  await expect(nav.getByRole('link', { name: 'Batches' })).toHaveAttribute('aria-current', 'page');
-  if (isMobile(info))
+  for (const name of ['Dashboard', 'Orders', 'Inventory']) await expect(nav.getByRole('link', { name })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Inventory' })).toHaveAttribute('aria-current', 'page');
+  if (isMobile(info)) {
     await expect(page.getByRole('navigation', { name: 'Main' }).filter({ visible: true })).toHaveCount(1);
+    await nav.getByRole('button', { name: 'More' }).click();
+    const sheet = page.getByRole('dialog', { name: 'More' });
+    for (const name of ['Products', 'Customers', 'Expenses', 'Settings', 'Audit log'])
+      await expect(sheet.getByRole('link', { name })).toBeVisible();
+    await sheet.getByRole('link', { name: 'Products' }).click();
+    await expect(page).toHaveURL(/\/products$/);
+  } else {
+    for (const name of ['Products', 'Customers', 'Settlements', 'Staff', 'Queues & webhooks'])
+      await expect(nav.getByRole('link', { name })).toBeVisible();
+  }
 });
 
 test('batches loading, empty and error states', async ({ page }) => {

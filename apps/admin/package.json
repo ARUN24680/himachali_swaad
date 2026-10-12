@@ -21,6 +21,7 @@
     "@pk/ui": "workspace:*",
     "@sentry/react": "11.4.0",
     "@tanstack/react-query": "5.104.1",
+    "@tanstack/react-table": "8.21.3",
     "lucide-react": "1.51.0",
     "qrcode": "1.5.4",
     "react": "19.3.0",

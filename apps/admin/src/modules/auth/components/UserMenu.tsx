@@ -8,7 +8,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@pk/ui';
-import { ChevronDown, Loader2, LogOut, MonitorSmartphone } from 'lucide-react';
+import { ChevronDown, Loader2, LogOut, MonitorSmartphone, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router';
 import { useMe } from '@/hooks/useMe';
 import { useSignOut } from '../hooks/useAuthMutations';
 import { initials, ROLE_LABEL } from './roleLabel';
@@ -53,6 +54,12 @@ export function UserMenu() {
           </Badge>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/account">
+            <ShieldCheck aria-hidden="true" />
+            Account & security
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem
           disabled={busy}
           onSelect={(e) => {

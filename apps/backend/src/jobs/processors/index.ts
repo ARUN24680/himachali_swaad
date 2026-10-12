@@ -54,6 +54,11 @@ export function createProcessors(deps: {
         : null;
       return { customer, partner };
     },
+    NOTIFY_RESEND: (d, job) =>
+      svc.messages.notifyCustomer(d.orderId, d.template as Parameters<typeof svc.messages.notifyCustomer>[1], {
+        finalAttempt: finalAttempt(job),
+        force: true,
+      }),
     REFUND_PROCESSED: (d, job) => svc.messages.notifyRefund(d.refundId, { finalAttempt: finalAttempt(job) }),
     WHATSAPP_SEND: async (d, job, token) =>
       deferIfNeeded(

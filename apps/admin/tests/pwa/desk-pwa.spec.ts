@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { API } from '../e2e/support/catalog-api';
 import { LABELS, mockDeskApi } from '../e2e/support/desk-api';
-import { EVIDENCE, recordEvidence, writeEvidenceText } from './support/evidence';
+import { EVIDENCE, EVIDENCE_ON, recordEvidence, writeEvidenceText } from './support/evidence';
 import { courierLabelPdf } from './support/label-pdf';
 
 /**
@@ -195,9 +195,11 @@ test('offline cold start: desk renders from cache with the banner; Mark Packed q
   await expect(banner).toContainText('Internet nahi hai. Packing chalti rahegi');
   await expect(page.locator('article[data-order]')).toHaveCount(3);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/3 pack karne hain/);
-  await page.screenshot({ path: `${EVIDENCE}desk-pwa-offline-coldstart-375-light.png`, fullPage: true });
+  if (EVIDENCE_ON)
+    await page.screenshot({ path: `${EVIDENCE}desk-pwa-offline-coldstart-375-light.png`, fullPage: true });
   await page.emulateMedia({ colorScheme: 'dark' });
-  await page.screenshot({ path: `${EVIDENCE}desk-pwa-offline-coldstart-375-dark.png`, fullPage: true });
+  if (EVIDENCE_ON)
+    await page.screenshot({ path: `${EVIDENCE}desk-pwa-offline-coldstart-375-dark.png`, fullPage: true });
   await page.emulateMedia({ colorScheme: 'light' });
 
   // Labels need the server → disabled with a "needs internet" note, not a failing tap
@@ -217,7 +219,8 @@ test('offline cold start: desk renders from cache with the banner; Mark Packed q
   expect(queued).toEqual([expect.objectContaining({ orderCode: 'PK-6AB19C', status: 'pending' })]);
   const key = queued[0]!.key;
   expect(api.markPacked).toHaveLength(0);
-  await page.screenshot({ path: `${EVIDENCE}desk-pwa-offline-sync-pending-375-light.png`, fullPage: true });
+  if (EVIDENCE_ON)
+    await page.screenshot({ path: `${EVIDENCE}desk-pwa-offline-sync-pending-375-light.png`, fullPage: true });
 
   // 4. Back online → exactly one successful POST, same Idempotency-Key, badge clears, live list
   net.down = false;

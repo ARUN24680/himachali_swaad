@@ -112,6 +112,7 @@
 | `PAID` | `REFUND_PENDING` | Cancel / late-payment stockout / RTO / damage claim |
 | `REFUND_PENDING` | `PARTIALLY_REFUNDED` / `REFUNDED` | Razorpay `refund.processed` webhook |
 | `REFUND_PENDING` | `PAID` | Refund failed permanently → `ops_issue` set, admin manual |
+| `PARTIALLY_REFUNDED` | `REFUND_PENDING` | Admin issues a further partial refund (Phase 9, D-56) |
 
 > Har payment attempt `payments` table me alag row (UPI fail → retry → success = 2 rows). Order par sirf summary `payment_status`.
 > COD (v2, D-25) aane par `COD_PENDING` → `COD_COLLECTED` add honge.

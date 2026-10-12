@@ -15,6 +15,9 @@ export interface GatewayPayment {
   method: string | null;
   errorCode: string | null;
   errorDescription: string | null;
+  /** Razorpay's fee + GST on it (paise) once captured — settlements (D-41). Optional: older/failed payments lack them. */
+  feePaise?: number | null;
+  taxPaise?: number | null;
 }
 
 export interface GatewayRefund {

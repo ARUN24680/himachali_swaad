@@ -287,7 +287,10 @@ test('customer session on the portal → "This portal is for staff"', async ({ p
 test('admin enables two-factor: QR → code → On', async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await mockApi(page, { signedIn: true });
+  // Phase 9: "/" is the dashboard (nudges to turn 2FA on); the card lives on /account
   await page.goto('/');
+  await page.getByRole('link', { name: 'Turn it on' }).click();
+  await expect(page).toHaveURL(/\/account$/);
   await expect(page.getByText('Off', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Set up two-factor' }).click();
   await expect(page.getByRole('img', { name: /QR code/ })).toBeVisible();

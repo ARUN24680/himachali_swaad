@@ -82,6 +82,7 @@ Partner computer par nahi, phone par kaam karega. Isliye Packing Queue ultra-sim
 ## 💰 Finance & Settlement Module (D-41)
 
 ### Formula (per order, GST-exclusive)
+> Implementation (Phase 9, D-56): `Revenue_ex_GST = (total − refunds) × (total − tax) / total` (refunds live inside revenue, not subtracted twice); `Partner Payout` also adds partner-paid expense reimbursement. Code: `apps/backend/src/modules/settlements/settlement-calc.ts`.
 ```text
 Net = Revenue_ex_GST
       − Raw_Cost          (Σ allocation qty × batch.cost_per_unit_paise)

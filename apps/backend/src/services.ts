@@ -21,6 +21,10 @@ import { createNotificationsService } from './modules/notifications/notification
 import { createMessagesService } from './modules/notifications/messages.service';
 import { createPartnerService } from './modules/partner/partner.service';
 import { createTrackingService } from './modules/tracking/tracking.service';
+import { createAdminService } from './modules/admin/admin.service';
+import { createExportsService } from './modules/admin/exports.service';
+import { createSettlementsService } from './modules/settlements/settlements.service';
+import { createUsersService } from './modules/users/users.service';
 import { createInvoiceService } from './modules/orders/invoice.service';
 import { createOrdersService } from './modules/orders/orders.service';
 import { createPaymentsService } from './modules/payments/payments.service';
@@ -143,6 +147,17 @@ export function createCommerceServices(d: CommerceDeps) {
     now: d.now,
   });
   const tracking = createTrackingService({ db: d.db, redis: d.redis, orders, logger: d.logger });
+  const admin = createAdminService({ db: d.db, redis: d.redis, jobs: d.jobs, settings, webhooks, logger: d.logger });
+  const exportsService = createExportsService({ db: d.db });
+  const settlements = createSettlementsService({
+    db: d.db,
+    settings,
+    gateway: d.gateway,
+    privateStorage: d.privateStorage,
+    jobs: d.jobs,
+    logger: d.logger,
+  });
+  const users = createUsersService({ db: d.db });
   return {
     settings,
     inventory,
@@ -159,6 +174,10 @@ export function createCommerceServices(d: CommerceDeps) {
     partner,
     tracking,
     messages,
+    admin,
+    exportsService,
+    settlements,
+    users,
   };
 }
 

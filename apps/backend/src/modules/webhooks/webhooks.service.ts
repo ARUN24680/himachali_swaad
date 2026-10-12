@@ -223,6 +223,41 @@ export function createWebhooksService(deps: {
       await repo.markWebhookProcessed(db, stored.id);
       return { status: outcome.kind === 'duplicate' ? 'duplicate' : 'processed' };
     },
+
+    /**
+     * Admin replay of a stored event (Phase 9 §9.11, POST /admin/webhooks/:id/replay). The
+     * signature was checked when it arrived; processing is idempotent (business guards), so
+     * re-running a half-processed or errored event is safe.
+     */
+    async replay(ev: { id: number; provider: string; payload: unknown }): Promise<WebhookResult> {
+      try {
+        if (ev.provider === 'RAZORPAY') {
+          const parsed = RazorpayEvent.parse(ev.payload);
+          const result = await route(parsed);
+          await repo.markWebhookProcessed(db, ev.id);
+          return { status: result };
+        }
+        const parsed = CourierTrackingEvent.parse(ev.payload);
+        const outcome = await logistics.processTracking({
+          awb: parsed.awb,
+          statusText: parsed.current_status,
+          statusId: parsed.shipment_status_id ?? parsed.current_status_id ?? null,
+          eventTime: parseShiprocketTime(parsed.current_timestamp) ?? now(),
+          location: parsed.scans?.at(-1)?.location ?? null,
+          source: 'WEBHOOK',
+          raw: ev.payload,
+        });
+        if (outcome.kind === 'unknown_awb') throw new AppError('NOT_FOUND', `UNKNOWN_AWB: ${parsed.awb}`);
+        await repo.markWebhookProcessed(db, ev.id);
+        return { status: outcome.kind === 'duplicate' ? 'duplicate' : 'processed' };
+      } catch (err) {
+        if (err instanceof AppError || err instanceof z.ZodError) {
+          await repo.markWebhookError(db, ev.id, `REPLAY ${(err as Error).message}`);
+          return { status: 'business_error' };
+        }
+        throw err;
+      }
+    },
   };
 }
 

@@ -175,9 +175,9 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | POST | `/partner/orders/:orderCode/mark-packed` | Header `Idempotency-Key` (uuid); body `{ checklist: { correctBatch, weighed, sealChecked, shrinkApplied, bubbleWrapped, labelApplied } }` (all `true`, D-54 a) → `{ orderCode, status, changed, pickupDate }`; `AWAITING_PACKING → PACKED`, `SHIPROCKET_SCHEDULE_PICKUP` enqueued (D-36). Already packed → 200 `changed: false`; cancelled → 409 `ORDER_CANCELLED` |
 | GET | `/partner/push-subscriptions` | → `{ vapidPublicKey \| null, subscribed }` (null = push not configured → WhatsApp alerts) |
 | POST / DELETE | `/partner/push-subscriptions` | `{ endpoint (https), keys: { p256dh, auth } }` → `201` save / `{ endpoint }` remove (PWA push, D-16) |
-| GET | `/partner/settlements` | Finalized/paid settlements, read-only (D-40) |
-| GET | `/partner/settlements/:id` | Statement + line items + expenses + signed PDF URL |
-| POST | `/partner/settlements/:id/acknowledge` | Sets `partner_acknowledged_at` |
+| GET | `/partner/settlements` | Finalized/paid settlements, read-only (D-40) — DRAFT never listed |
+| GET | `/partner/settlements/:id` | Statement + line items + expenses (DRAFT → 404); `GET …/:id/statement` → signed PDF URL |
+| POST | `/partner/settlements/:id/acknowledge` | Sets `partner_acknowledged_at` — once (second → 409) |
 
 ---
 
@@ -185,28 +185,32 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 
 | Area | Method & Path | Notes |
 | :--- | :--- | :--- |
-| Dashboard | `GET /admin/dashboard` | KPIs: to pack, in transit, revenue (paise), ops issues, low stock |
+| Dashboard | `GET /admin/dashboard` | `AdminDashboardResponse` (`packages/shared/src/contracts/admin.ts`): to pack, attention (ops_issue + NDR), in transit, revenue today / month (gross + ex-GST), sellable jars, batches expiring ≤ 30 d, 30-day series, revenue by product; Redis 60 s |
 | Products | `GET / POST /admin/products`, `GET / PATCH /admin/products/:id` | Full product fields (D-33 dims, `gstRateBp`, `shelfLifeDays`) |
 | | `POST /admin/products/:id/publish`, `POST /admin/products/:id/unpublish` | `is_active` toggle; publish needs `gstRateBp`, `shelfLifeDays`, `ingredients`, `packedWeightG`, `nutrition`, ≥ 1 image → else `422 VALIDATION_FAILED` + `details.missing` (D-49). SKU immutable. Every write → audit + storefront `revalidateTag('products')` |
 | | `POST /admin/uploads/product-image` | `{ productId, contentType: webp\|jpeg\|png, sizeBytes ≤ 5 MB }` → `{ key, uploadUrl, method: 'PUT', headers, publicUrl }`; key `products/<productId>/<uuid>.<ext>`, Content-Type + Content-Length signed. Then `PATCH images` |
-| Orders | `GET /admin/orders` | Query: `status[]`, `tab`, `q` (code/phone/AWB), `from`, `to`, `page`, `sort` |
-| | `GET /admin/orders/:orderCode` | Items, allocations (batches), payments, refunds, shipment, tracking, notifications, status log |
+| Orders | `GET /admin/orders` | Query: `tab` (all \| attention \| awaiting_packing \| in_transit \| ndr \| rto \| delivered \| cancelled), `status` (comma list), `q` (code / phone / AWB), `from`, `to` (IST days), `page`, `pageSize ≤ 100`, `sort` → `{ orders, page, pageSize, total, counts per tab }` |
+| | `GET /admin/orders/:orderCode` | `AdminOrderDetail`: items + allocations, timeline + status log, payments (fee), refunds + `refundablePaise`, shipment + tracking, notifications (masked), notes, allowed `actions` |
 | | `GET /admin/orders/:orderCode/label` | `{ url, expiresAt }` signed label URL, audited `LABEL_VIEW` (Phase 6) |
-| | `POST /admin/orders/:orderCode/cancel` | `{ reason }` → allowed per `07` §1.2; AWB cancel job + stock release + refund |
-| | `POST /admin/orders/:orderCode/refunds` | `{ amountPaise, reason }` → partial/full |
-| | `POST /admin/orders/:orderCode/notifications/resend` | `{ template }` |
-| | `POST /admin/orders/:orderCode/retry-shipment` | Re-enqueue `SHIPROCKET_CREATE_ORDER` (same jobId) |
-| | `POST /admin/orders/:orderCode/resolve-issue` | Clear `ops_issue` with note |
-| | `POST /admin/orders/:orderCode/notes` | Internal note |
-| Customers | `GET /admin/customers` | `?q`, orders count, LTV (paise) |
-| Settings | `GET /admin/settings`, `PATCH /admin/settings` | `{ key, value }`, Zod per key (incl. `min_courier_rating`, `max_courier_etd_days`, `shiprocket_wallet_min_paise`) |
-| Staff | `GET / POST /admin/staff`, `PATCH /admin/staff/:id` | Create partner/admin, assign pickup locations, deactivate |
-| Expenses | `GET / POST /admin/expenses`, `PATCH / DELETE /admin/expenses/:id` | Delete only if not in a finalized settlement |
-| Settlements | `POST /admin/settlements` | `{ periodStart, periodEnd }` → DRAFT computed (D-41) |
-| | `POST /admin/settlements/:id/finalize` | Locks numbers, generates PDF, notifies partner |
-| | `POST /admin/settlements/:id/mark-paid` | `{ bankReference, paidAt }` |
-| Exports | `GET /admin/exports/:type` | `type = orders \| gst \| inventory \| settlements` → streamed CSV |
-| Webhooks | `POST /admin/webhooks/:id/replay` | Re-process a stored `webhook_events` row |
+| | `POST /admin/orders/:orderCode/cancel` | `{ reason, refund }` → allowed per `07` §1.2 (else 409 `ILLEGAL_TRANSITION`); AWB cancel job + stock release + refund |
+| | `POST /admin/orders/:orderCode/refunds` | Header `Idempotency-Key`; `{ amountPaise ≤ refundable, reason: CUSTOMER_CANCEL\|DAMAGED\|RTO\|LOST\|GOODWILL, notes }` → partial / full; same key = same refund (D-56 f); > refundable → 400 |
+| | `POST /admin/orders/:orderCode/notifications/resend` | `{ template }` → `NOTIFY_RESEND` (bypasses dedup) |
+| | `POST /admin/orders/:orderCode/retry-shipment` | CONFIRMED + PAID without AWB → `SHIPROCKET_CREATE_ORDER` with a fresh job id (D-56 g) |
+| | `POST /admin/orders/:orderCode/resolve-issue` | `{ note }` → clears `ops_issue`, audit keeps the old text |
+| | `POST /admin/orders/:orderCode/notes` | `{ text }` → audit row `ORDER_NOTE` (shown in the detail) |
+| Customers | `GET /admin/customers`, `GET /admin/customers/:phone` | Grouped by phone (users + guests): orders, LTV, last order, RTO count / risk; detail = orders + saved addresses |
+| Inventory | `GET /admin/inventory/expiry-alerts` | Batches with stock whose sellable window (expiry − D-24 buffer) closes within 14 days |
+| Settings | `GET /admin/settings`, `PATCH /admin/settings` | `{ key, value }`, Zod per key (`SETTING_SCHEMAS`), audited `SETTING_UPDATE`; `editable` flag per row |
+| Staff | `GET / POST /admin/staff`, `PATCH /admin/staff/:id` | Create partner/admin (temp password, kitchens), edit, deactivate (revokes sessions), `forceLogout` |
+| Expenses | `GET / POST /admin/expenses`, `PATCH / DELETE /admin/expenses/:id` | Locked once in any settlement (409); `POST /admin/expenses/:id/receipt-upload` → presigned private PUT, `GET /admin/expenses/:id/receipt` → signed URL |
+| Settlements | `GET / POST /admin/settlements` | `{ periodStart, periodEnd, partnerSplitBp? }` → DRAFT (D-41, D-56) with warnings; same period twice → 409 |
+| | `GET /admin/settlements/:id`, `DELETE` (DRAFT only) | Detail: items, expenses, warnings, `canFinalize` |
+| | `POST /admin/settlements/:id/finalize` | Blocked while warnings exist (422); locks numbers, statement PDF, `settlement_ready` to partners |
+| | `POST /admin/settlements/:id/mark-paid` | `{ bankReference, paidAt }` (FINALIZED only) |
+| | `GET /admin/settlements/:id/statement` | `{ url, expiresAt }` signed PDF |
+| Exports | `GET /admin/exports/:type` | `type = orders \| gst \| inventory-ledger \| customers \| settlement` (`?from&to`, `?settlementId`) → CSV attachment, audited `EXPORT` |
+| Webhooks | `GET /admin/webhooks/failures`, `POST /admin/webhooks/:id/replay` | Stored events with `last_error`; replay re-runs the handler (idempotent), audited |
+| Audit log | `GET /admin/audit-log` | `?action&entityType&entityId&page` |
 | Queues | `/api/v1/admin/queues` | bull-board UI (ADMIN, `queues:view`) — Phase 5 |
 
 ---

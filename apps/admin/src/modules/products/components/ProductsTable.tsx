@@ -41,7 +41,7 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
           <li key={p.id}>
             <Link
               to={`/products/${p.id}`}
-              className="flex items-center gap-3 px-4 py-3.5 outline-none hover:bg-accent/50 focus-visible:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+              className="flex items-center gap-3 px-5 py-3.5 outline-none hover:bg-accent/50 focus-visible:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
             >
               <ProductThumb product={p} className="size-14" />
               <div className="grid min-w-0 flex-1 gap-1">
@@ -75,7 +75,11 @@ export function ProductsTable({ products }: { products: AdminProduct[] }) {
         ))}
       </ul>
 
-      <Table aria-label="Products" containerClassName="hidden lg:block">
+      <Table
+        aria-label="Products"
+        containerClassName="hidden lg:block"
+        className="[&_td:first-child]:pl-5 [&_td:last-child]:pr-5 [&_th:first-child]:pl-5 [&_th:last-child]:pr-5"
+      >
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead>Product</TableHead>

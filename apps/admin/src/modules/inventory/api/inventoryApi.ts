@@ -5,6 +5,7 @@ import type {
   BatchListQuery,
   BatchListResponse,
   BatchProductOption,
+  ExpiryAlertsResponse,
   Movement,
   PickupLocationSummary,
 } from '@pk/shared';
@@ -34,6 +35,8 @@ export const inventoryApi = {
     http<BatchEnvelope>(`/batches/${id}`, { method: 'PATCH', body: { notes } }),
   adjust: (id: string, body: AdjustmentRequest) =>
     http<BatchEnvelope>(`/batches/${id}/adjustments`, { method: 'POST', body }),
+  /** ADMIN only (Phase 9 §9.6): sellable window ends within 14 days. */
+  expiryAlerts: (signal?: AbortSignal) => http<ExpiryAlertsResponse>('/admin/inventory/expiry-alerts', { signal }),
   movements: (id: string, signal?: AbortSignal) =>
     http<{ movements: Movement[] }>(`/batches/${id}/movements`, { signal }),
 };

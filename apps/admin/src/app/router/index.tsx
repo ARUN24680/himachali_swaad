@@ -1,5 +1,5 @@
 import { can, rolesFor, type Role } from '@pk/shared';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { FullPageLoading } from '@/components/common/FullPageStatus';
 import { NoAccess } from '@/components/common/NoAccess';
@@ -10,12 +10,29 @@ import { useMe } from '@/hooks/useMe';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { PartnerLayout } from '@/layouts/PartnerLayout';
 import { NotStaffNotice } from '@/modules/auth';
-import { BatchesListPage } from '@/modules/inventory';
-import { BatchLoggerPage, DeskSettingsPage, HisaabPage, PackingQueuePage, PackOrderPage } from '@/modules/packing-desk';
+import { AuditLogPage } from '@/modules/audit-log';
+import { CustomerDetailPage, CustomersListPage } from '@/modules/customers';
+import { DashboardPage } from '@/modules/dashboard';
+import { ExpensesListPage } from '@/modules/expenses';
+import { ExportsPage } from '@/modules/exports';
+import { BatchesListPage, StockLedgerPage } from '@/modules/inventory';
+import { OrdersListPage } from '@/modules/orders';
+import {
+  BatchLoggerPage,
+  DeskSettingsPage,
+  HisaabDetailPage,
+  HisaabPage,
+  PackingQueuePage,
+  PackOrderPage,
+} from '@/modules/packing-desk';
 import { ProductEditorPage, ProductsListPage } from '@/modules/products';
+import { OpsPage } from '@/modules/queues';
+import { SettingsPage } from '@/modules/settings';
+import { SettlementDetailPage, SettlementsListPage } from '@/modules/settlements';
+import { StaffListPage } from '@/modules/staff';
 
 const LoginPage = lazy(() => import('@/modules/auth/pages/LoginPage'));
-const HomePage = lazy(() => import('@/modules/home/pages/HomePage'));
+const AccountPage = lazy(() => import('@/modules/home/pages/AccountPage'));
 // Dev-only design-token preview (Phase 1 §1.9) — never shipped in production builds
 const TokensPage = import.meta.env.DEV ? lazy(() => import('@/modules/dev-tools/pages/TokensPage')) : null;
 
@@ -29,12 +46,18 @@ function PublicRoute() {
   );
 }
 
-/** Start page per role: ADMIN → overview; KITCHEN_PARTNER → the Packing Desk PWA (Phase 7). */
+/** Start page per role: ADMIN → dashboard (Phase 9 §9.2); KITCHEN_PARTNER → the Packing Desk PWA (Phase 7). */
 function IndexRoute() {
   const me = useMe();
   if (!me.data) return null;
-  return can(me.data.user.role, 'dashboard:revenue') ? <HomePage /> : <Navigate to="/desk" replace />;
+  return can(me.data.user.role, 'dashboard:revenue') ? <DashboardPage /> : <Navigate to="/desk" replace />;
 }
+
+/** ADMIN-only branch of the route table, gated by one capability (UX only — the API enforces). */
+const gated = (capability: Parameters<typeof rolesFor>[0], children: { path: string; element: ReactNode }[]) => ({
+  element: <RoleGuard roles={rolesFor(capability)} fallback={<NoAccess />} />,
+  children,
+});
 
 export const router = createBrowserRouter([
   {
@@ -63,6 +86,7 @@ export const router = createBrowserRouter([
                   { path: 'pack/:orderCode', element: <PackOrderPage /> },
                   { path: 'batches', element: <BatchLoggerPage /> },
                   { path: 'hisaab', element: <HisaabPage /> },
+                  { path: 'hisaab/:settlementId', element: <HisaabDetailPage /> },
                   { path: 'settings', element: <DeskSettingsPage /> },
                   { path: '*', element: <NotFound /> },
                 ],
@@ -83,8 +107,34 @@ export const router = createBrowserRouter([
               },
               {
                 element: <RoleGuard roles={rolesFor('batches:manage')} fallback={<NoAccess />} />,
-                children: [{ path: 'batches', element: <BatchesListPage /> }],
+                children: [
+                  { path: 'batches', element: <BatchesListPage /> },
+                  { path: 'batches/:batchId/ledger', element: <StockLedgerPage /> },
+                ],
               },
+              { path: 'account', element: <AccountPage /> },
+              // ── Phase 9 admin console ──
+              gated('orders:all', [
+                { path: 'orders', element: <OrdersListPage /> },
+                { path: 'orders/:orderCode', element: <OrdersListPage /> },
+                { path: 'ops-issues', element: <Navigate to="/orders?tab=attention" replace /> },
+                { path: 'exports', element: <ExportsPage /> },
+              ]),
+              gated('customers:read', [
+                { path: 'customers', element: <CustomersListPage /> },
+                { path: 'customers/:phone', element: <CustomerDetailPage /> },
+              ]),
+              gated('settlements:manage', [
+                { path: 'settlements', element: <SettlementsListPage /> },
+                { path: 'settlements/:settlementId', element: <SettlementDetailPage /> },
+                { path: 'expenses', element: <ExpensesListPage /> },
+              ]),
+              gated('settings:manage', [
+                { path: 'settings', element: <SettingsPage /> },
+                { path: 'staff', element: <StaffListPage /> },
+                { path: 'audit-log', element: <AuditLogPage /> },
+              ]),
+              gated('queues:view', [{ path: 'ops', element: <OpsPage /> }]),
               { path: '*', element: <NotFound /> },
             ],
           },

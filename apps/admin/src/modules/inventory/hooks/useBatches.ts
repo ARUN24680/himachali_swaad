@@ -68,3 +68,11 @@ export function useUpdateBatchNotes(batchId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['batches', 'list'] }),
   });
 }
+
+export function useExpiryAlerts(enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.batches.expiryAlerts,
+    queryFn: ({ signal }) => inventoryApi.expiryAlerts(signal).then((r) => r.batches),
+    enabled,
+  });
+}

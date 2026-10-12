@@ -73,7 +73,7 @@ export function ListSkeleton({ rows = 4, label = 'Loading' }: { rows?: number; l
   return (
     <div role="status" aria-label={label} className="divide-y divide-border">
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="flex items-center gap-4 px-4 py-4">
+        <div key={i} className="flex items-center gap-4 px-5 py-4">
           <Skeleton className="size-12 shrink-0 rounded-md" />
           <div className="grid flex-1 gap-2">
             <Skeleton className="h-4 w-2/5" />

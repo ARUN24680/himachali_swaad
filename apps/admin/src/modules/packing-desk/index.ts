@@ -8,6 +8,7 @@ export const PackingQueuePage = lazy(() => import('./pages/PackingQueuePage'));
 export const PackOrderPage = lazy(() => import('./pages/PackOrderPage'));
 export const BatchLoggerPage = lazy(() => import('./pages/BatchLoggerPage'));
 export const HisaabPage = lazy(() => import('./pages/HisaabPage'));
+export const HisaabDetailPage = lazy(() => import('./pages/HisaabDetailPage'));
 export const DeskSettingsPage = lazy(() => import('./pages/DeskSettingsPage'));
 
 export { InstallBanner, OfflineBanner, SyncBadge, UpdatePrompt } from './components/DeskChrome';

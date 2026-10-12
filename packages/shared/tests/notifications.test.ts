@@ -13,11 +13,14 @@ describe('template registry (Phase 8 §8.5)', () => {
       }
     }
   });
-  it('critical = confirmed / OFD / failed attempt / cancelled / refund; quiet hours only for the digest', () => {
+  it('critical = confirmed / OFD / failed attempt / cancelled / refund; quiet hours for digest + settlement', () => {
     expect(TEMPLATE_NAMES.filter((n) => TEMPLATES[n].critical).sort()).toEqual(
       ['delivery_attempt_failed', 'order_cancelled', 'order_confirmed', 'out_for_delivery', 'refund_processed'].sort(),
     );
-    expect(TEMPLATE_NAMES.filter((n) => TEMPLATES[n].quietHours)).toEqual(['packing_digest']);
+    expect(TEMPLATE_NAMES.filter((n) => TEMPLATES[n].quietHours).sort()).toEqual([
+      'packing_digest',
+      'settlement_ready',
+    ]);
   });
   it('renders variables, leaves unknown placeholders visible', () => {
     expect(renderTemplate('delivered_storage_tip', 'hi', { order_code: 'PK-7KQ2M9' })).toBe(

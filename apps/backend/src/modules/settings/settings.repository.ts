@@ -17,3 +17,15 @@ export async function listSettings(db: Queryable) {
     updatedAt: r.updated_at.toISOString(),
   }));
 }
+
+/** Returns the previous value (undefined when the key doesn't exist). */
+export async function updateSettingValue(db: Queryable, key: string, value: unknown, by: string): Promise<unknown> {
+  const before = await db.query<{ value: unknown }>('SELECT value FROM settings WHERE key = $1 FOR UPDATE', [key]);
+  if (before.rows.length === 0) return undefined;
+  await db.query('UPDATE settings SET value = $2::jsonb, updated_by = $3 WHERE key = $1', [
+    key,
+    JSON.stringify(value),
+    by,
+  ]);
+  return before.rows[0]!.value;
+}

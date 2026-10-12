@@ -1,0 +1,22 @@
+$ pnpm --filter @pk/database db:up
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema up
+Applying: 0006_settlements.sql
+Applied: 0006_settlements.sql in 39.077333ms
+$ pnpm --filter @pk/database db:down
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema down
+Rolling back: 0006_settlements.sql
+Rolled back: 0006_settlements.sql in 19.954042ms
+$ pnpm --filter @pk/database db:up
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema up
+Applying: 0006_settlements.sql
+Applied: 0006_settlements.sql in 20.81075ms
+$ pnpm --filter @pk/database db:status
+$ dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema status
+[X] 0001_foundation.sql
+[X] 0002_catalog_inventory.sql
+[X] 0003_orders_payments.sql
+[X] 0004_logistics.sql
+[X] 0005_notifications.sql
+[X] 0006_settlements.sql
+Applied: 6
+Pending: 0

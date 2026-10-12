@@ -188,7 +188,7 @@ export function createMessagesService(deps: {
     async notifyCustomer(
       orderId: string,
       template: TemplateName,
-      opts: { finalAttempt?: boolean } = {},
+      opts: { finalAttempt?: boolean; force?: boolean } = {},
     ): Promise<DeliveryOutcome> {
       const order = await orderStore.findById(db, orderId);
       if (!order) return { kind: 'skipped', reason: 'NOT_APPLICABLE' };
@@ -201,6 +201,7 @@ export function createMessagesService(deps: {
         language: config.customerLanguage,
         whatsappAllowed: order.whatsapp_opt_in,
         finalAttempt: opts.finalAttempt,
+        dedup: !opts.force,
       });
     },
 

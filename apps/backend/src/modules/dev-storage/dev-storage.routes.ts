@@ -2,10 +2,21 @@ import { IMAGE_CONTENT_TYPES, MAX_IMAGE_BYTES } from '@pk/shared';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { LOCAL_ASSET_PATH, LOCAL_UPLOAD_PATH, type LocalDiskStorage } from '../../integrations/storage/local-disk';
-import { LOCAL_PRIVATE_PATH, type LocalPrivateStorage } from '../../integrations/storage/private';
+import {
+  LOCAL_PRIVATE_PATH,
+  LOCAL_PRIVATE_UPLOAD_PATH,
+  type LocalPrivateStorage,
+} from '../../integrations/storage/private';
 import { AppError } from '../../utils/app-error';
 
 const CONTENT_TYPE_BY_EXT: Record<string, string> = { webp: 'image/webp', jpg: 'image/jpeg', png: 'image/png' };
+const PRIVATE_TYPE_BY_EXT: Record<string, string> = {
+  pdf: 'application/pdf',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+};
 
 /**
  * Development-only stand-in for the R2 upload + CDN endpoints (registered only when
@@ -58,9 +69,28 @@ export const devStorageRoutes: FastifyPluginAsyncZod<{
         const file = await privateStorage.readSigned(key, request.query.exp, request.query.sig);
         if (!file) throw new AppError('FORBIDDEN', 'This link is invalid or has expired.');
         return reply
-          .header('content-type', key.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream')
+          .header('content-type', PRIVATE_TYPE_BY_EXT[key.split('.').pop() ?? ''] ?? 'application/octet-stream')
           .header('cache-control', 'private, no-store')
           .send(file);
+      },
+    );
+
+    // Local twin of an R2 presigned PUT for private files (expense receipts, Phase 9)
+    app.addContentTypeParser('application/pdf', { parseAs: 'buffer', bodyLimit: MAX_IMAGE_BYTES }, (_req, body, done) =>
+      done(null, body),
+    );
+    app.put(
+      LOCAL_PRIVATE_UPLOAD_PATH,
+      { schema: { querystring: z.object({ token: z.string().min(1) }) } },
+      async (request, reply) => {
+        const claims = privateStorage.verifyUpload(request.query.token);
+        if (!claims) throw new AppError('FORBIDDEN', 'Upload link is invalid or expired.');
+        const body = request.body as Buffer;
+        if (request.headers['content-type'] !== claims.contentType || body.length !== claims.sizeBytes) {
+          throw new AppError('FORBIDDEN', 'File does not match the upload link.');
+        }
+        await privateStorage.put(claims.key, body, claims.contentType);
+        return reply.status(200).send();
       },
     );
   }

@@ -16,6 +16,7 @@ import {
 } from '@pk/ui';
 import { History, Loader2, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { ErrorState } from '@/components/common/StateBlocks';
 import { formatCalendarDate, formatDateTime } from '@/lib/dates';
 import { toast } from '@/store/toast.store';
@@ -173,6 +174,12 @@ export function MovementsSheet({
               </section>
             </SheetBody>
             <SheetFooter>
+              <Button asChild variant="ghost">
+                <Link to={`/batches/${batch.id}/ledger`}>
+                  <History aria-hidden="true" />
+                  Full ledger
+                </Link>
+              </Button>
               <Button variant="outline" onClick={() => onAdjust(batch)}>
                 <SlidersHorizontal aria-hidden="true" />
                 Adjust stock

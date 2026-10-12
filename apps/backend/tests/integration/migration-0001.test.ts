@@ -10,9 +10,9 @@ afterAll(() => t.destroy());
 
 describe('migration 0001_foundation', () => {
   it('seeds the default settings', async () => {
-    // The template DB has every migration applied; 0003 adds seller_details
+    // The template DB has every migration applied; 0003 adds seller_details, 0006 partner_split_bp
     const { rows } = await t.db.query<{ key: string; value: unknown }>(
-      "SELECT key, value FROM settings WHERE key <> 'seller_details' ORDER BY key",
+      "SELECT key, value FROM settings WHERE key NOT IN ('seller_details', 'partner_split_bp') ORDER BY key",
     );
     const settings = Object.fromEntries(rows.map((r) => [r.key, r.value]));
     expect(rows).toHaveLength(14);

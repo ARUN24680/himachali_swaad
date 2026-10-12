@@ -53,7 +53,7 @@ export function BatchesTable({ batches, showKitchen, onLedger, onAdjust }: Props
     <>
       <ul className="divide-y divide-border lg:hidden">
         {batches.map((b) => (
-          <li key={b.id} className="grid gap-3 px-4 py-4">
+          <li key={b.id} className="grid gap-3 px-5 py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="grid min-w-0 gap-1">
                 <Badge tone="batch" className="w-fit">
@@ -90,7 +90,11 @@ export function BatchesTable({ batches, showKitchen, onLedger, onAdjust }: Props
         ))}
       </ul>
 
-      <Table aria-label="Batches, oldest expiry first" containerClassName="hidden lg:block">
+      <Table
+        aria-label="Batches, oldest expiry first"
+        containerClassName="hidden lg:block"
+        className="[&_td:first-child]:pl-5 [&_td:last-child]:pr-5 [&_th:first-child]:pl-5 [&_th:last-child]:pr-5"
+      >
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead>Batch</TableHead>

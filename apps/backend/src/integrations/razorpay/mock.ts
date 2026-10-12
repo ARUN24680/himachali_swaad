@@ -89,14 +89,18 @@ export function createMockGateway(cfg: { redis: Redis; keySecret: string; webhoo
       const raw = await redis.get(k.order(orderId));
       if (!raw) throw new Error(`mock order ${orderId} not found`);
       const order = JSON.parse(raw) as { amountPaise: number };
+      const amount = amountPaise ?? order.amountPaise;
       const p: GatewayPayment = {
         id: id('pay'),
         orderId,
-        amountPaise: amountPaise ?? order.amountPaise,
+        amountPaise: amount,
         status: outcome === 'success' ? 'captured' : 'failed',
         method: 'upi',
         errorCode: outcome === 'success' ? null : 'BAD_REQUEST_ERROR',
         errorDescription: outcome === 'success' ? null : 'Payment was declined (mock)',
+        // Razorpay standard pricing stand-in: 2 % fee + 18 % GST on the fee (D-41 worked example)
+        feePaise: outcome === 'success' ? Math.round(amount * 0.02) : null,
+        taxPaise: outcome === 'success' ? Math.round(Math.round(amount * 0.02) * 0.18) : null,
       };
       await savePayment(p);
       await redis.rpush(k.payments(orderId), p.id);

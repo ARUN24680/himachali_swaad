@@ -47,6 +47,7 @@ describe('order transitions (architecture/07 §1.2)', () => {
       'REFUND_PENDING->PAID',
       'REFUND_PENDING->PARTIALLY_REFUNDED',
       'REFUND_PENDING->REFUNDED',
+      'PARTIALLY_REFUNDED->REFUND_PENDING', // a further admin partial refund (D-56)
     ]);
   });
 });
