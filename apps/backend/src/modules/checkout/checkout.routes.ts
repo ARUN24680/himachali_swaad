@@ -12,16 +12,17 @@ import { ok } from '../../utils/response';
 import type { CheckoutService } from './checkout.service';
 
 /** /api/v1/checkout — guest or CUSTOMER (D-18). 10 / 10 min per IP here; 5 / 10 min per phone in the service. */
-export const checkoutRoutes: FastifyPluginAsyncZod<{ service: CheckoutService; guards: AuthGuards }> = async (
-  app,
-  { service, guards },
-) => {
+export const checkoutRoutes: FastifyPluginAsyncZod<{
+  service: CheckoutService;
+  guards: AuthGuards;
+  ipLimit: number;
+}> = async (app, { service, guards, ipLimit }) => {
   app.post(
     '/create-order',
     {
       schema: { body: CreateOrderRequestSchema, headers: CheckoutHeadersSchema },
       preHandler: guards.optionalAuth,
-      config: { rateLimit: { max: 10, timeWindow: 600_000 } },
+      config: { rateLimit: { max: ipLimit, timeWindow: 600_000 } },
     },
     async (request: FastifyRequest<{ Body: CreateOrderRequest }>, reply: FastifyReply) => {
       const data = await service.createOrder(request.body, {

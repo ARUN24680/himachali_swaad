@@ -60,6 +60,9 @@ const EnvSchema = z.object({
   R2_PRIVATE_BUCKET: z.preprocess(emptyToUndefined, z.string().optional()),
   LOCAL_PRIVATE_UPLOADS_DIR: z.string().min(1).default('.uploads-private'),
 
+  /** create-order calls per IP per 10 min (architecture/02 §9 = 10). Raised only for CI e2e, never above 100. */
+  CHECKOUT_IP_LIMIT: z.coerce.number().int().min(1).max(100).default(10),
+
   /** Payments (Phase 5): `mock` = dev/CI stand-in (refused in production), `razorpay` = real API. */
   PAYMENT_GATEWAY: z.enum(['mock', 'razorpay']).default('mock'),
   RAZORPAY_KEY_ID: z.preprocess(
@@ -115,6 +118,9 @@ const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
       path: ['R2_PRIVATE_BUCKET'],
       message: 'R2_PRIVATE_BUCKET is required for r2 (invoices)',
     });
+  }
+  if (env.NODE_ENV === 'production' && env.CHECKOUT_IP_LIMIT !== 10) {
+    ctx.addIssue({ code: 'custom', path: ['CHECKOUT_IP_LIMIT'], message: 'CHECKOUT_IP_LIMIT is a test-only override' });
   }
   if (env.NODE_ENV === 'production' && env.PAYMENT_GATEWAY === 'mock') {
     ctx.addIssue({

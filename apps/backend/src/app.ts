@@ -85,6 +85,8 @@ export interface AppDeps {
   allowDraftInvoice?: boolean;
   trustProxy?: boolean;
   rateLimit?: { max: number; windowMs: number };
+  /** create-order per IP per 10 min (default 10; CI e2e raises it). */
+  checkoutIpLimit?: number;
 }
 
 /** Builds the Fastify app without listening — used by server.ts and by integration tests (`app.inject`). */
@@ -183,7 +185,12 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(inventoryRoutes, { prefix: '/api/v1/batches', service: inventoryService, guards });
 
   // ── Phase 5: checkout, payments, orders ─────────────────────────────────
-  await app.register(checkoutRoutes, { prefix: '/api/v1/checkout', service: svc.checkout, guards });
+  await app.register(checkoutRoutes, {
+    prefix: '/api/v1/checkout',
+    service: svc.checkout,
+    guards,
+    ipLimit: deps.checkoutIpLimit ?? 10,
+  });
   await app.register(paymentsRoutes, { prefix: '/api/v1/payments', service: svc.payments });
   await app.register(orderRoutes, { prefix: '/api/v1/orders', service: svc.orders, guards });
   await app.register(adminOrderRoutes, { prefix: '/api/v1/admin/orders', service: svc.orders, guards });
