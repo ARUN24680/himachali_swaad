@@ -32,6 +32,12 @@ import { OrderHero, OrderItemsCard, StepList } from './OrderParts';
 import { PhoneGate } from './PhoneGate';
 import { PurchaseTracker } from './PurchaseTracker';
 
+/** Stock-hold length for this order (reservation_ttl_minutes at checkout), from createdAt → reservationExpiresAt. */
+function holdMinutesOf(order: { createdAt: string; reservationExpiresAt: string }): number | null {
+  const minutes = Math.round((Date.parse(order.reservationExpiresAt) - Date.parse(order.createdAt)) / 60_000);
+  return Number.isFinite(minutes) && minutes >= 1 && minutes <= 120 ? minutes : null;
+}
+
 /**
  * /order/[orderCode] (Phase 5 §5.11). Reads the checkout phone from this tab's session storage, so it
  * renders a skeleton until hydrated (no SSR/client mismatch), then polls the status endpoint.
@@ -212,12 +218,13 @@ function OrderBody({
 
   // ── Expired: never paid in time ────────────────────────────────────
   if (order.status === 'EXPIRED') {
+    const hold = holdMinutesOf(order);
     return (
       <Layout order={order}>
         <OrderHero order={order} icon={<Clock />} title="Payment window ended — jars released">
           <p data-testid="order-expired">
-            We held your jars for 15 minutes but the payment didn&rsquo;t come through, so they went back on the shelf.
-            Nothing was charged.
+            {hold ? `We held your jars for ${hold} minutes` : 'We held your jars for a while'} but the payment
+            didn&rsquo;t come through, so they went back on the shelf. Nothing was charged.
           </p>
           <p className="text-sm">
             Paid just now? If the bank confirms it, we&rsquo;ll still fulfil the order if jars are left — otherwise you

@@ -16,6 +16,7 @@ import { DashboardPage } from '@/modules/dashboard';
 import { ExpensesListPage } from '@/modules/expenses';
 import { ExportsPage } from '@/modules/exports';
 import { BatchesListPage, StockLedgerPage } from '@/modules/inventory';
+import { KitchensPage } from '@/modules/kitchens';
 import { OrdersListPage } from '@/modules/orders';
 import {
   BatchLoggerPage,
@@ -132,6 +133,7 @@ export const router = createBrowserRouter([
               gated('settings:manage', [
                 { path: 'settings', element: <SettingsPage /> },
                 { path: 'staff', element: <StaffListPage /> },
+                { path: 'kitchens', element: <KitchensPage /> },
                 { path: 'audit-log', element: <AuditLogPage /> },
               ]),
               gated('queues:view', [{ path: 'ops', element: <OpsPage /> }]),

@@ -17,6 +17,9 @@ import {
   ExpensesResponseSchema,
   ExpenseUpdateRequestSchema,
   ExpiryAlertsResponseSchema,
+  KitchenCreateRequestSchema,
+  KitchenRowSchema,
+  KitchenUpdateRequestSchema,
   MarkPaidRequestSchema,
   ReceiptUploadRequestSchema,
   ResendNotificationRequestSchema,
@@ -26,7 +29,9 @@ import {
   SettlementDetailSchema,
   SettlementGenerateRequestSchema,
   SettlementSummarySchema,
+  ChangePasswordRequestSchema,
   StaffCreateRequestSchema,
+  StaffResetPasswordRequestSchema,
   StaffRowSchema,
   StaffUpdateRequestSchema,
   WebhookFailuresResponseSchema,
@@ -36,6 +41,7 @@ import {
   type AdminOrderRow,
   type AdminOrderTab,
   type ExpenseRow,
+  type KitchenRow,
   type OrderStatus,
   type SettlementDetail,
   type SettlementSummary,
@@ -473,6 +479,33 @@ export async function installAdminRoutes(
     }),
   ];
 
+  // Kitchens (pickup locations). KULLU-01 = the catalog mock's kitchen (uuid 500), linked to Shiprocket.
+  const kitchens: Omit<KitchenRow, 'partnerCount'>[] = [
+    {
+      id: uuid(500),
+      code: 'KULLU-01',
+      name: 'Kullu Kitchen',
+      contactName: 'Ramesh Thakur',
+      contactPhone: '+919876503210',
+      addressLine1: 'Near Dhalpur ground, Akhara Bazar',
+      addressLine2: null,
+      city: 'Kullu',
+      state: 'Himachal Pradesh',
+      pincode: '175101',
+      shiprocketPickupName: 'Kullu Kitchen',
+      fssaiLicenseNo: '12345678901234',
+      isActive: true,
+    },
+  ];
+  const kitchenRow = (k: Omit<KitchenRow, 'partnerCount'>): KitchenRow =>
+    KitchenRowSchema.parse({
+      ...k,
+      partnerCount: staff.filter((s) => s.role === 'KITCHEN_PARTNER' && s.pickupLocationIds.includes(k.id)).length,
+    });
+  /** Wrong-current-password probe for POST /auth/staff/change-password. */
+  const CURRENT_PASSWORD = 'mountain-pickle-2026';
+  const passwordResets: { id: string; password: string }[] = [];
+
   const expense = (n: number, p: Partial<ExpenseRow>): ExpenseRow =>
     ExpenseRowSchema.parse({
       id: uuid(600 + n),
@@ -755,6 +788,24 @@ export async function installAdminRoutes(
     const invoice = /^\/orders\/(PK-[0-9A-Z]{6})\/invoice$/.exec(path);
     if (invoice) return ok(route, signed(`invoice-${invoice[1]}.pdf`));
 
+    // ── Own password (staff, any role) ──
+    if (path === '/auth/staff/change-password' && method === 'POST') {
+      const p = ChangePasswordRequestSchema.safeParse(body);
+      if (!p.success) return fail(route, 400, 'VALIDATION_ERROR', p.error.issues[0]?.message ?? 'Invalid');
+      if (p.data.currentPassword !== CURRENT_PASSWORD)
+        return fail(route, 401, 'UNAUTHENTICATED', 'Your current password is incorrect.');
+      return ok(route, {
+        user: {
+          id: '6c2b1f4e-8a3d-4b7c-9e1f-2a3b4c5d6e7f',
+          role: role,
+          fullName: 'Asha Negi',
+          phoneMasked: null,
+          email: 'asha@pahadikhatki.in',
+          totpEnabled: true,
+        },
+      });
+    }
+
     if (!path.startsWith('/admin/') || path.startsWith('/admin/products') || path.startsWith('/admin/uploads'))
       return route.fallback();
     if (role !== 'ADMIN') return fail(route, 403, 'FORBIDDEN', 'Admins only');
@@ -820,8 +871,14 @@ export async function installAdminRoutes(
         if (!p.success) return fail(route, 400, 'VALIDATION_ERROR', 'Invalid cancel');
         if (!canTransition(o.row.status as OrderStatus, 'CANCELLED', 'ADMIN'))
           return fail(route, 409, 'INVALID_STATE', 'Can’t cancel now');
+        // Same rule as orders.service cancel(): PAID needs the refund; only PAID gets one
+        const wasPaid = o.row.paymentStatus === 'PAID';
+        if (wasPaid && !p.data.refund)
+          return fail(route, 422, 'VALIDATION_FAILED', 'A paid order must be refunded when cancelled.', {
+            field: 'refund',
+          });
         o.row.status = 'CANCELLED';
-        if (p.data.refund) {
+        if (wasPaid) {
           o.refunds.push({
             id: uuid(nextId++),
             amountPaise: o.row.totalPaise - refundedSoFar(o),
@@ -990,6 +1047,52 @@ export async function installAdminRoutes(
       const { forceLogout: _f, ...rest } = p.data;
       Object.assign(s, rest);
       return ok(route, { staff: s });
+    }
+
+    const rp = /^\/admin\/staff\/([0-9a-f-]{36})\/reset-password$/.exec(path);
+    if (rp && method === 'POST') {
+      const p = StaffResetPasswordRequestSchema.safeParse(body);
+      if (!p.success) return fail(route, 400, 'VALIDATION_ERROR', 'Request validation failed');
+      if (rp[1] === '6c2b1f4e-8a3d-4b7c-9e1f-2a3b4c5d6e7f')
+        return fail(route, 400, 'VALIDATION_ERROR', 'Change your own password from the Account page.');
+      if (!staff.some((x) => x.id === rp[1])) return fail(route, 404, 'NOT_FOUND', 'Staff member not found.');
+      passwordResets.push({ id: rp[1]!, password: p.data.password });
+      return ok(route, { revokedSessions: 2 });
+    }
+
+    // ── Kitchens (pickup locations) ──
+    if (path === '/admin/kitchens' && method === 'GET') return ok(route, { kitchens: kitchens.map(kitchenRow) });
+    if (path === '/admin/kitchens' && method === 'POST') {
+      const p = KitchenCreateRequestSchema.safeParse(body);
+      if (!p.success)
+        return fail(route, 400, 'VALIDATION_ERROR', 'Request validation failed', {
+          issues: p.error.issues.map((i) => ({ path: `/${i.path.join('/')}`, message: i.message })),
+        });
+      const clash = kitchens.some(
+        (k) =>
+          k.code === p.data.code ||
+          (p.data.shiprocketPickupName !== null && k.shiprocketPickupName === p.data.shiprocketPickupName),
+      );
+      if (clash)
+        return fail(route, 409, 'DUPLICATE', 'A kitchen with this code or Shiprocket pickup name already exists.');
+      const k = { id: uuid(nextId++), ...p.data, isActive: true };
+      kitchens.push(k);
+      return ok(route, kitchenRow(k), 201);
+    }
+    const km = /^\/admin\/kitchens\/([0-9a-f-]{36})$/.exec(path);
+    if (km && method === 'PATCH') {
+      const k = kitchens.find((x) => x.id === km[1]);
+      if (!k) return fail(route, 404, 'NOT_FOUND', 'Kitchen not found.');
+      const p = KitchenUpdateRequestSchema.safeParse(body);
+      if (!p.success)
+        return fail(route, 400, 'VALIDATION_ERROR', 'Request validation failed', {
+          issues: p.error.issues.map((i) => ({ path: `/${i.path.join('/')}`, message: i.message })),
+        });
+      const name = p.data.shiprocketPickupName;
+      if (name && kitchens.some((x) => x.id !== k.id && x.shiprocketPickupName === name))
+        return fail(route, 409, 'DUPLICATE', 'Another kitchen already uses this Shiprocket pickup name.');
+      Object.assign(k, p.data);
+      return ok(route, kitchenRow(k));
     }
 
     // ── Expenses ──
@@ -1190,6 +1293,9 @@ export async function installAdminRoutes(
     settlements,
     expenses,
     staff,
+    kitchens,
+    passwordResets,
+    CURRENT_PASSWORD,
     bodies,
     resolveMissingData: () => {
       missingData = false;

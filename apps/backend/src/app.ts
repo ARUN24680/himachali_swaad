@@ -48,7 +48,7 @@ import { labelRoutes } from './modules/logistics/logistics.routes';
 import { myOrdersRoutes, trackRoutes } from './modules/tracking/tracking.routes';
 import { adminRoutes } from './modules/admin/admin.routes';
 import { adminSettlementRoutes, partnerSettlementRoutes } from './modules/settlements/settlements.routes';
-import { staffRoutes } from './modules/users/users.routes';
+import { kitchenRoutes, staffRoutes } from './modules/users/users.routes';
 import { whatsappWebhookRoutes } from './modules/notifications/whatsapp-webhook.routes';
 import { devMessageRoutes } from './modules/dev-messages/dev-messages.routes';
 import type { MockMessageProvider } from './integrations/messaging/mock';
@@ -263,6 +263,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(adminSettlementRoutes, { prefix: '/api/v1/admin', service: svc.settlements, guards });
   await app.register(partnerSettlementRoutes, { prefix: '/api/v1/partner', service: svc.settlements, guards });
   await app.register(staffRoutes, { prefix: '/api/v1/admin/staff', service: svc.users, guards });
+  await app.register(kitchenRoutes, { prefix: '/api/v1/admin/kitchens', service: svc.users, guards });
 
   // ── Phase 8: tracking ───────────────────────────────────────────────────
   await app.register(trackRoutes, { prefix: '/api/v1', service: svc.tracking });

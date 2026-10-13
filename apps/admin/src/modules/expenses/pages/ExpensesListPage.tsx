@@ -132,7 +132,7 @@ export default function ExpensesListPage() {
         e.locked ? (
           <span
             className="inline-flex items-center gap-1 text-xs text-muted-foreground"
-            title="Part of a finalized settlement — read-only"
+            title="Part of a settlement — read-only (delete a draft settlement to unlock it)"
           >
             <Lock aria-hidden="true" className="size-3.5" />
             Locked
@@ -169,7 +169,7 @@ export default function ExpensesListPage() {
       <PageHeader
         eyebrow="Finance"
         title="Expenses"
-        description="Ads, packaging, software, compliance — everything that comes off the shared profit pool. Expenses inside a finalized settlement are locked."
+        description="Ads, packaging, software, compliance — everything that comes off the shared profit pool. An expense locks as soon as a settlement (even a draft) includes it."
         actions={addButton}
       />
       <KpiGrid label="Expense summary">
@@ -186,7 +186,7 @@ export default function ExpensesListPage() {
           tone={outOfPocket ? 'info' : 'default'}
           loading={list.isPending}
           value={formatINR(outOfPocket)}
-          hint="On this page · reimbursed in settlement"
+          hint="On this page · partner-paid is reimbursed"
         />
         <KpiCard
           label="Missing receipts"
@@ -201,7 +201,7 @@ export default function ExpensesListPage() {
           icon={Lock}
           loading={list.isPending}
           value={lockedCount}
-          hint="In a finalized settlement (this page)"
+          hint="In a settlement, draft or final (this page)"
         />
       </KpiGrid>
       <TableCard

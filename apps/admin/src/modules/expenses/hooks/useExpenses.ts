@@ -1,7 +1,14 @@
 import type { ExpenseCreateRequest } from '@pk/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/query-keys';
-import { expensesApi, putToStorage, RECEIPT_TYPES, type ExpensesQuery, type ExpenseUpdate } from '../api/expensesApi';
+import {
+  expensesApi,
+  putToStorage,
+  RECEIPT_MAX_BYTES,
+  RECEIPT_TYPES,
+  type ExpensesQuery,
+  type ExpenseUpdate,
+} from '../api/expensesApi';
 
 export function useExpenses(q: ExpensesQuery) {
   return useQuery({
@@ -24,7 +31,7 @@ function useInvalidate() {
 export async function uploadReceipt(expenseId: string, file: File) {
   const type = RECEIPT_TYPES.find((t) => t === file.type);
   if (!type) throw new Error('Receipts must be a PDF, JPG, PNG or WebP file.');
-  if (file.size > 10 * 1024 * 1024) throw new Error('Receipts can be at most 10 MB.');
+  if (file.size > RECEIPT_MAX_BYTES) throw new Error('Receipts can be at most 5 MB.');
   const upload = await expensesApi.receiptUpload(expenseId, type, file.size);
   await putToStorage(upload, file);
   await expensesApi.update(expenseId, { receiptKey: upload.key });

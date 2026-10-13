@@ -158,7 +158,7 @@ export function createCommerceServices(d: CommerceDeps) {
     jobs: d.jobs,
     logger: d.logger,
   });
-  const users = createUsersService({ db: d.db });
+  const users = createUsersService({ db: d.db, redis: d.redis });
   const opsAlerts = createOpsAlertsService({ db: d.db, redis: d.redis, jobs: d.jobs, logger: d.logger, now: d.now });
   return {
     settings,

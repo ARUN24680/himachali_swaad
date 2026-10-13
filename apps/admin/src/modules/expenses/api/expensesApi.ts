@@ -15,6 +15,8 @@ export type ExpensesResponse = z.infer<typeof ExpensesResponseSchema>;
 export type ExpenseUpdate = z.input<typeof ExpenseUpdateRequestSchema>;
 export type ReceiptUpload = z.infer<typeof ReceiptUploadResponseSchema>;
 export const RECEIPT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const;
+/** ReceiptUploadRequestSchema.sizeBytes max in @pk/shared (D-56 j): 5 MB. */
+export const RECEIPT_MAX_BYTES = 5 * 1024 * 1024;
 
 const qs = (q: ExpensesQuery) => {
   const p = new URLSearchParams();

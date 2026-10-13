@@ -11,6 +11,7 @@ import {
   ScrollText,
   Settings,
   ShoppingBag,
+  Store,
   UserCog,
   Users,
   type LucideIcon,
@@ -65,6 +66,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { to: '/exports', label: 'Exports', icon: FileDown, capability: 'orders:all', group: 'Finance' },
   { to: '/settings', label: 'Settings', icon: Settings, capability: 'settings:manage', group: 'System' },
   { to: '/staff', label: 'Staff', icon: UserCog, capability: 'settings:manage', group: 'System' },
+  { to: '/kitchens', label: 'Kitchens', icon: Store, capability: 'settings:manage', group: 'System' },
   { to: '/audit-log', label: 'Audit log', icon: ScrollText, capability: 'settings:manage', group: 'System' },
   { to: '/ops', label: 'Queues & webhooks', icon: Activity, capability: 'queues:view', group: 'System' },
 ];

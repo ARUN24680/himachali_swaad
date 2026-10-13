@@ -100,7 +100,7 @@
 | ID | Decision | Status | Rationale |
 | :--- | :--- | :--- | :--- |
 | **D-40** | **Partner apna settlement statement dekh sakta hai** (read-only, finalized cycles, line items + expenses), aur "Acknowledge" kar sakta hai. Partner **nahi** dekh sakta: live revenue dashboard, customer list, ad-account controls, settings. Settlement create/finalize/mark-paid sirf `ADMIN`. | ACCEPTED | 50/50 partner ko apna hissa transparent dikhna chahiye — purane docs me contradiction tha. |
-| **D-41** | **Settlement formula** (per order, GST-exclusive): `Net = Revenue_ex_GST − Raw_Cost (batch cost_per_unit × qty) − Packaging_Cost − Actual_Freight − Gateway_Fee (incl. GST on fee) − Refunds − RTO_Freight`; cycle level par `− Shared_Expenses (ads etc.)`. Split `settlements.partner_split_bp` (default 5000 = 50%). Worked example: `04-admin-operations-portal.md`. | PROPOSED | Purane example me GST, packaging, gateway GST, RTO aur ads missing the — profit inflated dikh raha tha. |
+| **D-41** | **Settlement formula** (per order, GST-exclusive, as implemented — D-56 a): `Revenue_ex_GST = (Total − Refunds) × (Total − Tax) / Total` (refunds are taken out **inside** revenue, not as a separate line); `Net = Revenue_ex_GST − Raw_Cost (batch cost_per_unit × qty) − Packaging_Cost − Actual_Freight − Gateway_Fee (incl. GST on fee) − RTO_Freight`; cycle level par `− Shared_Expenses (ads etc.)`. Split `settings.partner_split_bp` (default 5000 = 50%); `Partner Payout = Raw_Cost + Partner_Share + partner-paid expenses`. Worked example: `04-admin-operations-portal.md`; code: `settlement-calc.ts`. | PROPOSED | Purane example me GST, packaging, gateway GST, RTO aur ads missing the — profit inflated dikh raha tha. |
 
 ---
 

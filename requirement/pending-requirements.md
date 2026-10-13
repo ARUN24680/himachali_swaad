@@ -28,7 +28,7 @@
 | # | Kya bacha hai | Blocked on | Kya karna hai | Phase |
 | :-- | :-- | :-- | :-- | :-- |
 | S-1 | Shiprocket account + KYC | 🔑 Admin | — | P0 |
-| S-2 | **Pickup location register + verify** (Himachal kitchen) aur `pickup_locations.shiprocket_pickup_name` = wahi nickname | 🔑 S-1 | SQL/admin: `UPDATE pickup_locations SET shiprocket_pickup_name = '<nickname>'` — iske bina booking job `PermanentJobError` deta hai | P6 §6.2 |
+| S-2 | **Pickup location register + verify** (Himachal kitchen) aur `pickup_locations.shiprocket_pickup_name` = wahi nickname | 🔑 S-1 | Admin → **Kitchens** → Edit → **Shiprocket pickup name** (ya SQL) — iske bina booking job `PermanentJobError` deta hai | P6 §6.2 |
 | S-3 | **Webhook register** panel me (staging + prod alag): URL `https://<api-host>/api/v1/webhooks/courier-tracking`, token = `SHIPROCKET_WEBHOOK_TOKEN`. URL me "shiprocket"/"sr"/"kr" nahi hona chahiye (D-53 a) | 🔑 S-1, 🚀 | Panel → Settings → API → Webhooks | P6 §6.9 |
 | S-4 | Label format **4×6 thermal** panel me set karna | 🔑 S-1 | Panel label settings | P6 §6.6 |
 | S-5 | **Label barcode** courier scanner / phone app se readable — manual check (sandbox label me barcode nahi hai) | 🔑 S-1 | Ek real test order | P6 verification |

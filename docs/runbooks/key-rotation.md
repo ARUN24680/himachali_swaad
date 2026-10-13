@@ -19,5 +19,5 @@ General order: **create new → deploy new → verify → revoke old.**
 | `VAPID_*` | `npx web-push generate-vapid-keys` | Avoid: changing VAPID keys invalidates every partner push subscription — partners must re-enable notifications on the desk. | Push stops until re-subscribed (WhatsApp fallback continues). |
 | DB password | Provider console | Create new user/password or rotate → update `DATABASE_URL` → deploy → revoke old. | None with rolling deploy. |
 
-After each rotation: `GET /readyz` 200, place a test order on staging, check Ops → Webhooks, record
+After each rotation: `GET /readyz` 200, place a test order on staging, check Admin → **Queues & webhooks** (webhook failures), record
 the date in the secrets register.

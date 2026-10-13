@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ORDER_CODE_REGEX } from '../order/order-code';
-import { PhoneSchema } from '../schemas/common';
+import { PhoneSchema, PincodeSchema } from '../schemas/common';
+import { NewPasswordSchema } from './auth';
 import { TimelineEntrySchema } from './tracking';
 
 /**
@@ -356,6 +357,66 @@ export const StaffUpdateRequestSchema = z
   })
   .refine((v) => Object.keys(v).length > 0, 'Nothing to update');
 export type StaffUpdateRequest = z.infer<typeof StaffUpdateRequestSchema>;
+/** POST /admin/staff/:id/reset-password — temporary password; every session is signed out. */
+export const StaffResetPasswordRequestSchema = z.object({ password: NewPasswordSchema });
+export type StaffResetPasswordRequest = z.infer<typeof StaffResetPasswordRequestSchema>;
+
+// ── Kitchens / pickup locations (workflow gap: was SQL-only) ──────────────────────────────────────
+const KitchenFields = {
+  name: z.string().trim().min(2).max(120),
+  contactName: z.string().trim().min(2).max(120),
+  contactPhone: PhoneSchema,
+  addressLine1: z.string().trim().min(3).max(200),
+  addressLine2: z.string().trim().max(200).nullable(),
+  city: z.string().trim().min(2).max(80),
+  state: z.string().trim().min(2).max(80),
+  pincode: PincodeSchema,
+  /** Nickname registered in Shiprocket → Settings → Pickup addresses (exact match, D-53). */
+  shiprocketPickupName: z.string().trim().min(2).max(60).nullable(),
+  fssaiLicenseNo: z
+    .string()
+    .trim()
+    .regex(/^\d{14}$/, 'FSSAI licence number has 14 digits')
+    .nullable(),
+};
+export const KitchenRowSchema = z.object({
+  id: z.uuid(),
+  code: z.string(),
+  ...KitchenFields,
+  isActive: z.boolean(),
+  partnerCount: z.number().int(),
+});
+export type KitchenRow = z.infer<typeof KitchenRowSchema>;
+export const KitchenListResponseSchema = z.object({ kitchens: z.array(KitchenRowSchema) });
+export type KitchenListResponse = z.infer<typeof KitchenListResponseSchema>;
+export const KitchenCreateRequestSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9-]{3,40}$/, 'Use capital letters, digits and dashes, e.g. HP-KULLU-02'),
+  ...KitchenFields,
+  addressLine2: KitchenFields.addressLine2.default(null),
+  shiprocketPickupName: KitchenFields.shiprocketPickupName.default(null),
+  fssaiLicenseNo: KitchenFields.fssaiLicenseNo.default(null),
+});
+export type KitchenCreateRequest = z.input<typeof KitchenCreateRequestSchema>;
+export const KitchenUpdateRequestSchema = z
+  .object({
+    name: KitchenFields.name.optional(),
+    contactName: KitchenFields.contactName.optional(),
+    contactPhone: KitchenFields.contactPhone.optional(),
+    addressLine1: KitchenFields.addressLine1.optional(),
+    addressLine2: KitchenFields.addressLine2.optional(),
+    city: KitchenFields.city.optional(),
+    state: KitchenFields.state.optional(),
+    pincode: KitchenFields.pincode.optional(),
+    shiprocketPickupName: KitchenFields.shiprocketPickupName.optional(),
+    fssaiLicenseNo: KitchenFields.fssaiLicenseNo.optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'Nothing to update');
+export type KitchenUpdateRequest = z.infer<typeof KitchenUpdateRequestSchema>;
 
 // ── Expenses (§9.8) ───────────────────────────────────────────────────────────────────────────────
 export const EXPENSE_CATEGORIES = [

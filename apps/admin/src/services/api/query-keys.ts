@@ -55,6 +55,8 @@ export const queryKeys = {
   },
   settings: ['admin', 'settings'] as const,
   staff: ['admin', 'staff'] as const,
+  /** Kitchens (pickup locations) with partner counts — ADMIN view; `pickupLocations` is the partner-scoped picker. */
+  kitchens: ['admin', 'kitchens'] as const,
   expenses: {
     all: ['admin', 'expenses'] as const,
     list: (q: z.input<typeof ExpensesQuerySchema>) => ['admin', 'expenses', 'list', q] as const,

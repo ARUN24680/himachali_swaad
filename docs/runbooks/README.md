@@ -7,9 +7,9 @@ apply to every runbook:
   `transitionOrder()` (the API / admin actions / jobs). If no action covers the case, stop and fix
   the code — a hand edit breaks the status log and the stock ledger.
 - **Never change `inventory_batches.available_stock` by hand.** Stock moves only with an
-  `inventory_movements` row (admin → Inventory → Adjust).
+  `inventory_movements` row (Admin → Inventory → batch → **Adjust stock**).
 - Read-only SQL is fine on a replica / the primary with `SET default_transaction_read_only = on`.
-- Every admin action you take is in **Ops → Audit log** — note the order code in the incident note.
+- Every admin action you take is in **Admin → **Audit log**** — note the order code in the incident note.
 
 | Incident | Runbook |
 | :--- | :--- |

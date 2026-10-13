@@ -17,6 +17,7 @@ import { FormField } from '@/components/common/FormField';
 import { InputAffix } from '@/components/common/InputAffix';
 import { formatShortDate, monthRange } from '@/lib/dates';
 import { percentToBasisPoints } from '@/lib/money-input';
+import { useSettings } from '@/modules/settings';
 import { toast } from '@/store/toast.store';
 import { useGenerateSettlement, useSettlementActions } from '../hooks/useSettlements';
 
@@ -43,6 +44,10 @@ export function GenerateSettlementDialog({ onOpenChange }: { onOpenChange: (o: b
   const [from, setFrom] = useState(options[0]!.from);
   const [to, setTo] = useState(options[0]!.to);
   const [split, setSplit] = useState('');
+  // The default comes from settings.partner_split_bp — show the real value, not an assumed 50 %
+  const settings = useSettings();
+  const defaultBp = settings.data?.find((s) => s.key === 'partner_split_bp')?.value;
+  const defaultPct = typeof defaultBp === 'number' ? `${defaultBp / 100}` : null;
   const [error, setError] = useState<string | null>(null);
 
   const submit = (e: FormEvent) => {
@@ -105,13 +110,21 @@ export function GenerateSettlementDialog({ onOpenChange }: { onOpenChange: (o: b
               <Input type="date" value={to} min={from} max={today} onChange={(e) => setTo(e.target.value)} />
             </FormField>
           </div>
-          <FormField label="Partner share" optional hint="Leave empty to use the default from Settings (50%).">
+          <FormField
+            label="Partner share"
+            optional
+            hint={
+              defaultPct === null
+                ? 'Leave empty to use the kitchen partner profit share from Settings.'
+                : `Leave empty to use the default from Settings (${defaultPct}%).`
+            }
+          >
             <InputAffix
               suffix="%"
               inputMode="decimal"
               value={split}
               onChange={(e) => setSplit(e.target.value)}
-              placeholder="50"
+              placeholder={defaultPct ?? undefined}
             />
           </FormField>
           {(error || generate.isError) && (

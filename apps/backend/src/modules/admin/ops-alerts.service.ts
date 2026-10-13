@@ -66,7 +66,7 @@ export function createOpsAlertsService(deps: {
           fired.push('JOBS_FAILED');
           await alert(
             'JOBS_FAILED',
-            `${q.failed - lastFailed} background job(s) failed for good — open Ops → Job queues`,
+            `${q.failed - lastFailed} background job(s) failed for good — open Queues & webhooks → Job queues`,
           );
         }
         const oldestSec = q.oldestWaitingAt ? Math.round((now().getTime() - q.oldestWaitingAt) / 1000) : 0;
@@ -89,7 +89,10 @@ export function createOpsAlertsService(deps: {
       }
       if (c.webhook_failures_1h > 0) {
         fired.push('WEBHOOK_FAILURES');
-        await alert('WEBHOOK_FAILURES', `${c.webhook_failures_1h} webhook(s) failed in the last hour — Ops → Webhooks`);
+        await alert(
+          'WEBHOOK_FAILURES',
+          `${c.webhook_failures_1h} webhook(s) failed in the last hour — Queues & webhooks`,
+        );
       }
       if (c.payments_stuck > 0) {
         fired.push('PAYMENTS_STUCK');

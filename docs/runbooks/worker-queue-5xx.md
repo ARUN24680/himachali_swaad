@@ -11,7 +11,7 @@
    variable), Redis unreachable, DB connections exhausted (see docs/ops/capacity.md).
 3. Restart / roll back the worker. Jobs are durable in Redis and resume; the cron jobs
    (`EXPIRE_RESERVATIONS`, `RECONCILE_*`) catch up whatever was missed.
-4. Ops → Job queues (bull-board): backlog draining? If one job type is stuck failing, read its
+4. Admin → **Queues & webhooks** → **Job queues** (bull-board): backlog draining? If one job type is stuck failing, read its
    error, fix, then **Retry** the failed jobs (all job handlers are idempotent per job id).
 
 ## 5xx spike

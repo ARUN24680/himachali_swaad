@@ -1,13 +1,13 @@
 # Razorpay / Shiprocket / WhatsApp webhook failing
 
-**Symptoms:** alert `WEBHOOK_FAILURES`; Ops → Webhooks shows rows with errors; orders stuck in
+**Symptoms:** alert `WEBHOOK_FAILURES`; Admin → **Queues & webhooks** (webhook failures) shows rows with errors; orders stuck in
 `PENDING_PAYMENT` (Razorpay) or tracking not moving (Shiprocket); WhatsApp delivery ticks missing.
 
 Every webhook is stored first in `webhook_events` (unique per provider + event id) and then
 processed, so **nothing is lost** while processing fails — it can be replayed.
 
 ## Check
-1. Ops → Webhooks → read `last_error` of the newest failures.
+1. Admin → **Queues & webhooks** (webhook failures) → read `last_error` of the newest failures.
 2. Rejected before storage (no row)? Look in the API logs for `401`/`400` on
    `/api/v1/webhooks/razorpay`, `/api/v1/webhooks/courier-tracking`, `/api/v1/webhooks/whatsapp`:
    - **Razorpay 401 `bad signature`** → `RAZORPAY_WEBHOOK_SECRET` differs from the secret in
@@ -21,11 +21,11 @@ processed, so **nothing is lost** while processing fails — it can be replayed.
 
 ## Fix
 - Wrong secret → set the correct one in the host's secret manager, redeploy API.
-- Code / data error in `last_error` → fix, deploy, then **Ops → Webhooks → Replay** each failed
+- Code / data error in `last_error` → fix, deploy, then **Admin → **Queues & webhooks** (webhook failures) → Replay** each failed
   event (idempotent; a duplicate never double-applies).
 - Events never arrived (provider disabled the hook) → re-enable at the provider. Razorpay: the
   expiry sweeper reconciles payments anyway (payment-captured-not-confirmed.md). Shiprocket:
   `POLL_TRACKING` (every 3 h) pulls statuses, so tracking catches up on its own.
 
 ## Verify
-Ops → Webhooks empty of new failures for 30 min; affected orders moved on.
+Admin → **Queues & webhooks** (webhook failures) empty of new failures for 30 min; affected orders moved on.

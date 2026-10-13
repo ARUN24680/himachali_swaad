@@ -422,6 +422,7 @@ function CheckoutFlow({ onLeave }: { onLeave: (orderCode: string) => void }) {
             phase={payment.phase}
             orderCode={activeOrder?.orderCode ?? null}
             secondsLeft={secondsLeft}
+            holdMinutes={quote.data?.reservationTtlMinutes}
             onRetryPay={() => void submit()}
             onStartAgain={() => void startAgain()}
             abandoning={abandoning}
@@ -473,7 +474,12 @@ function CheckoutFlow({ onLeave }: { onLeave: (orderCode: string) => void }) {
                 selectedSavedId={selectedSavedId}
                 onPickSaved={pickSaved}
               />
-              <ConsentSection values={values} errors={errors} set={set} />
+              <ConsentSection
+                values={values}
+                errors={errors}
+                set={set}
+                holdMinutes={quote.data?.reservationTtlMinutes}
+              />
             </fieldset>
           </form>
         </div>
@@ -562,6 +568,7 @@ function StatusPanel({
   phase,
   orderCode,
   secondsLeft,
+  holdMinutes,
   onRetryPay,
   onStartAgain,
   abandoning,
@@ -571,6 +578,7 @@ function StatusPanel({
   phase: ReturnType<typeof usePayment>['phase'];
   orderCode: string | null;
   secondsLeft: number;
+  holdMinutes: number | undefined;
   onRetryPay: () => void;
   onStartAgain: () => void;
   abandoning: boolean;
@@ -587,7 +595,7 @@ function StatusPanel({
       <Panel
         tone="warning"
         testId="checkout-expired"
-        title="Your jars were held for 15 minutes"
+        title={holdMinutes ? `Your jars were held for ${holdMinutes} minutes` : 'Your payment window ended'}
         body={`The payment window for ${orderCode ?? 'this order'} ended and the jars went back on the shelf. Nothing was charged — please start again.`}
         actions={
           <Button type="button" onClick={onStartAgain} disabled={abandoning}>

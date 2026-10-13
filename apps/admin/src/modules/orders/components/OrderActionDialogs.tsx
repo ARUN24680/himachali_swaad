@@ -103,12 +103,18 @@ interface DialogProps {
 }
 
 /** Cancel (only offered when detail.actions.canCancel — 07 §1.2 allowed map, the API re-checks). */
+/**
+ * Admin cancel. The API refunds only a PAID order and refuses to cancel one without the refund
+ * ("A paid order must be refunded when cancelled.") — so for PAID the refund is fixed on, and for
+ * any other payment status there is nothing for cancel to refund (a partly-refunded remainder goes
+ * through the Refund action instead).
+ */
 export function CancelOrderDialog({ d, actions, onOpenChange }: DialogProps) {
   const [reason, setReason] = useState('');
-  const [refund, setRefund] = useState(true);
   const [touched, setTouched] = useState(false);
   const refundId = useId();
-  const paid = d.refundablePaise > 0;
+  const paid = d.order.paymentStatus === 'PAID';
+  const leftover = !paid && d.refundablePaise > 0;
   const tooShort = reason.trim().length < 3;
   const m = actions.cancel;
   return (
@@ -125,12 +131,12 @@ export function CancelOrderDialog({ d, actions, onOpenChange }: DialogProps) {
         setTouched(true);
         if (tooShort) return;
         m.mutate(
-          { reason: reason.trim(), refund: paid ? refund : false },
+          { reason: reason.trim(), refund: paid },
           {
             onSuccess: () => {
               toast({
                 title: `${d.order.orderCode} cancelled`,
-                description: paid && refund ? 'Full refund started.' : undefined,
+                description: paid ? `Full refund of ${formatINR(d.refundablePaise)} started.` : undefined,
               });
               onOpenChange(false);
             },
@@ -145,16 +151,26 @@ export function CancelOrderDialog({ d, actions, onOpenChange }: DialogProps) {
       >
         <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={300} />
       </FormField>
-      {paid && (
-        <div className="flex items-start gap-3 rounded-lg border border-border px-3 py-3">
-          <Checkbox id={refundId} checked={refund} onCheckedChange={(c) => setRefund(c === true)} className="mt-0.5" />
+      {paid ? (
+        <div
+          className="flex items-start gap-3 rounded-lg border border-border bg-muted/40 px-3 py-3"
+          data-testid="cancel-refund"
+        >
+          <Checkbox id={refundId} checked disabled aria-describedby={`${refundId}-why`} className="mt-0.5" />
           <Label htmlFor={refundId} className="grid gap-0.5 font-normal">
             <span className="font-medium">Refund {formatINR(d.refundablePaise)} to the customer</span>
-            <span className="text-xs text-muted-foreground">
-              Goes back to the original payment method via Razorpay.
+            <span id={`${refundId}-why`} className="text-xs text-muted-foreground">
+              Required — a paid order is always refunded in full when it’s cancelled. It goes back to the original
+              payment method via Razorpay.
             </span>
           </Label>
         </div>
+      ) : (
+        <p className="rounded-lg bg-muted/60 px-3 py-3 text-sm text-muted-foreground" data-testid="cancel-no-refund">
+          {leftover
+            ? `Cancelling doesn’t refund the ${formatINR(d.refundablePaise)} still held — use Refund for that.`
+            : 'Nothing was paid on this order, so there is nothing to refund.'}
+        </p>
       )}
     </ActionDialog>
   );

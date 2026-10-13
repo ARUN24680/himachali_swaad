@@ -73,6 +73,11 @@ const INVALID_OTP = 'That code is incorrect or has expired. Request a new one.';
 const emailTag = (email: string) => createHash('sha256').update(email.toLowerCase()).digest('hex').slice(0, 12);
 
 /** Admin "force logout" (Phase 9 staff management): revoke every refresh-token family of a user. */
+/** Admin password reset: lift a lockout for this e-mail at once (D-57 b). */
+export async function clearLoginLock(redis: Redis, email: string): Promise<void> {
+  await redis.del(`pk:login-lock:${emailTag(email)}`, `pk:login-fail:${emailTag(email)}`);
+}
+
 export const revokeAllSessions = (q: Queryable, userId: string) => repo.revokeAllForUser(q, userId);
 
 export function toSessionUser(u: UserRow): SessionUser {
