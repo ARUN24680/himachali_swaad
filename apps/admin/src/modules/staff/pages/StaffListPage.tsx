@@ -13,7 +13,7 @@ import { EmptyState, ErrorState } from '@/components/common/StateBlocks';
 import { TableCard } from '@/components/common/TableCard';
 import { useMe } from '@/hooks/useMe';
 import { formatDateTime } from '@/lib/dates';
-import { usePickupLocations } from '@/modules/inventory';
+import { useKitchens } from '@/modules/kitchens';
 import { CreateStaffDialog, EditStaffDialog } from '../components/StaffDialogs';
 import { useStaff } from '../hooks/useStaff';
 
@@ -29,11 +29,11 @@ const matches = (s: StaffRow, f: Filter) =>
   f === 'all' ? true : f === 'inactive' ? !s.isActive : s.role === f && s.isActive;
 const col = createColumnHelper<StaffRow>();
 
-/** /staff (Phase 9 §9.7): create admins / kitchen partners, assign kitchens, deactivate, force logout. */
+/** /staff (Phase 9 §9.7): create admins / kitchen partners, assign kitchens, deactivate, force logout, reset passwords. */
 export default function StaffListPage() {
   const me = useMe();
   const staff = useStaff();
-  const kitchens = usePickupLocations();
+  const kitchens = useKitchens();
   const [params, setParams] = useSearchParams();
   const filter: Filter = FILTERS.find((f) => f === params.get('role')) ?? 'all';
   const q = params.get('q') ?? '';

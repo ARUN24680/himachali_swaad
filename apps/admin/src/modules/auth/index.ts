@@ -1,4 +1,5 @@
 /** Public API of the auth module — routes, layouts and other modules import only from here. */
+export { ChangePasswordCard } from './components/ChangePasswordCard';
 export { NotStaffNotice } from './components/NotStaffNotice';
 export { TwoFactorCard } from './components/TwoFactorCard';
 export { UserMenu } from './components/UserMenu';

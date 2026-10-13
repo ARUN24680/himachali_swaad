@@ -5,6 +5,7 @@ import type { CatalogService } from '../catalog/catalog.service';
 import type { SettingsService } from '../settings/settings.service';
 
 const NullablePaise = z.number().int().nonnegative().nullable();
+const TtlMinutes = z.number().int().min(1).max(120);
 const MaxQty = z.number().int().min(1).max(99);
 
 /**
@@ -30,11 +31,12 @@ export function createCartService(deps: { db: Db; catalog: CatalogService; setti
     const merged = new Map<string, number>();
     for (const item of items) merged.set(item.productId, (merged.get(item.productId) ?? 0) + item.quantity);
 
-    const [products, maxQty, threshold, flatFee] = await Promise.all([
+    const [products, maxQty, threshold, flatFee, ttlMinutes] = await Promise.all([
       catalog.productsForQuote(q, [...merged.keys()]),
       settings.getSetting(q, 'max_qty_per_item', MaxQty),
       settings.getSetting(q, 'free_shipping_threshold_paise', NullablePaise),
       settings.getSetting(q, 'flat_shipping_fee_paise', NullablePaise),
+      settings.getSetting(q, 'reservation_ttl_minutes', TtlMinutes),
     ]);
     const byId = new Map(products.map((p) => [p.id, p]));
     const snapshots = new Map<string, Snapshot>(
@@ -90,6 +92,7 @@ export function createCartService(deps: { db: Db; catalog: CatalogService; setti
       freeShippingThresholdPaise: threshold,
       freeShippingRemainingPaise: threshold === null ? null : Math.max(0, threshold - subtotalPaise),
       maxQtyPerItem: maxQty,
+      reservationTtlMinutes: ttlMinutes,
     };
     return { quote, snapshots };
   }

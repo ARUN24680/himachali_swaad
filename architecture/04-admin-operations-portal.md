@@ -82,19 +82,19 @@ Partner computer par nahi, phone par kaam karega. Isliye Packing Queue ultra-sim
 ## 💰 Finance & Settlement Module (D-41)
 
 ### Formula (per order, GST-exclusive)
-> Implementation (Phase 9, D-56): `Revenue_ex_GST = (total − refunds) × (total − tax) / total` (refunds live inside revenue, not subtracted twice); `Partner Payout` also adds partner-paid expense reimbursement. Code: `apps/backend/src/modules/settlements/settlement-calc.ts`.
+> Implementation (Phase 9, D-56): refunds live **inside** revenue (not subtracted twice) and `Partner Payout` also adds partner-paid expense reimbursement. Code: `apps/backend/src/modules/settlements/settlement-calc.ts`.
 ```text
+Revenue_ex_GST = (Total − Refunds) × (Total − Tax) / Total          -- half-up, integer paise
 Net = Revenue_ex_GST
-      − Raw_Cost          (Σ allocation qty × batch.cost_per_unit_paise)
+      − Raw_Cost          (Σ COMMITTED allocation qty × batch.cost_per_unit_paise)
       − Packaging_Cost    (jars × settings.packaging_cost_per_jar_paise)
       − Actual_Freight    (shipments.freight_paise, billed by Shiprocket)
       − Gateway_Fee       (payments.fee_paise + fee_tax_paise — actual from Razorpay)
-      − Refunds
       − RTO_Freight
 Cycle Net Profit = Σ order Net − Shared_Expenses (ads, software, compliance… in period)
 Partner Share    = floor(Cycle Net × partner_split_bp / 10000)     -- integer paise
 Admin Share      = Cycle Net − Partner Share                        -- remainder, no paisa lost
-Partner Payout   = Raw Cost Reimbursement + Partner Share
+Partner Payout   = Raw Cost Reimbursement + Partner Share + Partner-paid expenses (reimbursed)
 ```
 
 ### Worked Example — ⚠️ ILLUSTRATIVE ONLY (1 jar, GST rate assumed 5%, pending Q-01)
@@ -115,7 +115,7 @@ Partner Payout   = Raw Cost Reimbursement + Partner Share
 > Purane docs ka ₹184 / ₹186 profit (₹92–₹93 per partner) **overstated** tha — usme GST, packaging, gateway fee ka GST nahi gina gaya tha. Aur shared expenses (Instagram/Meta ads etc.) cycle level par pool ko **aur kam** karenge — e.g. 100 jars ke cycle me ₹5,000 ads = ₹50/jar kam.
 
 ### Settlement Workflow
-1. ADMIN period choose karta hai → DRAFT generate (sirf `DELIVERED` / `RTO_DELIVERED` / refunded-closed orders jo pehle settle nahi hue).
+1. ADMIN period choose karta hai → DRAFT generate: `DELIVERED` / `RTO_DELIVERED` / `LOST` / `CANCELLED`-with-captured-payment orders, jo period me close hue aur pehle settle nahi hue (D-56 c). Missing freight / gateway fee → warnings, finalize blocked.
 2. Review → **Finalize** (numbers lock, PDF generate) → partner ko notification.
 3. Partner app me statement dekhta hai → **Acknowledge**.
 4. Bank transfer ke baad ADMIN **Mark Paid** (bank reference).

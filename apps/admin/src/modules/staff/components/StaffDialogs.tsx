@@ -1,9 +1,4 @@
-import {
-  StaffCreateRequestSchema,
-  type PickupLocationSummary,
-  type StaffCreateRequest,
-  type StaffRow,
-} from '@pk/shared';
+import { StaffCreateRequestSchema, type KitchenRow, type StaffCreateRequest, type StaffRow } from '@pk/shared';
 import {
   Alert,
   Button,
@@ -23,28 +18,18 @@ import {
 } from '@pk/ui';
 import { AlertCircle, KeyRound, Loader2, LogOut } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
+import { Link } from 'react-router';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { FormField } from '@/components/common/FormField';
 import { InputAffix } from '@/components/common/InputAffix';
+import { tempPassword } from '@/lib/password';
+import { localPhone, normalisePhone } from '@/lib/phone';
 import { toast } from '@/store/toast.store';
 import { useCreateStaff, useUpdateStaff } from '../hooks/useStaff';
+import { ResetPasswordDialog } from './ResetPasswordDialog';
 
-/** '98765 43210' / '+91 98765…' → '+919876543210'; '' → undefined. */
-export function normalisePhone(raw: string): string | undefined {
-  const digits = raw.replace(/\D/g, '');
-  if (!digits) return undefined;
-  if (digits.length === 10) return `+91${digits}`;
-  if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
-  return raw.trim();
-}
-const localPhone = (e164: string | null) => (e164 ? e164.replace(/^\+91/, '') : '');
-
-/** 16 chars from an unambiguous alphabet — shown once, the person changes it after first login. */
-function tempPassword(): string {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
-}
+/** What the kitchen checkboxes need — the ADMIN kitchens list (GET /admin/kitchens). */
+export type KitchenOption = Pick<KitchenRow, 'id' | 'code' | 'name' | 'city' | 'isActive'>;
 
 function KitchenPicker({
   kitchens,
@@ -52,7 +37,7 @@ function KitchenPicker({
   onChange,
   error,
 }: {
-  kitchens: PickupLocationSummary[] | undefined;
+  kitchens: KitchenOption[] | undefined;
   value: string[];
   onChange: (ids: string[]) => void;
   error?: string;
@@ -64,7 +49,13 @@ function KitchenPicker({
       {!kitchens ? (
         <p className="text-sm text-muted-foreground">Loading kitchens…</p>
       ) : kitchens.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No kitchens set up yet.</p>
+        <p className="text-sm text-muted-foreground">
+          No kitchens set up yet —{' '}
+          <Link to="/kitchens" className="font-medium text-accent-foreground underline-offset-4 hover:underline">
+            add one on the Kitchens page
+          </Link>
+          .
+        </p>
       ) : (
         kitchens.map((k) => {
           const id = `${base}-${k.id}`;
@@ -96,7 +87,7 @@ export function CreateStaffDialog({
   kitchens,
   onOpenChange,
 }: {
-  kitchens: PickupLocationSummary[] | undefined;
+  kitchens: KitchenOption[] | undefined;
   onOpenChange: (o: boolean) => void;
 }) {
   const create = useCreateStaff();
@@ -125,7 +116,7 @@ export function CreateStaffDialog({
       onSuccess: () => {
         toast({
           title: `${form.fullName} added`,
-          description: 'Share the temporary password privately — they change it after first login.',
+          description: 'Share the temporary password privately — they can change it from Account after signing in.',
         });
         onOpenChange(false);
       },
@@ -244,7 +235,7 @@ export function EditStaffDialog({
   onOpenChange,
 }: {
   member: StaffRow;
-  kitchens: PickupLocationSummary[] | undefined;
+  kitchens: KitchenOption[] | undefined;
   isSelf: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
@@ -257,6 +248,7 @@ export function EditStaffDialog({
   const [kitchenIds, setKitchenIds] = useState(member.pickupLocationIds);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -320,6 +312,27 @@ export function EditStaffDialog({
               <Switch id={activeId} checked={isActive} disabled={isSelf} onCheckedChange={setIsActive} />
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/60 px-3 py-3 text-sm">
+              {isSelf ? (
+                <span className="text-muted-foreground">
+                  This is you — change your own password from the{' '}
+                  <Link to="/account" className="font-medium text-accent-foreground underline-offset-4 hover:underline">
+                    Account page
+                  </Link>
+                  .
+                </span>
+              ) : (
+                <>
+                  <span className="text-muted-foreground">
+                    Forgot their password or locked out? Set a temporary one.
+                  </span>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setResetting(true)}>
+                    <KeyRound aria-hidden="true" />
+                    Reset password
+                  </Button>
+                </>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/60 px-3 py-3 text-sm">
               <span className="text-muted-foreground">Lost phone or left the team? Sign them out of every device.</span>
               <Button type="button" variant="outline" size="sm" onClick={() => setConfirmLogout(true)}>
                 <LogOut aria-hidden="true" />
@@ -344,6 +357,7 @@ export function EditStaffDialog({
           </form>
         </DialogContent>
       </Dialog>
+      {resetting && !isSelf && <ResetPasswordDialog member={member} onOpenChange={setResetting} />}
       <ConfirmDialog
         open={confirmLogout}
         onOpenChange={setConfirmLogout}

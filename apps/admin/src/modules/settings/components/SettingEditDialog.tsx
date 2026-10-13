@@ -42,6 +42,18 @@ const toText = (kind: string, value: unknown): string => {
  * Per-key editor derived from SETTING_SCHEMAS (@pk/shared) — the same Zod schema the API uses, so
  * the dialog rejects exactly what the server would. ₹ in, paise out; % in, basis points out.
  */
+/**
+ * What "Not decided yet" means at checkout (cart.service quoteCart): shipping is ₹0 when a threshold
+ * is set and the subtotal reaches it, otherwise the flat fee — or ₹0 when no flat fee is set.
+ */
+const UNSET_HINT: Record<string, string> = {
+  free_shipping_threshold_paise:
+    'Saved as empty — no free-shipping threshold, so every order pays the flat shipping fee (₹0 if that is empty too).',
+  flat_shipping_fee_paise:
+    'Saved as empty — orders that don’t reach the free-shipping threshold pay ₹0 shipping (D-50).',
+  seller_details: 'Invoices can’t be generated until seller details are set.',
+};
+
 export function SettingEditDialog({
   settingKey,
   value,
@@ -191,11 +203,7 @@ export function SettingEditDialog({
               <Checkbox id={unsetId} checked={unset} onCheckedChange={(c) => setUnset(c === true)} className="mt-0.5" />
               <Label htmlFor={unsetId} className="grid gap-0.5 font-normal">
                 <span className="font-medium">Not decided yet</span>
-                <span className="text-xs text-muted-foreground">
-                  {settingKey === 'seller_details'
-                    ? 'Invoices can’t be generated until seller details are set.'
-                    : 'Saved as empty — checkout charges ₹0 shipping until both shipping values are set (D-50).'}
-                </span>
+                <span className="text-xs text-muted-foreground">{UNSET_HINT[settingKey] ?? 'Saved as empty.'}</span>
               </Label>
             </div>
           )}

@@ -9,7 +9,7 @@ Accidental delete/update, corrupted data after a bad migration, provider inciden
 
 ## Steps
 1. **Stop writes** if data is being damaged: scale API + worker to 0 (or put the storefront in
-   maintenance), note the exact time **T** of the mistake (Ops → Audit log / logs).
+   maintenance), note the exact time **T** of the mistake (Admin → **Audit log** / logs).
 2. In the provider console create a **new** instance restored to **T − 1 min** (never restore over
    the live DB).
 3. Verify the restored instance (read-only):

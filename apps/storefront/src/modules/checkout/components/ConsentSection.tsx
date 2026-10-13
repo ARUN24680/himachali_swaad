@@ -17,10 +17,13 @@ export function ConsentSection({
   values,
   errors,
   set,
+  holdMinutes,
 }: {
   values: CheckoutFormValues;
   errors: FieldErrors;
   set: Setter;
+  /** settings.reservation_ttl_minutes from the cart quote; undefined while it loads. */
+  holdMinutes?: number | undefined;
 }) {
   const updatesId = fieldId('orderUpdates');
   return (
@@ -84,7 +87,10 @@ export function ConsentSection({
             <Method icon={<Landmark />} label="Netbanking" />
           </ul>
           <p className="mt-3 text-xs text-muted-foreground">
-            You choose the method in the next step. Your jars are reserved for 15 minutes while you pay.
+            You choose the method in the next step.{' '}
+            {holdMinutes
+              ? `Your jars are reserved for ${holdMinutes} minutes while you pay.`
+              : 'Your jars are reserved for a few minutes while you pay.'}
           </p>
         </div>
       </div>

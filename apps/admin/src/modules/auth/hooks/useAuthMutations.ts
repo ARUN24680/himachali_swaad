@@ -1,4 +1,4 @@
-import type { MeResponse, StaffLoginRequest } from '@pk/shared';
+import type { ChangePasswordRequest, MeResponse, StaffLoginRequest } from '@pk/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { clearOfflineData } from '@/lib/offline-cache';
@@ -47,5 +47,17 @@ export function useTotpVerify() {
     // The server just set an MFA access cookie: every query that failed with
     // TOTP_ENROLLMENT_REQUIRED (Phase 10 §10.1) now works, so refetch them all — not only /auth/me
     onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+/**
+ * Change own password. The API revokes every session of this user, then issues a fresh one for
+ * this device (new cookies) — so this tab stays signed in and every other device is signed out.
+ */
+export function useChangePassword() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ChangePasswordRequest) => authApi.changePassword(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.me }),
   });
 }

@@ -3,11 +3,19 @@ import { LogIn, ShieldCheck } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/common/PageHeader';
 import { useMe } from '@/hooks/useMe';
-import { REQUIRED_PARAM, REQUIRED_VALUE, ROLE_LABEL, safeNextPath, TwoFactorCard, useSignOut } from '@/modules/auth';
+import {
+  ChangePasswordCard,
+  REQUIRED_PARAM,
+  REQUIRED_VALUE,
+  ROLE_LABEL,
+  safeNextPath,
+  TwoFactorCard,
+  useSignOut,
+} from '@/modules/auth';
 import { toast } from '@/store/toast.store';
 
 /**
- * /account — who is signed in + two-factor setup. When the API refused an admin call because 2FA
+ * /account — who is signed in, two-factor setup and change password. When the API refused an admin call because 2FA
  * isn't set up yet (Phase 10 §10.1), the app lands here with `?required=2fa&next=…`: a calm banner
  * explains why, and enrolling sends the admin straight back to `next` (or the dashboard).
  */
@@ -32,7 +40,7 @@ export default function AccountPage() {
       <PageHeader
         eyebrow={user ? ROLE_LABEL[user.role] : 'Account'}
         title="Your account"
-        description="Sign-in security for your staff account."
+        description="Sign-in security for your staff account — password and two-factor."
       >
         {required &&
           (user.totpEnabled ? (
@@ -81,6 +89,7 @@ export default function AccountPage() {
         <div className={required ? 'order-first lg:order-none' : undefined}>
           <TwoFactorCard onEnabled={onEnabled} />
         </div>
+        <ChangePasswordCard />
       </div>
     </div>
   );

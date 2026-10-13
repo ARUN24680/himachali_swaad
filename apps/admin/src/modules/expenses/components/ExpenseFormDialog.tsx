@@ -19,12 +19,13 @@ import { SelectControl } from '@/components/common/SelectControl';
 import { InputAffix } from '@/components/common/InputAffix';
 import { paiseToRupeesInput, rupeesToPaise } from '@/lib/money-input';
 import { toast } from '@/store/toast.store';
+import { RECEIPT_MAX_BYTES } from '../api/expensesApi';
 import { useSaveExpense } from '../hooks/useExpenses';
 import { CATEGORY_LABEL, type ExpenseCategory } from './expenseMeta';
 
 const BUSINESS = 'business';
 
-/** Add / edit an expense, optionally with a receipt (PDF or photo, ≤ 10 MB, private storage). */
+/** Add / edit an expense, optionally with a receipt (PDF or photo, ≤ 5 MB, private storage). */
 export function ExpenseFormDialog({
   expense,
   staff,
@@ -58,7 +59,7 @@ export function ExpenseFormDialog({
     if (!category) errs.category = 'Pick a category';
     if (amountPaise == null || amountPaise <= 0) errs.amountPaise = 'Enter an amount in rupees, e.g. 4999 or 499.50';
     if (description.trim().length < 3) errs.description = 'Describe it in a few words';
-    if (receipt && receipt.size > 10 * 1024 * 1024) errs.receipt = 'Receipts can be at most 10 MB';
+    if (receipt && receipt.size > RECEIPT_MAX_BYTES) errs.receipt = 'Receipts can be at most 5 MB';
     setErrors(errs);
     if (!r.success || Object.keys(errs).length) return;
     save.mutate(
@@ -107,7 +108,7 @@ export function ExpenseFormDialog({
                 onChange={(e) => setIncurredOn(e.target.value)}
               />
             </FormField>
-            <FormField label="Paid by" hint="Out-of-pocket costs are reimbursed in the settlement">
+            <FormField label="Paid by" hint="A kitchen partner’s out-of-pocket cost is paid back in their settlement">
               <SelectControl value={paidBy} onValueChange={setPaidBy}>
                 <SelectItem value={BUSINESS}>Business account</SelectItem>
                 {staff
@@ -126,7 +127,7 @@ export function ExpenseFormDialog({
           <FormField
             label={expense?.receiptAvailable ? 'Replace receipt' : 'Receipt'}
             optional
-            hint="PDF, JPG, PNG or WebP · up to 10 MB · stored privately"
+            hint="PDF, JPG, PNG or WebP · up to 5 MB · stored privately"
             error={errors.receipt}
           >
             <Input

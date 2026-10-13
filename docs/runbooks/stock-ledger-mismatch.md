@@ -17,14 +17,14 @@ SELECT b.id, b.batch_code, b.available_stock,
  GROUP BY b.id HAVING b.available_stock <> COALESCE(SUM(m.quantity_delta), 0);
 ```
 Then for each batch: last movements (`SELECT * FROM inventory_movements WHERE batch_id = $1 ORDER BY
-created_at DESC LIMIT 20`) and Ops → Audit log for `inventory_batch` around that time. Was anyone
+created_at DESC LIMIT 20`) and Admin → **Audit log** for `inventory_batch` around that time. Was anyone
 running SQL? Did a deploy happen?
 
 ## Fix
-1. **Pause sales of that product** (Admin → Products → Unpublish) if `available_stock` > physical
+1. **Pause sales of that product** (Admin → Products → product → **Unpublish**) if `available_stock` > physical
    jars — overselling is worse than a lost sale.
 2. Count the physical jars of that batch at the kitchen.
-3. Record the truth with **Inventory → Adjust** (creates an `ADJUSTMENT` movement + audit row).
+3. Record the truth with **Inventory → batch → Adjust stock** (creates an `ADJUSTMENT` movement + audit row).
    If the drift is in `available_stock` itself (no movement), the fix needs a code change or a
    reviewed one-off migration that inserts the missing movement — open an issue, do not edit.
 4. Find the root cause (bug / manual edit) before re-publishing.

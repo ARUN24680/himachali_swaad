@@ -52,5 +52,7 @@ export const CartQuoteResponseSchema = z.object({
   freeShippingRemainingPaise: z.number().int().nullable(),
   /** settings.max_qty_per_item — cart steppers cap at this. */
   maxQtyPerItem: z.number().int(),
+  /** settings.reservation_ttl_minutes — how long checkout holds the jars (copy on the checkout page). */
+  reservationTtlMinutes: z.number().int(),
 });
 export type CartQuoteResponse = z.infer<typeof CartQuoteResponseSchema>;
