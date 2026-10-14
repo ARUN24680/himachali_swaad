@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: { '@': path('./src') },
     },
-    server: { port: 5173, strictPort: true },
+    server: { port: 5173, strictPort: true, fs: { allow: [path('../../')] } },
     build: { sourcemap: true },
   };
 });

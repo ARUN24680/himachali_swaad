@@ -11,7 +11,8 @@
     "./status-badge": "./src/status-badge.tsx",
     "./nonveg-mark": "./src/nonveg-mark.tsx",
     "./components/*": "./src/components/*.tsx",
-    "./lib/*": "./src/lib/*.ts"
+    "./lib/*": "./src/lib/*.ts",
+    "./brand/*": "./brand/*"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

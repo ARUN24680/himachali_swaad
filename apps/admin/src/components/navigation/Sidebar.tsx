@@ -1,5 +1,6 @@
 import { cn } from '@pk/ui';
-import { Mountain } from 'lucide-react';
+import logoDark from '@pk/ui/brand/logo-horizontal-dark.png';
+import logoIcon from '@pk/ui/brand/logo-icon.png';
 import { Link, NavLink } from 'react-router';
 import type { NavGroup, NavItem } from './nav-items';
 
@@ -20,49 +21,43 @@ export function Sidebar({ items }: { items: NavItem[] }) {
       <div className="sticky top-0 flex h-dvh flex-col">
         <Link
           to="/"
-          className="flex h-16 shrink-0 items-center justify-center gap-3 border-b border-secondary-foreground/10 px-3 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset lg:justify-start lg:px-5"
+          aria-label="Pahadi Khatki Operations"
+          className="flex h-16 shrink-0 items-center justify-center border-b border-secondary-foreground/10 px-3 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset lg:justify-start lg:px-4"
         >
-          <span
-            aria-hidden="true"
-            className="grid size-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground [&_svg]:size-5"
-          >
-            <Mountain />
-          </span>
-          <span className="hidden min-w-0 lg:grid">
-            <span className="truncate font-serif text-lg leading-tight font-semibold">Pahadi Khatki</span>
-            <span className="text-[0.6875rem] font-semibold tracking-[0.14em] text-secondary-foreground/70 uppercase">
-              Operations
-            </span>
-          </span>
+          {/* Tablet compact rail icon */}
+          <img src={logoIcon} alt="Pahadi Khatki" className="size-9 object-contain lg:hidden" />
+          {/* Desktop full sidebar: Clean horizontal brand lockup */}
+          <div className="hidden min-w-0 items-center lg:flex">
+            <img src={logoDark} alt="Pahadi Khatki" className="h-9 w-auto max-w-[215px] object-contain" />
+          </div>
           <span className="sr-only lg:hidden">Pahadi Khatki Operations</span>
         </Link>
         <nav aria-label="Main" className="flex-1 overflow-y-auto px-2 py-4 lg:px-3">
           <div className="grid gap-4">
-            {groups.map(([group, list]) => (
+            {groups.map(([group, groupItems]) => (
               <div key={group} className="grid gap-1">
-                {groups.length > 1 && (
-                  <p className="hidden px-3 pb-1 text-[0.6875rem] font-semibold tracking-[0.14em] text-secondary-foreground/60 uppercase lg:block">
-                    {group}
-                  </p>
-                )}
-                <ul className="grid gap-1">
-                  {list.map(({ to, label, icon: Icon, end }) => (
+                <span className="hidden px-2 text-[0.6875rem] font-semibold tracking-[0.14em] text-secondary-foreground/50 uppercase lg:block">
+                  {group}
+                </span>
+                <ul className="grid gap-0.5">
+                  {groupItems.map(({ to, label, icon: Icon, end }) => (
                     <li key={to}>
                       <NavLink
                         to={to}
                         end={end}
                         className={({ isActive }) =>
                           cn(
-                            'flex min-h-11 flex-col items-center justify-center gap-1 rounded-md px-1.5 py-2 text-center text-[0.6875rem] leading-tight font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-left lg:text-sm',
-                            '[&_svg]:size-5 [&_svg]:shrink-0',
+                            'group flex min-h-11 items-center justify-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary lg:justify-start',
                             isActive
-                              ? 'bg-primary text-primary-foreground'
-                              : 'text-secondary-foreground/80 hover:bg-secondary-foreground/10 hover:text-secondary-foreground',
+                              ? 'bg-secondary-foreground/10 text-primary-foreground'
+                              : 'text-secondary-foreground/80 hover:bg-secondary-foreground/5 hover:text-secondary-foreground',
                           )
                         }
                       >
-                        <Icon aria-hidden="true" />
-                        <span>{label}</span>
+                        <span className="relative flex shrink-0 items-center justify-center">
+                          <Icon aria-hidden="true" className="size-5 shrink-0" />
+                        </span>
+                        <span className="hidden truncate lg:inline">{label}</span>
                       </NavLink>
                     </li>
                   ))}

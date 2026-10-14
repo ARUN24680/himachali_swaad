@@ -1,5 +1,6 @@
+import logoIcon from '@pk/ui/brand/logo-icon.png';
 import { cn } from '@pk/ui';
-import { Boxes, ClipboardList, Mountain, Settings, Wallet } from 'lucide-react';
+import { Boxes, ClipboardList, Settings, Wallet } from 'lucide-react';
 import { Suspense } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 import { I18nProvider } from '@/app/providers/I18nProvider';
@@ -55,12 +56,7 @@ function PartnerShell() {
             aria-label={`${t('common.appName')} · ${t('common.brand')}`}
             className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <span
-              aria-hidden="true"
-              className="grid size-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground [&_svg]:size-5"
-            >
-              <Mountain />
-            </span>
+            <img src={logoIcon} alt="" className="size-8 object-contain md:size-9" />
             {/* Tablet: the top tabs need the room — logo mark only */}
             <span className="grid min-w-0 leading-tight md:hidden lg:grid">
               <span className="truncate font-serif text-lg font-semibold">{t('common.appName')}</span>

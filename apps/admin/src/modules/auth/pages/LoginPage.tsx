@@ -1,4 +1,6 @@
+import logoDark from '@pk/ui/brand/logo-dark.png';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
+import { BrandLogo } from '@/components/common/BrandLogo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { useMe } from '@/hooks/useMe';
 import { LoginForm } from '../components/LoginForm';
@@ -23,7 +25,7 @@ export default function LoginPage() {
     <div className="grid min-h-dvh bg-background text-foreground lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       {/* Brand panel — desktop only; phones get straight to the form */}
       <aside className="relative hidden overflow-hidden bg-secondary p-12 text-secondary-foreground lg:flex lg:flex-col lg:justify-between">
-        <div className="flex items-center gap-2 font-serif text-2xl font-semibold">Pahadi Khatki</div>
+        <img src={logoDark} alt="Pahadi Khatki" className="h-11 w-auto object-contain" />
         <div className="grid max-w-md gap-4">
           <p className="text-xs font-semibold tracking-[0.12em] text-primary uppercase">Operations portal</p>
           <p className="font-serif text-4xl leading-tight font-medium text-balance">
@@ -36,7 +38,7 @@ export default function LoginPage() {
 
       <main className="flex min-w-0 flex-col">
         <div className="flex h-16 items-center justify-between px-4 md:px-8">
-          <div className="flex items-center gap-2 font-serif text-lg font-semibold lg:invisible">Pahadi Khatki</div>
+          <BrandLogo size="sm" className="lg:invisible" />
           <ThemeToggle />
         </div>
         <div className="flex flex-1 items-start justify-center px-4 pt-6 pb-12 sm:items-center sm:pt-0 md:px-8">

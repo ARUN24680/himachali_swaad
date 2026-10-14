@@ -4,6 +4,7 @@ const emptyToUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === 
 
 const PublicEnvSchema = z.object({
   VITE_API_URL: z.url(),
+  VITE_STOREFRONT_URL: z.preprocess(emptyToUndefined, z.string().optional()).default('http://localhost:3000'),
   VITE_SENTRY_DSN: z.preprocess(emptyToUndefined, z.url().optional()),
   VITE_SENTRY_ENVIRONMENT: z.preprocess(emptyToUndefined, z.string().optional()),
   // Phase 10 §10.3: git SHA set by the deploy, matches the uploaded source maps

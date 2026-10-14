@@ -15,6 +15,7 @@ import { ChevronRight, Menu } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { BrandLogo } from '@/components/common/BrandLogo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { legalNav, mainNav } from '@/config/navigation';
 
@@ -31,7 +32,9 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent closeLabel="Close menu">
         <SheetHeader>
-          <SheetTitle>Menu</SheetTitle>
+          <SheetTitle>
+            <BrandLogo size="sm" />
+          </SheetTitle>
           <SheetDescription className="sr-only">Site navigation</SheetDescription>
         </SheetHeader>
         <SheetBody>

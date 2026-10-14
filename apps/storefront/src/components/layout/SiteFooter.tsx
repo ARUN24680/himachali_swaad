@@ -1,5 +1,6 @@
 import { NonVegMark } from '@pk/ui';
-import { Mail, MessageCircle, MountainSnow, Phone } from 'lucide-react';
+import { BrandLogo } from '@/components/common/BrandLogo';
+import { Mail, MessageCircle, Phone } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { PendingValue } from '@/components/common/PendingValue';
@@ -26,10 +27,10 @@ export function SiteFooter({ consentControl }: { consentControl?: ReactNode }) {
         <div className="grid content-start gap-4">
           <Link
             href="/"
-            className="flex w-fit items-center gap-2 rounded-md font-serif text-2xl font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={site.name}
+            className="flex w-fit items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <MountainSnow aria-hidden="true" className="size-6 text-accent-foreground" />
-            {site.name}
+            <BrandLogo size="lg" />
           </Link>
           <p className="max-w-sm leading-relaxed">{site.tagline}. Prepaid orders, shipped across India.</p>
           <p className="flex items-center gap-2 text-foreground">
