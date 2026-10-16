@@ -66,9 +66,18 @@ export function setAuthFailureHandler(handler: () => void) {
   onAuthFailure = handler;
 }
 
-async function rawRequest(path: string, { method = 'GET', body, signal, headers }: HttpOptions): Promise<Response> {
+interface ApiResponse {
+  ok: boolean;
+  status: number;
+  headers: Headers;
+  payload: unknown;
+}
+
+async function rawRequest(path: string, { method = 'GET', body, signal, headers }: HttpOptions): Promise<ApiResponse> {
+  const timeout = AbortSignal.timeout(15_000);
+  const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
   try {
-    return await fetch(`${env.VITE_API_URL}/api/v1${path}`, {
+    const res = await fetch(`${env.VITE_API_URL}/api/v1${path}`, {
       method,
       credentials: 'include', // httpOnly cookie sessions (D-20) — tokens never reach JS
       headers: {
@@ -78,26 +87,35 @@ async function rawRequest(path: string, { method = 'GET', body, signal, headers 
           : { 'content-type': 'application/json', accept: 'application/json' }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal,
+      signal: requestSignal,
     });
+    // Read the body under the same deadline: receiving headers alone must not leave auth pending.
+    let payload: unknown;
+    try {
+      payload = await res.json();
+    } catch (err) {
+      if (requestSignal.aborted) throw err;
+      throw new ApiRequestError({
+        code: 'BAD_RESPONSE',
+        message: 'Something went wrong. Please try again.',
+        status: res.status,
+      });
+    }
+    return { ok: res.ok, status: res.status, headers: res.headers, payload };
   } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') throw err;
-    throw new ApiRequestError({ code: 'NETWORK_ERROR', message: 'You seem to be offline.', status: 0 });
+    if (signal?.aborted || isApiError(err)) throw err;
+    throw new ApiRequestError({
+      code: 'NETWORK_ERROR',
+      message: timeout.aborted
+        ? 'The server is taking too long to respond. Please try again.'
+        : 'Could not reach the server. Check your connection and try again.',
+      status: 0,
+    });
   }
 }
 
-async function parse<T>(res: Response): Promise<T> {
-  let payload: unknown;
-  try {
-    payload = await res.json();
-  } catch {
-    throw new ApiRequestError({
-      code: 'BAD_RESPONSE',
-      message: 'Something went wrong. Please try again.',
-      status: res.status,
-    });
-  }
-  const envelope = payload as {
+async function parse<T>(res: ApiResponse): Promise<T> {
+  const envelope = res.payload as {
     success?: boolean;
     data?: T;
     error?: { code?: unknown; message?: unknown; details?: Record<string, unknown> } | null;

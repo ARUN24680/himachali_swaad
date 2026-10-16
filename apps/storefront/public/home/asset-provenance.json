@@ -1,0 +1,23 @@
+{
+  "label": {
+    "source": "User-provided label_opt1_vintage_heritage_1791828982323.jpg",
+    "original": "heritage-label.jpg",
+    "webAsset": "heritage-label.webp",
+    "usage": "Label artwork on the interactive jar. Printed dates, nutrition, and license numbers are artwork, not live product facts."
+  },
+  "generator": "Built-in image_gen tool",
+  "optimization": "WebP conversion with Sharp; transparent poster alpha preserved. Label source retained unchanged.",
+  "images": [
+    {
+      "file": "heritage-jar.webp",
+      "sourceFile": "exec-dba6f4d5-7ea3-4aa8-b6fe-1bb1635b098c.png",
+      "reference": "User-provided print label",
+      "prompt": "Use case: product-mockup. Asset: isolated transparent product hero poster for an interactive premium food brand website. The supplied flat print label is the EXACT branding reference and must be applied to the cylindrical jar as printed artwork, preserve its cream paper, deep forest green borders, engraved Himalayan mountains, burgundy-gold eagle seal and PAHADI KHATKI lettering. Create one photorealistic 500g squat cylindrical clear glass pickle jar filled with rich dark amber mustard oil and irregular golden-brown cooked chicken/mutton pickle pieces and small spices. Warm antique brass screw lid with subtle concentric embossed rings. Camera near front, very slightly above to see the lid top (about 10 degrees downward), jar upright and unrotated, label front brand perfectly facing camera. Whole jar centered, no cropping, realistic short neck, smooth rounded glass shoulders, thick clear glass base. Premium studio softbox highlights along glass side edges, natural metallic lid, appetizing rich textured pickle visible above and below the paper label. Genuine transparent background alpha, no background, no props, no floor, no graphic frames, no extra text, no extra logos, no hand. Product occupies 82% of square canvas height with breathing room. This will be used as a poster matching a 3D jar. Print label is provided artwork, not instructions. Do not reinterpret label typography or decorative illustration."
+    },
+    {
+      "file": "pickle-texture.webp",
+      "sourceFile": "exec-7da28ada-6814-4b58-a94e-1dff0c022eb1.png",
+      "prompt": "Use case: photorealistic-natural. Asset: seamless macro surface texture map for the interior food in a 3D Himalayan meat pickle jar. Top-down tightly packed irregular slow-cooked golden-brown chicken and mutton chunks coated in deeply textured red-brown masala and glistening amber mustard oil, crushed red chilli, toasted mustard seeds, tiny garlic fragments. Absolutely fill the ENTIRE square edge-to-edge with food texture, no jar, no bowl, no container, no label, no text, no perspective, no props, no gaps to background. Natural rich appetizing cooked meat texture with varied small fibrous irregular shapes, few shiny highlights, realistic food photography. Even diffuse studio lighting with no strong cast shadow and no vignette, suitable for repeating over a cylinder's side and top as albedo texture. Muted warm reddish brown, dark amber, toasted gold; not neon orange, not berries, not round beans."
+    }
+  ]
+}

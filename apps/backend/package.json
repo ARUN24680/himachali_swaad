@@ -13,7 +13,8 @@
     "test": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "seed:staff": "tsx --env-file-if-exists=../../.env scripts/seed-staff.ts",
-    "seed:catalog": "tsx --env-file-if-exists=../../.env scripts/seed-catalog.ts"
+    "seed:catalog": "tsx --env-file-if-exists=../../.env scripts/seed-catalog.ts",
+    "seed:demo": "tsx --env-file-if-exists=../../.env scripts/demo-catalog.ts"
   },
   "dependencies": {
     "@bull-board/api": "9.10.4",

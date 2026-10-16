@@ -53,6 +53,16 @@ export async function apiRequest<T>(
   path: string,
   { method = 'GET', body, signal, headers }: RequestOptions = {},
 ): Promise<T> {
+  const timeout = AbortSignal.timeout(15_000);
+  const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
+  const networkError = () =>
+    new ApiRequestError({
+      code: 'NETWORK_ERROR',
+      message: timeout.aborted
+        ? 'The server is taking too long to respond. Please try again.'
+        : 'Could not reach the server. Check your connection and try again.',
+      status: 0,
+    });
   let res: Response;
   try {
     res = await fetch(`${env.NEXT_PUBLIC_API_URL}/api/v1${path}`, {
@@ -64,17 +74,19 @@ export async function apiRequest<T>(
         ...headers,
       },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal,
+      signal: requestSignal,
     });
   } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') throw err;
-    throw new ApiRequestError({ code: 'NETWORK_ERROR', message: 'You seem to be offline.', status: 0 });
+    if (signal?.aborted) throw err;
+    throw networkError();
   }
 
   let payload: unknown;
   try {
     payload = await res.json();
-  } catch {
+  } catch (err) {
+    if (signal?.aborted) throw err;
+    if (requestSignal.aborted) throw networkError();
     throw new ApiRequestError({
       code: 'BAD_RESPONSE',
       message: 'Something went wrong. Please try again.',

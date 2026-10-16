@@ -1,13 +1,14 @@
 import { Redis } from 'ioredis';
 
 /**
- * Shared Redis connection (rate limits, BullMQ). `maxRetriesPerRequest: null` is required by BullMQ
- * workers; API callers that must fail fast (readiness) wrap calls with their own timeout.
+ * HTTP requests must fail promptly during a Redis outage. Only BullMQ workers retry forever;
+ * their blocking commands must not inherit the HTTP command timeout.
  */
-export function createRedis(url: string, connectionName: string): Redis {
+export function createRedis(url: string, connectionName: string, mode: 'api' | 'worker' = 'api'): Redis {
   return new Redis(url, {
     connectionName,
-    maxRetriesPerRequest: null,
+    maxRetriesPerRequest: mode === 'worker' ? null : 1,
+    ...(mode === 'api' ? { commandTimeout: 3_000 } : {}),
     enableReadyCheck: true,
     lazyConnect: false,
   });

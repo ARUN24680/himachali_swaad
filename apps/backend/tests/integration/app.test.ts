@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { once } from 'node:events';
 import { Redis } from 'ioredis';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { z } from 'zod';
@@ -85,6 +86,26 @@ describe('health endpoints', () => {
     await app.close();
     deadRedis.disconnect();
   });
+
+  it('catalog and session checks return 503 promptly when Redis disconnects', async () => {
+    const disconnected = new Redis(inject('redisUrl'), { maxRetriesPerRequest: null });
+    await disconnected.ping();
+    const app = await appWith({ redis: disconnected });
+    await app.ready();
+    const ended = once(disconnected, 'end');
+    disconnected.disconnect();
+    await ended;
+    try {
+      for (const url of ['/api/v1/products', '/api/v1/auth/me']) {
+        const res = await app.inject({ method: 'GET', url });
+        expect(res.statusCode).toBe(503);
+        expect(res.json().error.code).toBe('UPSTREAM_UNAVAILABLE');
+      }
+      expect((await app.inject({ method: 'GET', url: '/healthz' })).statusCode).toBe(200);
+    } finally {
+      await app.close();
+    }
+  }, 5_000);
 });
 
 describe('envelope & errors', () => {

@@ -121,6 +121,7 @@ settings · webhook_events · invoice_sequences · admin_audit_log · push_subsc
 | `0005_notifications.sql` | `push_subscriptions`, `notifications_log` | Phase 7 |
 | `0006_settlements.sql` | `expenses`, `settlements`, `settlement_items` | Phase 9 |
 | `0007_performance_indexes.sql` | indexes only (orders created/confirmed/location+status, webhook errors, notifications recipient, expenses open/settlement) — D-57 e | Phase 10 |
+| `0008_demo_catalog.sql` | `demo_catalog_products`: optional development-fixture ownership and `cleared_at`; clear hides demos while preserving order references and append-only inventory/audit history. No fixture data is inserted by migration. | Development tooling |
 | *v2 backlog* | `coupons`, `reviews`, `carts` (abandoned cart), `ndr_actions`, COD fields | Post-launch |
 
 ---

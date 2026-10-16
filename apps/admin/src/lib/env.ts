@@ -3,7 +3,10 @@ import { z } from 'zod';
 const emptyToUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
 
 const PublicEnvSchema = z.object({
-  VITE_API_URL: z.url(),
+  // Blank means same-origin /api/v1 (Vite proxy locally, reverse proxy in Docker).
+  VITE_API_URL: z
+    .preprocess(emptyToUndefined, z.url().optional())
+    .transform((value) => value?.replace(/\/+$/, '') ?? ''),
   VITE_STOREFRONT_URL: z.preprocess(emptyToUndefined, z.string().optional()).default('http://localhost:3000'),
   VITE_SENTRY_DSN: z.preprocess(emptyToUndefined, z.url().optional()),
   VITE_SENTRY_ENVIRONMENT: z.preprocess(emptyToUndefined, z.string().optional()),
@@ -11,5 +14,5 @@ const PublicEnvSchema = z.object({
   VITE_RELEASE: z.preprocess(emptyToUndefined, z.string().optional()),
 });
 
-/** Validated at startup — a missing VITE_API_URL fails loudly instead of calling `undefined/api`. */
+/** Validate explicit API URLs; an omitted URL uses the current origin. */
 export const env = PublicEnvSchema.parse(import.meta.env);

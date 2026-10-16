@@ -1,22 +1,36 @@
-import { Droplets, Leaf, ScanLine } from 'lucide-react';
+import { Droplets, Flame, Leaf, ScanLine } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { SectionHeading } from '@/components/common/SectionHeading';
 
-const PILLARS: { icon: ReactNode; title: string; body: string }[] = [
+const PILLARS: {
+  icon: ReactNode;
+  tag: string;
+  title: string;
+  body: string;
+}[] = [
   {
-    icon: <Droplets />,
-    title: 'Cold-pressed mustard oil',
-    body: 'Every jar is cooked and preserved in pungent cold-pressed mustard oil — the oil Himachali kitchens trust to keep a pickle good for months.',
+    icon: <Droplets className="size-5" />,
+    tag: 'Purity First',
+    title: 'Cold-Pressed Mustard Oil',
+    body: 'Every jar is cooked and preserved in pure cold-pressed mustard oil — the time-tested Himalayan secret that keeps pickle naturally fresh for months.',
   },
   {
-    icon: <Leaf />,
-    title: 'No added preservatives',
-    body: 'Salt, spice, mustard oil and patience do the work — the old way of keeping meat through a mountain winter.',
+    icon: <Leaf className="size-5" />,
+    tag: '100% Clean',
+    title: 'Zero Artificial Preservatives',
+    body: 'No sodium benzoate, no vinegar dilutions, no synthetic colours. Just coarse mountain salt, whole spices, mustard oil, and natural maturation.',
   },
   {
-    icon: <ScanLine />,
-    title: 'Every jar batch-coded',
-    body: 'Each batch carries its own code, manufacture date and best-before. We only ship jars with plenty of shelf life left.',
+    icon: <Flame className="size-5" />,
+    tag: 'Stone-Ground',
+    title: 'Hand-Pounded Pahadi Spices',
+    body: 'Whole coriander seeds, wild cumin, mountain fenugreek, and crushed dried red chillies roasted over low heat to lock in deep earthy aroma.',
+  },
+  {
+    icon: <ScanLine className="size-5" />,
+    tag: 'Transparency',
+    title: 'Every Jar Batch-Coded',
+    body: 'Each glass jar carries its verifiable batch number, bottling date, and expiry. We only dispatch fresh stock with maximum shelf life.',
   },
 ];
 
@@ -25,31 +39,40 @@ export function PillarsSection() {
     <section aria-labelledby="pillars-title" className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
       <SectionHeading
         id="pillars-title"
-        eyebrow="Our promise"
-        title="Three pillars of purity"
-        lead="What goes into a Pahadi Khatki jar — and what never does."
+        eyebrow="The Himalayan Standard"
+        title="Four Pillars of Authentic Craft"
+        lead="What goes into every Pahadi Khatki jar — and what never will."
         align="center"
       />
-      <ol className="mt-10 grid gap-5 md:mt-14 md:grid-cols-3 md:gap-6">
+      <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {PILLARS.map((p, i) => (
-          <li key={p.title} className="relative grid gap-3 rounded-lg border border-border bg-card p-6 md:p-7">
-            <span
+          <div
+            key={p.title}
+            className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-float"
+          >
+            {/* Top decorative accent line */}
+            <div
+              className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/30 via-primary to-primary/30 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
               aria-hidden="true"
-              className="absolute top-5 right-6 font-serif text-4xl text-muted-foreground tabular-nums"
-            >
-              0{i + 1}
-            </span>
-            <span
-              aria-hidden="true"
-              className="grid size-12 place-items-center rounded-full bg-accent text-accent-foreground [&_svg]:size-5.5"
-            >
-              {p.icon}
-            </span>
-            <h3 className="font-serif text-xl font-medium text-foreground">{p.title}</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">{p.body}</p>
-          </li>
+            />
+
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="grid size-11 place-items-center rounded-lg bg-accent text-accent-foreground shadow-sm">
+                  {p.icon}
+                </span>
+                <span className="font-mono text-xs font-semibold text-muted-foreground tabular-nums">0{i + 1}</span>
+              </div>
+
+              <span className="mt-4 inline-block text-[11px] font-semibold tracking-wider text-accent-foreground uppercase">
+                {p.tag}
+              </span>
+              <h3 className="mt-1 font-serif text-lg font-medium text-foreground">{p.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.body}</p>
+            </div>
+          </div>
         ))}
-      </ol>
+      </div>
     </section>
   );
 }

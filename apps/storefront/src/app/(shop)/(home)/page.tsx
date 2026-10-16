@@ -2,7 +2,7 @@ import type { ProductListResponse } from '@pk/shared';
 import type { Metadata } from 'next';
 import { connection } from 'next/server';
 import { catalogApi } from '@/modules/catalog';
-import { FeaturedProducts, HomeHero, OriginStory, PillarsSection } from '@/modules/home';
+import { FeaturedProducts, HomeHero, OriginStory, PillarsSection, TestimonialsSection } from '@/modules/home';
 
 export const metadata: Metadata = { alternates: { canonical: '/' } };
 
@@ -23,12 +23,13 @@ export default async function HomePage() {
     <>
       <HomeHero
         freshestBatch={catalog?.freshestBatch ?? null}
-        heroImage={hero?.images[0] ?? null}
+        heroImage="/home/hero-jar-studio.webp"
         heroAlt={hero ? `${hero.title} jar` : 'Pahadi Khatki pickle jar'}
       />
       <PillarsSection />
       <OriginStory />
       <FeaturedProducts groups={catalog?.groups ?? null} />
+      <TestimonialsSection />
     </>
   );
 }

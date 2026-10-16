@@ -52,6 +52,8 @@ const EnvSchema = z.object({
 
   /** Public base URL of this API (local image uploads, links in messages). */
   API_PUBLIC_URL: z.url().default('http://localhost:4000'),
+  /** Container-to-container API address for the shipping sandbox; never sent to browsers. */
+  API_INTERNAL_URL: z.preprocess(emptyToUndefined, z.url().optional()),
   /** Product images (D-11): `local` = dev/test disk stand-in, `r2` = Cloudflare R2 public bucket. */
   STORAGE_DRIVER: z.enum(['local', 'r2']).default('local'),
   LOCAL_UPLOADS_DIR: z.string().min(1).default('.uploads'),

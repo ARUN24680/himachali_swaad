@@ -1,0 +1,18 @@
+FROM postgres:17-alpine
+
+# Install AWS CLI, bash, and curl (pg_dump 17 is already pre-installed)
+RUN apk add --no-cache \
+    aws-cli \
+    bash \
+    gzip \
+    curl \
+    tzdata
+
+WORKDIR /scripts
+
+COPY docker/backup.sh /scripts/backup.sh
+COPY docker/entrypoint-backup.sh /scripts/entrypoint.sh
+
+RUN chmod +x /scripts/backup.sh /scripts/entrypoint.sh
+
+ENTRYPOINT ["/scripts/entrypoint.sh"]

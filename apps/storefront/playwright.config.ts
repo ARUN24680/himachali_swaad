@@ -27,6 +27,10 @@ export default defineConfig({
         url: 'http://localhost:3000',
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
-        env: { NEXT_PUBLIC_GA4_ID: TEST_GA4_ID, NEXT_PUBLIC_META_PIXEL_ID: TEST_META_PIXEL_ID },
+        env: {
+          NEXT_PUBLIC_API_URL: 'http://localhost:4000',
+          NEXT_PUBLIC_GA4_ID: TEST_GA4_ID,
+          NEXT_PUBLIC_META_PIXEL_ID: TEST_META_PIXEL_ID,
+        },
       },
 });

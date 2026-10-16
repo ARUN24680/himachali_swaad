@@ -1,0 +1,38 @@
+# syntax=docker/dockerfile:1
+FROM node:24-alpine AS base
+RUN corepack enable && corepack prepare pnpm@12.10.1 --activate
+WORKDIR /app
+
+FROM base AS builder
+# Copy workspace manifests
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+# Copy workspace packages
+COPY packages ./packages
+# Copy backend application
+COPY apps/backend ./apps/backend
+
+# Install all dependencies
+RUN pnpm install --frozen-lockfile
+
+# Build backend into dist/server.js and dist/worker.js (bundles @pk/* workspace packages)
+RUN pnpm --filter @pk/backend build
+
+# Prune to production node_modules for @pk/backend
+RUN pnpm --filter @pk/backend --prod deploy /app/deployed
+
+FROM node:24-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Install curl for docker healthcheck
+RUN apk add --no-cache curl
+
+# Copy runtime node_modules and bundled output
+COPY --from=builder /app/deployed/node_modules ./node_modules
+COPY --from=builder /app/deployed/package.json ./package.json
+COPY --from=builder /app/apps/backend/dist ./dist
+
+EXPOSE 4000
+
+# Default entrypoint runs API server. Override with ["node", "dist/worker.js"] for worker.
+CMD ["node", "dist/server.js"]

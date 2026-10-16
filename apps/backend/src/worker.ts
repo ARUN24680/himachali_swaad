@@ -37,7 +37,7 @@ const db = createDb(
   },
   logger,
 );
-const connection = createRedis(env.REDIS_URL, env.PROCESS_NAME);
+const connection = createRedis(env.REDIS_URL, env.PROCESS_NAME, 'worker');
 await connection.ping();
 
 const jobs = createBullJobQueue(connection);

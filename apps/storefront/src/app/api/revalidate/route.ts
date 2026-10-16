@@ -24,7 +24,8 @@ export async function POST(request: Request): Promise<Response> {
   const body = BodySchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return Response.json({ revalidated: false }, { status: 400 });
 
-  // Mark stale now; the next visitor gets fresh data (stale-while-revalidate semantics)
-  for (const tag of body.data.tags) revalidateTag(tag, 'max');
+  // Catalog writes (including clearing demos) must be visible on the next request.
+  // 'max' serves the old catalog to that visitor while refreshing in the background.
+  for (const tag of body.data.tags) revalidateTag(tag, { expire: 0 });
   return Response.json({ revalidated: true, tags: body.data.tags });
 }

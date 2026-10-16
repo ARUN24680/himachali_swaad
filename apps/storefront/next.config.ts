@@ -1,25 +1,35 @@
 import type { NextConfig } from 'next';
+import { networkInterfaces } from 'node:os';
+
+const isDev = process.env.NODE_ENV !== 'production';
+const publicApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/+$/, '') ?? '';
+const internalApiUrl = (process.env.INTERNAL_API_URL || publicApiUrl || 'http://127.0.0.1:4000').replace(/\/+$/, '');
+const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
+// A production bundle can run locally over HTTP (Docker). TLS-only policies belong to HTTPS sites.
+const enforceHttps = !isDev && siteUrl.protocol === 'https:';
 
 /**
  * Product images come only from the image CDN (D-11) — R2 public bucket domain in production,
  * the backend's dev-assets route locally (STORAGE_DRIVER=local).
  */
 function imageRemotePattern(): URL {
-  const base =
-    process.env.NEXT_PUBLIC_ASSETS_BASE_URL ||
-    `${(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/+$/, '')}/dev-assets`;
+  const base = process.env.NEXT_PUBLIC_ASSETS_BASE_URL || `${publicApiUrl || internalApiUrl}/dev-assets`;
   return new URL(`${base.replace(/\/+$/, '')}/products/**`);
 }
 
 const imagePattern = imageRemotePattern();
 /**
  * Next 16 refuses to optimise images from private IPs (SSRF guard). Allow it ONLY when images are
- * served by the local dev backend (localhost /dev-assets, STORAGE_DRIVER=local) — never for a CDN host.
+ * served by the configured dev backend's exact /dev-assets/products path — never allow arbitrary
+ * private hosts or paths. LAN image hosts are allowed only in dev or an explicit HTTP local build.
  */
-const localImageOrigin = ['localhost', '127.0.0.1', '[::1]'].includes(imagePattern.hostname);
-
-const isDev = process.env.NODE_ENV !== 'production';
-const apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').origin;
+const isPrivateHost = (host: string) =>
+  ['localhost', '127.0.0.1', '[::1]'].includes(host) || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+const localImageOrigin =
+  !enforceHttps &&
+  imagePattern.pathname === '/dev-assets/products/**' &&
+  (isPrivateHost(imagePattern.hostname) || imagePattern.origin === new URL(internalApiUrl).origin);
+const apiOrigin = publicApiUrl ? new URL(publicApiUrl).origin : '';
 
 /**
  * Security headers (Phase 10 §10.1, D-57). script-src keeps 'unsafe-inline' for Next's inline
@@ -39,12 +49,14 @@ const csp = [
   "base-uri 'self'",
   "form-action 'self' https://api.razorpay.com",
   "frame-ancestors 'none'",
-  ...(isDev ? [] : ['upgrade-insecure-requests']),
+  ...(enforceHttps ? ['upgrade-insecure-requests'] : []),
 ].join('; ');
 
 const securityHeaders = [
   { key: 'Content-Security-Policy', value: csp },
-  ...(isDev ? [] : [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' }]),
+  ...(enforceHttps
+    ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' }]
+    : []),
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
@@ -56,7 +68,22 @@ const securityHeaders = [
 ];
 
 const config: NextConfig = {
+  output:
+    process.env.NEXT_OUTPUT_STANDALONE === 'true' || process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   reactStrictMode: true,
+  // Permit this machine's actual LAN addresses for Next's dev assets; no wildcard host allowlist.
+  allowedDevOrigins: [
+    siteUrl.hostname,
+    ...Object.values(networkInterfaces()).flatMap((addresses) =>
+      (addresses ?? []).filter(({ internal }) => !internal).map(({ address }) => address),
+    ),
+  ],
+  async rewrites() {
+    return [
+      { source: '/api/v1/:path*', destination: `${internalApiUrl}/api/v1/:path*` },
+      { source: '/dev-assets/:path*', destination: `${internalApiUrl}/dev-assets/:path*` },
+    ];
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
@@ -69,6 +96,8 @@ const config: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [imagePattern],
     dangerouslyAllowLocalIP: localImageOrigin,
+    // A permitted dev asset must not redirect the optimiser to a different private endpoint.
+    maximumRedirects: localImageOrigin ? 0 : 3,
   },
 };
 

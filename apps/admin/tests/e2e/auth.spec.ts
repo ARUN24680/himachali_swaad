@@ -246,6 +246,34 @@ test('concurrent 401s share ONE refresh (single-flight)', async ({ page }) => {
   expect(calls['/auth/refresh']).toBe(1);
 });
 
+test('unresponsive API requests time out; caller cancellation remains an abort', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/login');
+  await expect(page.getByRole('heading', { name: 'Sign in', level: 1 })).toBeVisible();
+  // Leave the request open: a backend accepting connections without answering used to hang forever.
+  await page.route(`${API}/stalled`, () => {});
+  const result = await page.evaluate(async () => {
+    const mod = '/src/services/api/http.ts';
+    const { http } = (await import(/* @vite-ignore */ mod)) as {
+      http: (path: string, options?: { signal: AbortSignal }) => Promise<unknown>;
+    };
+    const describe = (error: unknown) => {
+      const err = error as { code?: string; name: string; message: string };
+      return { code: err.code, name: err.name, message: err.message };
+    };
+    const started = performance.now();
+    const timeout = await http('/stalled').catch(describe);
+    const elapsed = performance.now() - started;
+    const controller = new AbortController();
+    const cancelled = http('/stalled', { signal: controller.signal }).catch(describe);
+    controller.abort();
+    return { timeout, elapsed, cancelled: await cancelled };
+  });
+  expect(result.timeout).toMatchObject({ code: 'NETWORK_ERROR', message: expect.stringContaining('too long') });
+  expect(result.elapsed).toBeLessThan(20_000);
+  expect(result.cancelled).toMatchObject({ name: 'AbortError' });
+});
+
 test('refresh fails → /login?next=<path>, and sign-in returns there', async ({ page }) => {
   await mockApi(page, { signedIn: false, refresh: 'fail' });
   await page.goto('/?view=today');

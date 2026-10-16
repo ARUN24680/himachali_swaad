@@ -1,0 +1,243 @@
+# Full Docker stack for Pahadi Khatki (local defaults; production needs real providers + HTTPS)
+# Stack: PostgreSQL 17 + Redis 7 + Auto-Migrations + Fastify API + BullMQ Worker + Next.js Storefront + Admin SPA + S3 Glacier Backup + Nginx
+name: pahadi-khatki-prod
+
+services:
+  # 1. Primary PostgreSQL 17 Database
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pk_local_only}
+      POSTGRES_DB: ${POSTGRES_DB:-pahadi_khatki}
+      TZ: UTC
+    ports:
+      # Configurable host port (default 5435 avoids clash with existing local postgres)
+      - '${HOST_DB_PORT:-127.0.0.1:5435}:5432'
+    volumes:
+      - pk_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-pk} -d ${POSTGRES_DB:-pahadi_khatki}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # 2. Redis 7.4 (Queues, rate-limits, sessions with AOF persistence)
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    ports:
+      - '${HOST_REDIS_PORT:-127.0.0.1:6381}:6379'
+    volumes:
+      - pk_redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # 3. Automatic DB Migrations on startup (dbmate)
+  migrate:
+    image: amacneil/dbmate:2.36.0
+    restart: 'no'
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-pk}:${POSTGRES_PASSWORD:-pk_local_only}@postgres:5432/${POSTGRES_DB:-pahadi_khatki}?sslmode=disable
+    volumes:
+      - ./packages/database/migrations:/db/migrations
+    command: --migrations-dir /db/migrations --no-dump-schema up
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '5m'
+        max-file: '2'
+
+  # 4. Fastify HTTP API Backend (:4000)
+  backend-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    restart: unless-stopped
+    command: ['node', 'dist/server.js']
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+      HOST: 0.0.0.0
+      APP_ORIGINS: ${APP_ORIGINS:-http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173,http://localhost:3001,http://127.0.0.1:3001,http://localhost:5174,http://127.0.0.1:5174,http://localhost:8080,http://127.0.0.1:8080}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-localhost}
+      DATABASE_URL: postgres://${POSTGRES_USER:-pk}:${POSTGRES_PASSWORD:-pk_local_only}@postgres:5432/${POSTGRES_DB:-pahadi_khatki}?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      API_PUBLIC_URL: ${DOCKER_API_PUBLIC_URL:-http://localhost:4001}
+      API_INTERNAL_URL: http://backend-api:4000
+      STOREFRONT_REVALIDATE_URL: ${DOCKER_REVALIDATE_URL:-}
+      LOCAL_UPLOADS_DIR: /app/.uploads
+      LOCAL_PRIVATE_UPLOADS_DIR: /app/.uploads-private
+    volumes:
+      - ./apps/backend/.uploads:/app/.uploads
+      - ./apps/backend/.uploads-private:/app/.uploads-private
+    ports:
+      - '${HOST_API_PORT:-127.0.0.1:4001}:4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:4000/readyz']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # 5. BullMQ Background Worker (Shiprocket, orders, WhatsApp, reconciliation)
+  backend-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    restart: unless-stopped
+    command: ['node', 'dist/worker.js']
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PROCESS_NAME: pk-worker
+      DATABASE_URL: postgres://${POSTGRES_USER:-pk}:${POSTGRES_PASSWORD:-pk_local_only}@postgres:5432/${POSTGRES_DB:-pahadi_khatki}?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      API_PUBLIC_URL: ${DOCKER_API_PUBLIC_URL:-http://localhost:4001}
+      API_INTERNAL_URL: http://backend-api:4000
+      STOREFRONT_REVALIDATE_URL: ${DOCKER_REVALIDATE_URL:-}
+      LOCAL_UPLOADS_DIR: /app/.uploads
+      LOCAL_PRIVATE_UPLOADS_DIR: /app/.uploads-private
+    volumes:
+      - ./apps/backend/.uploads:/app/.uploads
+      - ./apps/backend/.uploads-private:/app/.uploads-private
+    depends_on:
+      backend-api:
+        condition: service_healthy
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # 6. Customer Next.js Storefront (:3000)
+  storefront:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.storefront
+      args:
+        NEXT_PUBLIC_API_URL: ${DOCKER_BROWSER_API_URL:-}
+        NEXT_PUBLIC_SITE_URL: ${DOCKER_STOREFRONT_URL:-http://localhost:3001}
+        NEXT_PUBLIC_ASSETS_BASE_URL: ${DOCKER_API_PUBLIC_URL:-http://localhost:4001}/dev-assets
+        INTERNAL_API_URL: http://backend-api:4000
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      INTERNAL_API_URL: http://backend-api:4000
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET}
+    ports:
+      - '${HOST_STOREFRONT_PORT:-127.0.0.1:3001}:3000'
+    depends_on:
+      backend-api:
+        condition: service_healthy
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # 7. Admin & Kitchen Partner PWA (:5173 / :80)
+  admin:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.admin
+      args:
+        VITE_API_URL: ${DOCKER_BROWSER_API_URL:-}
+    restart: unless-stopped
+    ports:
+      - '${HOST_ADMIN_PORT:-127.0.0.1:5174}:80'
+    depends_on:
+      backend-api:
+        condition: service_healthy
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # 8. Automated Daily S3 Glacier Backup (10-Year Safe Vault)
+  backup-service:
+    profiles: ['backup']
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backup
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-pk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pk_local_only}
+      DB_NAME: ${POSTGRES_DB:-pahadi_khatki}
+      S3_BUCKET: ${S3_BACKUP_BUCKET:-}
+      S3_PREFIX: postgres-backups
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-ap-south-1}
+      CRON_SCHEDULE: ${BACKUP_CRON_SCHEDULE:-0 2 * * *}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '5m'
+        max-file: '2'
+
+  # 9. Master Nginx Reverse Proxy (SSL & Domain Routing)
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - '${HTTP_PORT:-8080}:80'
+      - '${HTTPS_PORT:-8443}:443'
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend-api
+      - storefront
+      - admin
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+volumes:
+  pk_pgdata:
+  pk_redisdata:
+    name: ${DOCKER_REDIS_VOLUME:-pahadi-khatki-prod_pk_redisdata}

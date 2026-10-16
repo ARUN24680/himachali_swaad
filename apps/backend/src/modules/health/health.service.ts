@@ -36,7 +36,11 @@ export function createHealthService(deps: { db: Db; redis: Redis; workerHeartbea
     },
 
     async worker(): Promise<{ alive: boolean; lastBeatAt: string | null; ageSec: number | null }> {
-      const raw = deps.workerHeartbeatKey ? await deps.redis.get(deps.workerHeartbeatKey).catch(() => null) : null;
+      const raw = deps.workerHeartbeatKey
+        ? await withTimeout(deps.redis.get(deps.workerHeartbeatKey), CHECK_TIMEOUT_MS, 'worker heartbeat').catch(
+            () => null,
+          )
+        : null;
       if (!raw) return { alive: false, lastBeatAt: null, ageSec: null };
       const ageSec = Math.round((Date.now() - Number(raw)) / 1000);
       return { alive: ageSec <= WORKER_STALE_SEC, lastBeatAt: new Date(Number(raw)).toISOString(), ageSec };

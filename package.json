@@ -1,11 +1,12 @@
 {
   "name": "pahadi-khatki",
   "private": true,
-  "description": "Pahadi Khatki — Himachali non-veg pickle e-commerce & operations monorepo",
+  "description": "Pahadi Khatki \u2014 Himachali non-veg pickle e-commerce & operations monorepo",
   "engines": {
     "node": ">=24.0.0 <25"
   },
   "scripts": {
+    "predev": "node scripts/dev-infra.mjs",
     "dev": "turbo run dev dev:worker",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
@@ -15,6 +16,7 @@
     "dev:backend": "turbo run dev --filter=@pk/backend",
     "dev:storefront": "turbo run dev --filter=@pk/storefront",
     "dev:admin": "turbo run dev --filter=@pk/admin",
+    "dev:infra": "node scripts/dev-infra.mjs",
     "db:new": "pnpm --filter @pk/database db:new",
     "db:up": "pnpm --filter @pk/database db:up",
     "db:down": "pnpm --filter @pk/database db:down",
@@ -26,7 +28,12 @@
     "prepare": "husky",
     "test:e2e": "turbo run test:e2e",
     "db:seed:staff": "pnpm --filter @pk/backend seed:staff",
-    "db:seed:catalog": "pnpm --filter @pk/backend seed:catalog"
+    "db:seed:catalog": "pnpm --filter @pk/backend seed:catalog",
+    "db:demo": "pnpm --filter @pk/backend seed:demo",
+    "db:demo:seed": "pnpm db:demo seed",
+    "db:demo:clear": "pnpm db:demo clear",
+    "db:demo:reset": "pnpm db:demo reset",
+    "db:demo:status": "pnpm db:demo status"
   },
   "packageManager": "pnpm@12.10.1",
   "lint-staged": {

@@ -26,10 +26,15 @@ export class ServerApiError extends Error {
  * the shared Zod schema so a contract drift fails loudly instead of rendering garbage.
  */
 export async function serverGet<S extends z.ZodType>(path: string, schema: S, tags: string[]): Promise<z.infer<S>> {
-  const res = await fetch(`${env.NEXT_PUBLIC_API_URL}/api/v1${path}`, {
+  const baseUrl = (process.env.INTERNAL_API_URL || env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000').replace(
+    /\/+$/,
+    '',
+  );
+  const res = await fetch(`${baseUrl}/api/v1${path}`, {
     headers: { accept: 'application/json' },
     cache: 'force-cache',
     next: { tags, revalidate: FALLBACK_REVALIDATE_SECONDS },
+    signal: AbortSignal.timeout(10_000),
   });
   const payload = (await res.json().catch(() => null)) as {
     success?: boolean;

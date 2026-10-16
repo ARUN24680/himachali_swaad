@@ -40,6 +40,15 @@ export async function registerSecurity(app: FastifyInstance, opts: SecurityOptio
     exposedHeaders: ['x-request-id', 'retry-after', 'content-disposition'],
   });
 
+  // Check before the Redis-backed limiter: a disconnected dependency must yield a bounded 503,
+  // not enqueue a command forever while the browser keeps showing its loading skeleton.
+  app.addHook('onRequest', async (request) => {
+    if (['/healthz', '/readyz', '/healthz/worker'].includes(request.url)) return;
+    if (opts.redis.status !== 'ready') {
+      throw new AppError('UPSTREAM_UNAVAILABLE', 'Service dependencies unavailable');
+    }
+  });
+
   await app.register(rateLimit, {
     global: true,
     max: opts.rateLimitMax,

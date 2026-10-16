@@ -35,6 +35,8 @@ export async function listBatchViews(
       WHERE ($1::uuid IS NULL OR b.product_id = $1)
         AND ($2::uuid[] IS NULL OR b.pickup_location_id = ANY($2::uuid[]))
         AND ($3::boolean OR b.available_stock > 0)
+        AND ($1::uuid IS NOT NULL OR NOT EXISTS (
+          SELECT 1 FROM demo_catalog_products d WHERE d.product_id = p.id AND d.cleared_at IS NOT NULL))
       ORDER BY b.expiry_date ASC, b.manufactured_at ASC, b.batch_code ASC
       LIMIT 500`,
     [f.productId, f.locationIds, f.includeEmpty],
@@ -195,7 +197,9 @@ export async function listProductOptions(db: Queryable) {
     shelf_life_days: number | null;
     is_active: boolean;
   }>(
-    'SELECT id, sku, title, net_weight_g, shelf_life_days, is_active FROM products ORDER BY sort_order, title, net_weight_g',
+    `SELECT id, sku, title, net_weight_g, shelf_life_days, is_active FROM products
+      WHERE NOT EXISTS (SELECT 1 FROM demo_catalog_products d WHERE d.product_id = products.id AND d.cleared_at IS NOT NULL)
+      ORDER BY sort_order, title, net_weight_g`,
   );
   return rows.map((r) => ({
     id: r.id,

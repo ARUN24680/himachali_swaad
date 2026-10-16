@@ -19,7 +19,10 @@ function optional(name: string, value: string | undefined, valid: (v: string) =>
 
 // Explicit references so Next inlines NEXT_PUBLIC_* values into the client bundle
 export const env = {
-  NEXT_PUBLIC_API_URL: requiredUrl('NEXT_PUBLIC_API_URL', process.env.NEXT_PUBLIC_API_URL),
+  // Blank uses this site's /api/v1 proxy, so browsers on another LAN device never call their own localhost.
+  NEXT_PUBLIC_API_URL: blank(process.env.NEXT_PUBLIC_API_URL)
+    ? requiredUrl('NEXT_PUBLIC_API_URL', process.env.NEXT_PUBLIC_API_URL).replace(/\/+$/, '')
+    : '',
   NEXT_PUBLIC_SITE_URL: requiredUrl('NEXT_PUBLIC_SITE_URL', process.env.NEXT_PUBLIC_SITE_URL),
   NEXT_PUBLIC_SENTRY_DSN: optional('NEXT_PUBLIC_SENTRY_DSN', process.env.NEXT_PUBLIC_SENTRY_DSN, URL.canParse),
   NEXT_PUBLIC_SENTRY_ENVIRONMENT: blank(process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT),

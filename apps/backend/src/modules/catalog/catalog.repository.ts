@@ -6,6 +6,7 @@ const parse = (rows: unknown[]) => rows.map((r) => ProductRowSchema.parse(r));
 export async function listProducts(db: Queryable, opts: { activeOnly: boolean }): Promise<ProductRow[]> {
   const { rows } = await db.query(
     `SELECT * FROM products WHERE ($1::boolean = FALSE OR is_active)
+      AND NOT EXISTS (SELECT 1 FROM demo_catalog_products d WHERE d.product_id = products.id AND d.cleared_at IS NOT NULL)
       ORDER BY sort_order, product_group, net_weight_g`,
     [opts.activeOnly],
   );

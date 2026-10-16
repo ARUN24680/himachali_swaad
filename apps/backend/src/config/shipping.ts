@@ -24,7 +24,7 @@ export interface ShippingConfig {
 export function shippingFromEnv(env: Env, redis: Redis, logger: Logger, reporter: ErrorReporter): ShippingConfig {
   const sandbox = env.SHIPPING_PROVIDER === 'sandbox';
   const shiprocket = createShiprocketClient({
-    baseUrl: sandbox ? joinUrl(env.API_PUBLIC_URL, SANDBOX_PATH) : env.SHIPROCKET_API_URL,
+    baseUrl: sandbox ? joinUrl(env.API_INTERNAL_URL ?? env.API_PUBLIC_URL, SANDBOX_PATH) : env.SHIPROCKET_API_URL,
     email: env.SHIPROCKET_EMAIL ?? 'sandbox@pahadikhatki.test',
     password: env.SHIPROCKET_PASSWORD ?? 'sandbox',
     redis,

@@ -14,5 +14,6 @@ export default defineConfig({
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: { VITE_API_URL: 'http://localhost:4000' }, // existing API route mocks use this explicit origin
   },
 });

@@ -46,5 +46,6 @@ export default defineConfig({
     url: `${ORIGIN}/manifest.webmanifest`,
     reuseExistingServer: false,
     timeout: 180_000,
+    env: { VITE_API_URL: 'http://localhost:4000' },
   },
 });
