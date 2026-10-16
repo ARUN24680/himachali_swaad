@@ -18,6 +18,7 @@ COPY apps/admin ./apps/admin
 RUN pnpm install --frozen-lockfile
 
 # Build Vite SPA into apps/admin/dist
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 RUN pnpm --filter @pk/admin build
 
 FROM nginx:alpine AS runner
