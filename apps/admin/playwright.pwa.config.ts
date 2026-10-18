@@ -46,6 +46,7 @@ export default defineConfig({
     url: `${ORIGIN}/manifest.webmanifest`,
     reuseExistingServer: false,
     timeout: 180_000,
-    env: { VITE_API_URL: 'http://localhost:4000' },
+    // The PWA suite tests the real app, so the build must not be pre-launch locked.
+    env: { VITE_API_URL: 'http://localhost:4000', VITE_LAUNCH_MODE: 'live' },
   },
 });

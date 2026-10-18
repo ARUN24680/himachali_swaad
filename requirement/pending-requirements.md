@@ -91,7 +91,7 @@
 | :-- | :-- | :-- | :-- |
 | I-1 | **Hosting vendors** (D-10): storefront host, API + worker host (alag process), managed PostgreSQL (PITR), managed Redis (persistent TCP) | 🧾 cost decision | P0/P10 |
 | I-2 | **Sentry** real DSN se event verify (backend, storefront, admin) | 🔑 Sentry project | P1 |
-| I-3 | **R2 buckets** (public images + private invoices/labels) + CDN domain + CORS; `STORAGE_DRIVER=r2` | 🔑 Cloudflare | P3 |
+| I-3 | **S3 bucket setup** (D-58): `pnpm s3:setup --apply` (CORS + public-read `products/*`), `pnpm s3:check` all green, `pnpm s3:sync --apply` for local files, `STORAGE_DRIVER=s3` + storefront `NEXT_PUBLIC_ASSETS_BASE_URL` | 🔑 AWS (keys in `.env`) | P3/P10 |
 | I-4 | Lighthouse mobile re-run on deployed URL (local 99/99) | 🚀 | P4 |
 | I-5 | Product JSON-LD Google Rich Results test (public URL chahiye) | 🚀 | P4 |
 | I-6 | Partner ka manual 50-jar batch entry < 30 sec timed run | 🧑‍🍳 partner | P3 |
@@ -103,7 +103,7 @@
 | D-1 | **VAPID keys** — local `.env` me dev keys ban gayi; **production keys** host secrets me (alag generate karo) (`VAPID_PUBLIC_KEY/PRIVATE_KEY/SUBJECT`) — tab tak push off, alerts WhatsApp fallback job par | 🔑 (`npx web-push generate-vapid-keys`) | `.env` / host secrets |
 | D-2 | 📱 **Real phone checks (10–15 min, aap karoge):** (1) Android Chrome me admin URL kholo → menu → *Install app*; iPhone Safari → Share → *Add to Home Screen*. (2) Desk → Settings → "Naye order ka alert" ON. (3) Ek test order pay karo → phone par push 10 s me aaye. (4) Airplane mode → app kholo → order pack karo → airplane off → sync ho jaye. (5) Sasta Android + 4G par queue < 3 s, label < 2 s. Screenshot/video `Phases/evidence/phase-07/` me | 📱 device + D-1 + deploy (HTTPS) | Emulated sab pass ho chuka (`pwa-checks.json`, `pwa-perf.json`) |
 | D-4 | ✅ Done: offline cold start (cached identity + queue, 401 → login) | — | — |
-| D-5 | **R2 private bucket CORS GET** rule admin origin ke liye — warna label "Share" file share nahi kar payega (sirf "Open label" link) | 🔑 Cloudflare (I-3) | Bucket CORS |
+| D-5 | **S3 CORS GET** for the admin origin (label "Share") — part of `pnpm s3:setup --apply` (D-58) | 🔑 AWS | `docs/ops/s3-storage.md` |
 | D-6 | WhatsApp `new_order_alert` / digest fallback ka asli **sender** | ⏭️ Phase 8 (B-11) | `WHATSAPP_SEND` consumer |
 | D-7 | Partner ka real-phone walkthrough (bina training ke install → push → pack → Mark Packed) — phase DoD | 📱 + partner | Manual evidence |
 
@@ -138,7 +138,7 @@ Code side Phase 10 me ho gaya (D-57): ADMIN 2FA mandatory, login lockout, securi
 | :-- | :-- | :-- | :-- |
 | H-1 | **securityheaders.com + SSL Labs A grade** (api., admin., storefront) + hstspreload.org submit | 🚀 deploy (I-1) | `docs/security/headers.md` ke steps |
 | H-2 | **Secrets host ke secret manager me** + key rotation register | 🚀 I-1 | `docs/runbooks/key-rotation.md` |
-| H-3 | **R2 private bucket public access off verify** (signed URL 300 s code me hai) | 🔑 I-3 | Cloudflare dashboard + unsigned URL 403 check |
+| H-3 | **S3 `private/*` not public** verify — `pnpm s3:check` ("private files are NOT publicly readable"); signed URL TTL 300 s | 🔑 I-3 | `docs/ops/s3-storage.md` |
 | H-4 | **PITR enable + restore drill on staging** (timestamp + row counts) | 🚀 I-1 | `docs/runbooks/restore-from-backup.md` → `docs/launch/restore-drill.md` |
 | H-5 | Redis persistence (AOF everysec / RDB) provider par set | 🚀 I-1 | `docs/runbooks/restore-from-backup.md` |
 | H-6 | **k6 spike + Lighthouse re-run on staging** (local pass: 0 oversell, read p95 12 ms) | 🚀 staging | `load/README.md` |

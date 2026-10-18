@@ -151,7 +151,8 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${DOCKER_BROWSER_API_URL:-}
         NEXT_PUBLIC_SITE_URL: ${DOCKER_STOREFRONT_URL:-http://localhost:3001}
-        NEXT_PUBLIC_ASSETS_BASE_URL: ${DOCKER_API_PUBLIC_URL:-http://localhost:4001}/dev-assets
+        # STORAGE_DRIVER=s3: set DOCKER_ASSETS_BASE_URL=https://<bucket>.s3.<region>.amazonaws.com (D-58)
+        NEXT_PUBLIC_ASSETS_BASE_URL: ${DOCKER_ASSETS_BASE_URL:-${DOCKER_API_PUBLIC_URL:-http://localhost:4001}/dev-assets}
         INTERNAL_API_URL: http://backend-api:4000
     restart: unless-stopped
     environment:
@@ -160,6 +161,8 @@ services:
       HOSTNAME: 0.0.0.0
       INTERNAL_API_URL: http://backend-api:4000
       REVALIDATE_SECRET: ${REVALIDATE_SECRET}
+      # Pre-launch lock: only /coming-soon is public until this is `live` (apps/storefront/src/lib/launch-mode.ts)
+      LAUNCH_MODE: ${LAUNCH_MODE:-coming-soon}
     ports:
       - '${HOST_STOREFRONT_PORT:-127.0.0.1:3001}:3000'
     depends_on:
@@ -178,6 +181,8 @@ services:
       dockerfile: docker/Dockerfile.admin
       args:
         VITE_API_URL: ${DOCKER_BROWSER_API_URL:-}
+        # Pre-launch lock: the build shows only a 404 until this is `live` (apps/admin/src/lib/launch-mode.ts)
+        VITE_LAUNCH_MODE: ${VITE_LAUNCH_MODE:-coming-soon}
     restart: unless-stopped
     ports:
       - '${HOST_ADMIN_PORT:-127.0.0.1:5174}:80'
@@ -231,6 +236,51 @@ services:
       - backend-api
       - storefront
       - admin
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # 10. Direct UPI payment service (D-59) — opt-in: `--profile direct-upi`. Own database pk_payment.
+  #     Removing it = delete this block + apps/payment + docker/Dockerfile.payment.
+  payment-migrate:
+    profiles: ['direct-upi']
+    image: amacneil/dbmate:2.36.0
+    restart: 'no'
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-pk}:${POSTGRES_PASSWORD:-pk_local_only}@postgres:5432/pk_payment?sslmode=disable
+    volumes:
+      - ./apps/payment/migrations:/db/migrations
+    # `create` is a no-op when the database exists
+    entrypoint:
+      [
+        '/bin/sh',
+        '-c',
+        'dbmate --migrations-dir /db/migrations --no-dump-schema create && dbmate --migrations-dir /db/migrations --no-dump-schema up',
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  payment:
+    profiles: ['direct-upi']
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.payment
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PAYMENT_PORT: 4100
+      PAYMENT_HOST: 0.0.0.0
+      PAYMENT_DATABASE_URL: postgres://${POSTGRES_USER:-pk}:${POSTGRES_PASSWORD:-pk_local_only}@postgres:5432/pk_payment?sslmode=disable
+      PAYMENT_WEBHOOK_URL: ${PAYMENT_WEBHOOK_URL:-http://backend-api:4000/api/v1/webhooks/razorpay}
+    ports:
+      - '${HOST_PAYMENT_PORT:-127.0.0.1:4101}:4100'
+    depends_on:
+      payment-migrate:
+        condition: service_completed_successfully
     logging:
       driver: 'json-file'
       options:

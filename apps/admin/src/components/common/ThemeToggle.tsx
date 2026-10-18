@@ -9,11 +9,18 @@ const LABEL: Record<ThemePreference, string> = {
   dark: 'Theme: dark. Switch to follow device',
 };
 
-export function ThemeToggle() {
+/** `className` lets a page restyle it for a dark photo surface (login brand band). */
+export function ThemeToggle({ className }: { className?: string }) {
   const { preference, setPreference } = useThemeStore();
   const Icon = preference === 'light' ? Sun : preference === 'dark' ? Moon : Monitor;
   return (
-    <Button variant="ghost" size="icon" aria-label={LABEL[preference]} onClick={() => setPreference(NEXT[preference])}>
+    <Button
+      variant="ghost"
+      size="icon"
+      className={className}
+      aria-label={LABEL[preference]}
+      onClick={() => setPreference(NEXT[preference])}
+    >
       <Icon />
     </Button>
   );

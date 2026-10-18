@@ -52,7 +52,7 @@ apps/backend/
 │   ├── middleware/            # Route-level preHandlers: requireAuth, requireRole, requireOrigin (CSRF), idempotency
 │   ├── utils/                 # app-error.ts, response.ts (envelope ok/fail), request-id.ts, with-timeout.ts
 │   ├── integrations/          # External APIs ke thin clients (Nexus ka `services/`): razorpay, shiprocket,
-│   │                          #   whatsapp, sms, storage (R2), pdf — koi DB access nahi, koi business rule nahi
+│   │                          #   whatsapp, sms, storage (S3 / R2), pdf — koi DB access nahi, koi business rule nahi
 │   ├── jobs/                  # queues.ts (queue names + deterministic jobId), schedules.ts (repeat jobs),
 │   │   └── processors/        #   ek file per job type — module service ko call karta hai
 │   └── modules/               # Domain modules (neeche)

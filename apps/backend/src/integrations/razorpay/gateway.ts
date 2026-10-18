@@ -30,9 +30,12 @@ export interface GatewayRefund {
 }
 
 export interface PaymentGateway {
-  readonly kind: 'razorpay' | 'mock';
+  /** `direct_upi` = our own apps/payment service, which speaks this same Razorpay-compatible API (D-59). */
+  readonly kind: 'razorpay' | 'mock' | 'direct_upi';
   /** Public key id for Razorpay Checkout. */
   readonly keyId: string;
+  /** Hosted pay page the customer is sent to (direct_upi); null = the client opens a modal instead. */
+  checkoutUrl(gatewayOrderId: string): string | null;
   createOrder(input: { amountPaise: number; receipt: string; notes: Record<string, string> }): Promise<{ id: string }>;
   fetchPayment(paymentId: string): Promise<GatewayPayment>;
   fetchOrderPayments(gatewayOrderId: string): Promise<GatewayPayment[]>;

@@ -1,0 +1,3 @@
+/* Pay page styles: theme tokens come from @pk/ui (single source, Rules §1.4). */
+@import '@pk/ui/globals.css';
+@source './';

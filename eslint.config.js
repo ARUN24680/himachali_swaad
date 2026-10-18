@@ -34,7 +34,12 @@ export default tseslint.config(
 
   // ── React (apps + ui) ────────────────────────────────────────────────
   {
-    files: ['apps/storefront/**/*.{ts,tsx}', 'apps/admin/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}'],
+    files: [
+      'apps/storefront/**/*.{ts,tsx}',
+      'apps/admin/**/*.{ts,tsx}',
+      'apps/payment/web/**/*.{ts,tsx}',
+      'packages/ui/**/*.{ts,tsx}',
+    ],
     plugins: { 'react-hooks': reactHooks },
     languageOptions: { globals: { ...globals.browser } },
     rules: reactHooks.configs.recommended.rules,
@@ -121,6 +126,17 @@ export default tseslint.config(
         },
         { group: ['pg'], message: 'No SQL outside repositories.' },
       ),
+    },
+  },
+  {
+    // Direct UPI service (D-59) stays deletable: it reaches the store over HTTP only, and nothing
+    // in the store imports it (grep '@pk/payment' outside apps/payment must stay empty)
+    files: ['apps/payment/src/**/*.ts', 'apps/payment/scripts/**/*.ts', 'apps/payment/tests/**/*.ts'],
+    rules: {
+      'no-restricted-imports': restrict({
+        group: ['@pk/backend', '@pk/backend/*', '@pk/database', '**/apps/backend/**', '**/packages/database/**'],
+        message: 'The payment service talks to the store over HTTP only (D-59).',
+      }),
     },
   },
   {

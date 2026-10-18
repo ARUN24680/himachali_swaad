@@ -1,16 +1,16 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve, sep } from 'node:path';
-import { AwsClient, AwsV4Signer } from 'aws4fetch';
-import { withTimeout } from '../../utils/with-timeout';
+import { r2Target } from './r2';
+import { createS3PrivateStorage } from './s3';
 import { joinUrl, UPLOAD_URL_TTL_SEC } from './storage';
 
 /**
- * PRIVATE documents — invoices now, shipping labels / settlement PDFs later (D-11). Never public:
+ * PRIVATE documents — invoices, shipping labels, manifests, settlement PDFs, receipts (D-11). Never public:
  * readers get a short-lived signed GET URL. The API/worker uploads server-side (outside DB transactions, D-30).
  */
 export interface PrivateStorage {
-  readonly kind: 'r2' | 'local';
+  readonly kind: 'r2' | 's3' | 'local';
   put(key: string, body: Uint8Array, contentType: string): Promise<void>;
   /** Server-side read (e.g. merging labels into an A4 sheet). null when the key doesn't exist. */
   get(key: string): Promise<Uint8Array | null>;
@@ -32,65 +32,7 @@ export function createR2PrivateStorage(cfg: {
   secretAccessKey: string;
   bucket: string;
 }): PrivateStorage {
-  const client = new AwsClient({
-    accessKeyId: cfg.accessKeyId,
-    secretAccessKey: cfg.secretAccessKey,
-    service: 's3',
-    region: 'auto',
-  });
-  const objectUrl = (key: string) => joinUrl(cfg.endpoint, `${cfg.bucket}/${key}`);
-  return {
-    kind: 'r2',
-    async put(key, body, contentType) {
-      const res = await withTimeout(
-        client.fetch(objectUrl(key), { method: 'PUT', body, headers: { 'content-type': contentType } }),
-        20_000,
-        'r2 private put',
-      );
-      if (!res.ok) throw new Error(`R2 PUT failed with ${res.status}`);
-    },
-    async get(key) {
-      const res = await withTimeout(client.fetch(objectUrl(key)), 20_000, 'r2 private get');
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error(`R2 GET failed with ${res.status}`);
-      return new Uint8Array(await res.arrayBuffer());
-    },
-    async signedGetUrl(key, ttlSec) {
-      const url = new URL(objectUrl(key));
-      url.searchParams.set('X-Amz-Expires', String(ttlSec));
-      const signed = await new AwsV4Signer({
-        method: 'GET',
-        url: url.toString(),
-        accessKeyId: cfg.accessKeyId,
-        secretAccessKey: cfg.secretAccessKey,
-        service: 's3',
-        region: 'auto',
-        signQuery: true,
-      }).sign();
-      return { url: signed.url.toString(), expiresAt: new Date(Date.now() + ttlSec * 1000) };
-    },
-    async presignPut({ key, contentType, sizeBytes }) {
-      const url = new URL(objectUrl(key));
-      url.searchParams.set('X-Amz-Expires', String(UPLOAD_URL_TTL_SEC));
-      const signed = await new AwsV4Signer({
-        method: 'PUT',
-        url: url.toString(),
-        headers: { 'content-type': contentType, 'content-length': String(sizeBytes) },
-        accessKeyId: cfg.accessKeyId,
-        secretAccessKey: cfg.secretAccessKey,
-        service: 's3',
-        region: 'auto',
-        signQuery: true,
-        allHeaders: true,
-      }).sign();
-      return {
-        url: signed.url.toString(),
-        method: 'PUT',
-        headers: { 'content-type': contentType },
-        expiresInSec: UPLOAD_URL_TTL_SEC,
-      };
-    },
-  };
+  return createS3PrivateStorage('r2', r2Target(cfg));
 }
 
 export const LOCAL_PRIVATE_PATH = '/api/v1/dev-storage/private';

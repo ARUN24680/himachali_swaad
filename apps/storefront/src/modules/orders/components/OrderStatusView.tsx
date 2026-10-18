@@ -202,6 +202,7 @@ function OrderBody({
                   razorpayOrderId: retry.razorpayOrderId,
                   keyId: retry.keyId,
                   gateway: retry.gateway,
+                  checkoutUrl: retry.checkoutUrl,
                   amountPaise: retry.amountPaise,
                   expiresAt: order.reservationExpiresAt,
                 })

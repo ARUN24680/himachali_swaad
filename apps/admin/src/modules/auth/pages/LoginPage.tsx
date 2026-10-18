@@ -1,8 +1,7 @@
-import logoDark from '@pk/ui/brand/logo-dark.png';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
-import { BrandLogo } from '@/components/common/BrandLogo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { useMe } from '@/hooks/useMe';
+import { LoginBrandHeader, LoginBrandPanel } from '../components/LoginBrandPanel';
 import { LoginForm } from '../components/LoginForm';
 
 /** Only same-app paths are allowed as a post-login target (no open redirects). */
@@ -22,38 +21,39 @@ export default function LoginPage() {
   if (me.data && me.data.user.role !== 'CUSTOMER') return <Navigate to={next} replace />;
 
   return (
-    <div className="grid min-h-dvh bg-background text-foreground lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      {/* Brand panel — desktop only; phones get straight to the form */}
-      <aside className="relative hidden overflow-hidden bg-secondary p-12 text-secondary-foreground lg:flex lg:flex-col lg:justify-between">
-        <img src={logoDark} alt="Pahadi Khatki" className="h-11 w-auto object-contain" />
-        <div className="grid max-w-md gap-4">
-          <p className="text-xs font-semibold tracking-[0.12em] text-primary uppercase">Operations portal</p>
-          <p className="font-serif text-4xl leading-tight font-medium text-balance">
-            Every jar, from the kitchen in Kullu to the customer&rsquo;s door.
-          </p>
-          <p className="text-secondary-foreground/75">Orders, packing, stock and settlements — in one place.</p>
-        </div>
-        <p className="text-sm text-secondary-foreground/60">Staff access only · activity is logged</p>
-      </aside>
+    <div className="min-h-dvh bg-background text-foreground lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-3 lg:p-3 xl:grid-cols-[minmax(0,7fr)_minmax(0,6fr)]">
+      {/* Desktop: framed photo panel. Phones/tablets: a compact photo band instead. */}
+      <LoginBrandPanel className="hidden lg:flex" />
 
-      <main className="flex min-w-0 flex-col">
-        <div className="flex h-16 items-center justify-between px-4 md:px-8">
-          <BrandLogo size="sm" className="lg:invisible" />
+      <div className="relative isolate flex min-h-dvh min-w-0 flex-col lg:min-h-0">
+        {/* Light theme, desktop: a warm sandstone panel with a gold glow so the form column answers the
+            photo panel instead of sitting on flat ivory. Dark theme keeps its single-tone canvas. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10 hidden overflow-hidden rounded-2xl bg-linear-to-br from-accent via-muted/70 to-muted lg:block dark:lg:hidden"
+        >
+          <div className="absolute -top-24 -right-24 size-96 rounded-full bg-primary/20 blur-3xl" />
+          <div className="absolute -bottom-32 -left-16 size-80 rounded-full bg-secondary/10 blur-3xl" />
+        </div>
+
+        <LoginBrandHeader className="lg:hidden" />
+
+        <div className="hidden justify-end lg:flex">
           <ThemeToggle />
         </div>
-        <div className="flex flex-1 items-start justify-center px-4 pt-6 pb-12 sm:items-center sm:pt-0 md:px-8">
-          <div className="grid w-full max-w-sm gap-8 sm:rounded-lg sm:border sm:border-border sm:bg-card sm:p-8 lg:border-0 lg:bg-transparent lg:p-0">
-            <header className="grid gap-2">
-              <p className="text-xs font-semibold tracking-[0.12em] text-accent-foreground uppercase lg:hidden">
-                Operations portal
-              </p>
-              <h1 className="font-serif text-3xl font-medium">Sign in</h1>
-              <p className="text-sm text-muted-foreground">For Pahadi Khatki admins and kitchen partners.</p>
-            </header>
+
+        {/* Mobile: a sheet rising over the band. md: a card floating over the photo. lg: centred in its column. */}
+        <main className="relative -mt-6 flex flex-1 flex-col md:mt-0 md:items-center md:justify-center md:px-8 md:pt-56 md:pb-16 lg:pt-0 lg:pb-14">
+          <section className="relative w-full flex-1 rounded-t-3xl border-t border-border bg-card px-5 pt-8 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-card-foreground shadow-float md:max-w-md md:flex-none md:rounded-2xl md:border md:p-8 lg:max-w-[28rem] lg:overflow-hidden lg:border-transparent lg:shadow-2xl lg:ring-1 lg:shadow-secondary/15 lg:ring-secondary/10 xl:p-10 dark:lg:border-border dark:lg:shadow-float dark:lg:ring-0">
+            {/* Light theme, desktop: gold rule across the top of the card */}
+            <span
+              aria-hidden="true"
+              className="absolute inset-x-0 top-0 hidden h-1 bg-primary lg:block dark:lg:hidden"
+            />
             <LoginForm onSignedIn={() => void navigate(next, { replace: true })} />
-          </div>
-        </div>
-      </main>
+          </section>
+        </main>
+      </div>
     </div>
   );
 }

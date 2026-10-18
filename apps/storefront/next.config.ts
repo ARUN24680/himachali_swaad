@@ -71,6 +71,11 @@ const config: NextConfig = {
   output:
     process.env.NEXT_OUTPUT_STANDALONE === 'true' || process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   reactStrictMode: true,
+  // Docker opts in: fewer page workers and a smaller Webpack heap at the cost of build speed.
+  // The normal local/CI build keeps Next's defaults (including Turbopack).
+  ...(process.env.NEXT_BUILD_LOW_MEMORY === 'true'
+    ? { experimental: { cpus: 1, webpackMemoryOptimizations: true } }
+    : {}),
   // Permit this machine's actual LAN addresses for Next's dev assets; no wildcard host allowlist.
   allowedDevOrigins: [
     siteUrl.hostname,
@@ -94,6 +99,8 @@ const config: NextConfig = {
   transpilePackages: ['@pk/ui', '@pk/shared'],
   images: {
     formats: ['image/avif', 'image/webp'],
+    // Next 16 only serves listed qualities; 90 is for the /coming-soon hero banner (a 4K photo).
+    qualities: [75, 90],
     remotePatterns: [imagePattern],
     dangerouslyAllowLocalIP: localImageOrigin,
     // A permitted dev asset must not redirect the optimiser to a different private endpoint.

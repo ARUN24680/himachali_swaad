@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+# Direct UPI payment service (apps/payment, D-59). Delete this file together with apps/payment.
+FROM node:24-alpine AS base
+RUN corepack enable && corepack prepare pnpm@12.10.1 --activate
+WORKDIR /app
+
+FROM base AS builder
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY packages ./packages
+COPY apps/payment ./apps/payment
+RUN pnpm install --frozen-lockfile --filter @pk/payment...
+# Server bundle (dist/server.js, dist/admin.js) + pay page (dist/web)
+RUN pnpm --filter @pk/payment build
+RUN pnpm --filter @pk/payment --prod deploy /app/deployed
+
+FROM node:24-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN apk add --no-cache curl
+COPY --from=builder /app/deployed/node_modules ./node_modules
+COPY --from=builder /app/deployed/package.json ./package.json
+COPY --from=builder /app/apps/payment/dist ./dist
+COPY --from=builder /app/apps/payment/migrations ./migrations
+USER node
+EXPOSE 4100
+HEALTHCHECK --interval=15s --timeout=5s CMD curl -fs http://localhost:4100/readyz || exit 1
+# Admin CLI inside the task: node dist/admin.js <command> --by "<name>"
+CMD ["node", "--enable-source-maps", "dist/server.js"]

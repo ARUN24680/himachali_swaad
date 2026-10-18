@@ -5,6 +5,7 @@ import { isApiError } from '@/services/api/http';
 import { queryKeys } from '@/services/api/query-keys';
 import { productsApi, putFileToStorage } from '../api/productsApi';
 import { useUpdateProduct } from './useProducts';
+import { newUuid } from '@pk/shared/uuid';
 
 export interface UploadItem {
   id: string;
@@ -49,7 +50,7 @@ export function useProductImages(product: AdminProduct) {
     const items: (UploadItem & { file: File })[] = accepted.map((file) => {
       const problem = validateImage(file);
       return {
-        id: crypto.randomUUID(),
+        id: newUuid(),
         file,
         name: file.name,
         previewUrl: URL.createObjectURL(file),

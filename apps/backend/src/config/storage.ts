@@ -5,6 +5,12 @@ import { createStorefrontRevalidator, type StorefrontRevalidator } from '../inte
 import { createLocalDiskStorage } from '../integrations/storage/local-disk';
 import { createR2Storage } from '../integrations/storage/r2';
 import {
+  awsS3PublicBaseUrl,
+  awsS3Target,
+  createS3PrivateStorage,
+  createS3PublicStorage,
+} from '../integrations/storage/s3';
+import {
   createLocalPrivateStorage,
   createR2PrivateStorage,
   type PrivateStorage,
@@ -16,8 +22,25 @@ import type { Redis } from 'ioredis';
 import type { ObjectStorage } from '../integrations/storage/storage';
 import type { Env } from './env';
 
-/** Product image storage from env (D-11). env.ts guarantees the R2 vars exist when the driver is r2. */
+/** AWS S3 single bucket (D-58): images at `products/…` (public-read policy), documents under this prefix. */
+export const S3_PRIVATE_PREFIX = 'private/';
+
+function awsS3(env: Env) {
+  return awsS3Target({
+    region: env.AWS_REGION!,
+    accessKeyId: env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: env.AWS_SECRET_ACCESS_KEY!,
+    bucket: env.AWS_S3_BUCKET_NAME!,
+  });
+}
+
+/** Public base URL product images are served from (also what the storefront allowlists for next/image). */
+export const s3PublicBaseUrl = (env: Env) =>
+  env.AWS_S3_PUBLIC_BASE_URL ?? awsS3PublicBaseUrl({ bucket: env.AWS_S3_BUCKET_NAME!, region: env.AWS_REGION! });
+
+/** Product image storage from env (D-11). env.ts guarantees the driver's vars exist. */
 export function storageFromEnv(env: Env): ObjectStorage {
+  if (env.STORAGE_DRIVER === 's3') return createS3PublicStorage('s3', awsS3(env), s3PublicBaseUrl(env));
   if (env.STORAGE_DRIVER === 'r2') {
     return createR2Storage({
       endpoint: env.R2_ENDPOINT!,
@@ -48,8 +71,9 @@ export function conversionsFromEnv(env: Env, logger: Logger): ConversionsClient 
   });
 }
 
-/** Private documents bucket (D-11). */
+/** Private documents bucket / prefix (D-11). */
 export function privateStorageFromEnv(env: Env): PrivateStorage {
+  if (env.STORAGE_DRIVER === 's3') return createS3PrivateStorage('s3', awsS3(env), S3_PRIVATE_PREFIX);
   if (env.STORAGE_DRIVER === 'r2') {
     return createR2PrivateStorage({
       endpoint: env.R2_ENDPOINT!,
@@ -67,6 +91,14 @@ export function privateStorageFromEnv(env: Env): PrivateStorage {
 
 /** Razorpay, or the Redis-backed mock (dev/CI) whose secrets derive from JWT_SECRET. */
 export function gatewayFromEnv(env: Env, redis: Redis): PaymentGateway {
+  if (env.PAYMENT_GATEWAY === 'direct_upi') {
+    return createRazorpayGateway({
+      keyId: env.DIRECT_UPI_KEY_ID!,
+      keySecret: env.DIRECT_UPI_KEY_SECRET!,
+      webhookSecret: env.DIRECT_UPI_WEBHOOK_SECRET!,
+      directUpi: { apiUrl: env.DIRECT_UPI_API_URL!, publicUrl: env.DIRECT_UPI_PUBLIC_URL! },
+    });
+  }
   if (env.PAYMENT_GATEWAY === 'razorpay') {
     return createRazorpayGateway({
       keyId: env.RAZORPAY_KEY_ID!,

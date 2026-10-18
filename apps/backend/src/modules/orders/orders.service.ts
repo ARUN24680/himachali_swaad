@@ -186,6 +186,7 @@ export function createOrdersService(deps: {
                 razorpayOrderId: order.gateway_order_id,
                 keyId: gateway.keyId,
                 gateway: gateway.kind,
+                checkoutUrl: gateway.checkoutUrl(order.gateway_order_id),
                 amountPaise: order.total_paise,
               }
             : null,

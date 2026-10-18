@@ -1,77 +1,85 @@
-import { Droplets, Flame, Leaf, ScanLine } from 'lucide-react';
+import { Ban, Droplets, Flame, Leaf, ScanLine } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { SectionHeading } from '@/components/common/SectionHeading';
 
-const PILLARS: {
-  icon: ReactNode;
-  tag: string;
-  title: string;
-  body: string;
-}[] = [
+const PILLARS: { icon: ReactNode; title: string; line: string }[] = [
   {
-    icon: <Droplets className="size-5" />,
-    tag: 'Purity First',
-    title: 'Cold-Pressed Mustard Oil',
-    body: 'Every jar is cooked and preserved in pure cold-pressed mustard oil — the time-tested Himalayan secret that keeps pickle naturally fresh for months.',
+    icon: <Droplets />,
+    title: 'Cold-pressed mustard oil',
+    line: 'The Himalayan way to cook a pickle — and keep it fresh for months.',
   },
   {
-    icon: <Leaf className="size-5" />,
-    tag: '100% Clean',
-    title: 'Zero Artificial Preservatives',
-    body: 'No sodium benzoate, no vinegar dilutions, no synthetic colours. Just coarse mountain salt, whole spices, mustard oil, and natural maturation.',
+    icon: <Leaf />,
+    title: 'No added preservatives',
+    line: 'Just coarse salt, whole spices, mustard oil and time.',
   },
   {
-    icon: <Flame className="size-5" />,
-    tag: 'Stone-Ground',
-    title: 'Hand-Pounded Pahadi Spices',
-    body: 'Whole coriander seeds, wild cumin, mountain fenugreek, and crushed dried red chillies roasted over low heat to lock in deep earthy aroma.',
+    icon: <Flame />,
+    title: 'Hand-pounded Pahadi spices',
+    line: 'Coriander, wild cumin, fenugreek and red chilli, roasted low and slow.',
   },
   {
-    icon: <ScanLine className="size-5" />,
-    tag: 'Transparency',
-    title: 'Every Jar Batch-Coded',
-    body: 'Each glass jar carries its verifiable batch number, bottling date, and expiry. We only dispatch fresh stock with maximum shelf life.',
+    icon: <ScanLine />,
+    title: 'Every jar batch-coded',
+    line: 'Batch number, bottling date and best-before printed on each jar.',
   },
 ];
 
+const NEVER = ['Sodium benzoate', 'Vinegar', 'Synthetic colour'];
+
+/**
+ * "Why us" — four short, scannable lines instead of four text-heavy cards, plus a "never in the jar"
+ * strip so the "what goes in / what never will" promise reads at a glance.
+ */
 export function PillarsSection() {
   return (
-    <section aria-labelledby="pillars-title" className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
-      <SectionHeading
-        id="pillars-title"
-        eyebrow="The Himalayan Standard"
-        title="Four Pillars of Authentic Craft"
-        lead="What goes into every Pahadi Khatki jar — and what never will."
-        align="center"
-      />
-      <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {PILLARS.map((p, i) => (
-          <div
-            key={p.title}
-            className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-float"
-          >
-            {/* Top decorative accent line */}
-            <div
-              className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/30 via-primary to-primary/30 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              aria-hidden="true"
-            />
+    <section aria-labelledby="pillars-title" className="border-y border-border bg-muted/40">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:px-8 md:py-16 lg:grid-cols-12 lg:gap-12">
+        <div className="grid content-start gap-3 lg:col-span-4">
+          <p className="text-xs font-semibold tracking-[0.14em] text-accent-foreground uppercase">
+            The Himalayan standard
+          </p>
+          <h2 id="pillars-title" className="font-serif text-3xl leading-tight font-medium text-balance md:text-4xl">
+            What goes into every jar
+          </h2>
+          <p className="text-base text-muted-foreground">…and what never will.</p>
+          <ul aria-label="Never in the jar" className="mt-2 flex flex-wrap gap-2">
+            {NEVER.map((n) => (
+              <li
+                key={n}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground"
+              >
+                <Ban className="size-3.5 text-tertiary" aria-hidden="true" />
+                <span className="sr-only">No </span>
+                {n}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="grid size-11 place-items-center rounded-lg bg-accent text-accent-foreground shadow-sm">
-                  {p.icon}
-                </span>
-                <span className="font-mono text-xs font-semibold text-muted-foreground tabular-nums">0{i + 1}</span>
-              </div>
-
-              <span className="mt-4 inline-block text-[11px] font-semibold tracking-wider text-accent-foreground uppercase">
-                {p.tag}
+        <ol className="grid gap-x-10 sm:grid-cols-2 lg:col-span-8">
+          {PILLARS.map((p, i) => (
+            <li
+              key={p.title}
+              className="group flex gap-4 border-t border-border py-5 first:border-t-0 first:pt-0 sm:nth-2:border-t-0 sm:nth-2:pt-0"
+            >
+              <span
+                aria-hidden="true"
+                className="grid size-11 shrink-0 place-items-center rounded-full bg-card text-accent-foreground ring-1 ring-border transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:ring-primary motion-reduce:transition-none [&_svg]:size-5"
+              >
+                {p.icon}
               </span>
-              <h3 className="mt-1 font-serif text-lg font-medium text-foreground">{p.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.body}</p>
-            </div>
-          </div>
-        ))}
+              <div className="grid gap-1">
+                <h3 className="flex items-baseline gap-2 font-serif text-lg font-medium text-foreground">
+                  <span className="font-mono text-xs text-muted-foreground tabular-nums" aria-hidden="true">
+                    0{i + 1}
+                  </span>
+                  {p.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{p.line}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   );

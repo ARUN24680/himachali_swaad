@@ -23,6 +23,7 @@ import { isApiError } from '@/services/api/http';
 import { toast } from '@/store/toast.store';
 import type { useOrderActions } from '../hooks/useOrders';
 import { REFUND_REASON_LABEL, TEMPLATE_LABEL } from './orderMeta';
+import { newUuid } from '@pk/shared/uuid';
 
 type Actions = ReturnType<typeof useOrderActions>;
 
@@ -181,7 +182,7 @@ export function CancelOrderDialog({ d, actions, onOpenChange }: DialogProps) {
  * or a retried request can never refund twice. Amount entered in ₹, sent in paise.
  */
 export function RefundDialog({ d, actions, onOpenChange }: DialogProps) {
-  const [key] = useState(() => crypto.randomUUID());
+  const [key] = useState(() => newUuid());
   const [amount, setAmount] = useState(paiseToRupeesInput(d.refundablePaise));
   const [reason, setReason] = useState<(typeof ADMIN_REFUND_REASONS)[number] | ''>('');
   const [notes, setNotes] = useState('');

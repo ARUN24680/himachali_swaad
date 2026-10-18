@@ -54,8 +54,11 @@ const EnvSchema = z.object({
   API_PUBLIC_URL: z.url().default('http://localhost:4000'),
   /** Container-to-container API address for the shipping sandbox; never sent to browsers. */
   API_INTERNAL_URL: z.preprocess(emptyToUndefined, z.url().optional()),
-  /** Product images (D-11): `local` = dev/test disk stand-in, `r2` = Cloudflare R2 public bucket. */
-  STORAGE_DRIVER: z.enum(['local', 'r2']).default('local'),
+  /**
+   * File storage (D-11, D-58): `local` = dev/test disk stand-in, `s3` = AWS S3 (one bucket: public
+   * `products/…` images + `private/…` documents), `r2` = Cloudflare R2 (two buckets).
+   */
+  STORAGE_DRIVER: z.enum(['local', 's3', 'r2']).default('local'),
   LOCAL_UPLOADS_DIR: z.string().min(1).default('.uploads'),
   R2_ENDPOINT: z.preprocess(emptyToUndefined, z.url().optional()),
   R2_ACCESS_KEY_ID: z.preprocess(emptyToUndefined, z.string().optional()),
@@ -66,12 +69,34 @@ const EnvSchema = z.object({
   /** PRIVATE bucket for invoices / labels (D-11) — readers get 5-min signed URLs. */
   R2_PRIVATE_BUCKET: z.preprocess(emptyToUndefined, z.string().optional()),
   LOCAL_PRIVATE_UPLOADS_DIR: z.string().min(1).default('.uploads-private'),
+  /** AWS S3 (STORAGE_DRIVER=s3, D-58). The IAM user needs s3:PutObject / GetObject on the bucket. */
+  AWS_REGION: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .regex(/^[a-z]{2}(-[a-z]+)+-\d$/, 'e.g. ap-south-1')
+      .optional(),
+  ),
+  AWS_ACCESS_KEY_ID: z.preprocess(emptyToUndefined, z.string().min(16).optional()),
+  AWS_SECRET_ACCESS_KEY: z.preprocess(emptyToUndefined, z.string().min(16).optional()),
+  AWS_S3_BUCKET_NAME: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .regex(/^[A-Za-z0-9][A-Za-z0-9.-]{1,61}[A-Za-z0-9]$/, 'not a valid S3 bucket name')
+      .optional(),
+  ),
+  /** CDN in front of the bucket (CloudFront / custom domain). Empty = the bucket's own S3 URL. */
+  AWS_S3_PUBLIC_BASE_URL: z.preprocess(emptyToUndefined, z.url().optional()),
 
   /** create-order calls per IP per 10 min (architecture/02 §9 = 10). Raised only for CI e2e, never above 100. */
   CHECKOUT_IP_LIMIT: z.coerce.number().int().min(1).max(100).default(10),
 
-  /** Payments (Phase 5): `mock` = dev/CI stand-in (refused in production), `razorpay` = real API. */
-  PAYMENT_GATEWAY: z.enum(['mock', 'razorpay']).default('mock'),
+  /**
+   * Payments (Phase 5): `mock` = dev/CI stand-in (refused in production), `razorpay` = real API,
+   * `direct_upi` = our own apps/payment service (D-59; same API, customer goes to its pay page).
+   */
+  PAYMENT_GATEWAY: z.enum(['mock', 'razorpay', 'direct_upi']).default('mock'),
   RAZORPAY_KEY_ID: z.preprocess(
     emptyToUndefined,
     z
@@ -82,6 +107,20 @@ const EnvSchema = z.object({
   RAZORPAY_KEY_SECRET: z.preprocess(emptyToUndefined, z.string().min(8).optional()),
   /** Separate from the key secret (Razorpay dashboard → Webhooks). */
   RAZORPAY_WEBHOOK_SECRET: z.preprocess(emptyToUndefined, z.string().min(8).optional()),
+  /** Direct UPI service REST base, server-to-server (e.g. https://pay.pahadikhatki.in/v1). */
+  DIRECT_UPI_API_URL: z.preprocess(emptyToUndefined, z.url().optional()),
+  /** Where customers are sent to pay (e.g. https://pay.pahadikhatki.in). */
+  DIRECT_UPI_PUBLIC_URL: z.preprocess(emptyToUndefined, z.url().optional()),
+  /** = the service's PAYMENT_API_KEY_ID / PAYMENT_API_KEY_SECRET / PAYMENT_WEBHOOK_SECRET. */
+  DIRECT_UPI_KEY_ID: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .regex(/^upi_(test|live)_[A-Za-z0-9]{8,}$/)
+      .optional(),
+  ),
+  DIRECT_UPI_KEY_SECRET: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
+  DIRECT_UPI_WEBHOOK_SECRET: z.preprocess(emptyToUndefined, z.string().min(32).optional()),
 
   /**
    * Logistics (Phase 6): `sandbox` = in-API Shiprocket stand-in at /api/v1/dev/shiprocket (dev/CI,
@@ -199,6 +238,16 @@ const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
         'R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_PUBLIC_BUCKET and R2_PUBLIC_BASE_URL are required for r2',
     });
   }
+  if (
+    env.STORAGE_DRIVER === 's3' &&
+    (!env.AWS_REGION || !env.AWS_ACCESS_KEY_ID || !env.AWS_SECRET_ACCESS_KEY || !env.AWS_S3_BUCKET_NAME)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['AWS_S3_BUCKET_NAME'],
+      message: 'AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET_NAME are required for s3',
+    });
+  }
   if (env.STORAGE_DRIVER === 'r2' && !env.R2_PRIVATE_BUCKET) {
     ctx.addIssue({
       code: 'custom',
@@ -225,6 +274,38 @@ const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
       path: ['RAZORPAY_KEY_ID'],
       message: 'RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET are required for razorpay',
     });
+  }
+  if (
+    env.PAYMENT_GATEWAY === 'direct_upi' &&
+    (!env.DIRECT_UPI_API_URL ||
+      !env.DIRECT_UPI_PUBLIC_URL ||
+      !env.DIRECT_UPI_KEY_ID ||
+      !env.DIRECT_UPI_KEY_SECRET ||
+      !env.DIRECT_UPI_WEBHOOK_SECRET)
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['DIRECT_UPI_API_URL'],
+      message:
+        'DIRECT_UPI_API_URL, DIRECT_UPI_PUBLIC_URL, DIRECT_UPI_KEY_ID, DIRECT_UPI_KEY_SECRET and DIRECT_UPI_WEBHOOK_SECRET are required for direct_upi',
+    });
+  }
+  if (env.DIRECT_UPI_KEY_SECRET && env.DIRECT_UPI_KEY_SECRET === env.DIRECT_UPI_WEBHOOK_SECRET) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['DIRECT_UPI_WEBHOOK_SECRET'],
+      message: 'the webhook secret must differ from the key secret',
+    });
+  }
+  if (env.NODE_ENV === 'production' && env.PAYMENT_GATEWAY === 'direct_upi') {
+    for (const key of ['DIRECT_UPI_API_URL', 'DIRECT_UPI_PUBLIC_URL'] as const) {
+      if (!env[key]?.startsWith('https://')) {
+        ctx.addIssue({ code: 'custom', path: [key], message: 'must be https:// in production' });
+      }
+    }
+    if (env.DIRECT_UPI_KEY_ID?.startsWith('upi_test_')) {
+      ctx.addIssue({ code: 'custom', path: ['DIRECT_UPI_KEY_ID'], message: 'use a upi_live_ key in production' });
+    }
   }
   if (env.RAZORPAY_KEY_SECRET && env.RAZORPAY_KEY_SECRET === env.RAZORPAY_WEBHOOK_SECRET) {
     ctx.addIssue({

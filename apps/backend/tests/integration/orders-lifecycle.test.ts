@@ -190,6 +190,7 @@ describe('order status + access', () => {
       razorpayOrderId: co.razorpayOrderId,
       keyId: 'rzp_test_mock',
       gateway: 'mock',
+      checkoutUrl: null,
       amountPaise: co.amountPaise,
     });
   });

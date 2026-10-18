@@ -64,6 +64,7 @@ export function createCheckoutService(deps: {
       currency: 'INR',
       keyId: gateway.keyId,
       gateway: gateway.kind,
+      checkoutUrl: gateway.checkoutUrl(order.gateway_order_id!),
       expiresAt: order.reservation_expires_at.toISOString(),
       prefill: { name: order.customer_name, contact: order.customer_phone, email: order.customer_email },
     };
@@ -260,7 +261,12 @@ export function createCheckoutService(deps: {
         const rzp = await gateway.createOrder({
           amountPaise: order.total_paise,
           receipt: order.order_code,
-          notes: { order_id: order.id, order_code: order.order_code },
+          // reservation end: the Direct UPI service holds the payable amount until then (+ grace)
+          notes: {
+            order_id: order.id,
+            order_code: order.order_code,
+            reservation_expires_at: order.reservation_expires_at.toISOString(),
+          },
         });
         await orderStore.setGatewayOrderId(db, order.id, rzp.id);
         return toResponse({ ...order, gateway_order_id: rzp.id });

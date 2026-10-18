@@ -6,6 +6,9 @@ WORKDIR /app
 FROM base AS builder
 ARG VITE_API_URL=
 ENV VITE_API_URL=$VITE_API_URL
+# Pre-launch lock: empty/coming-soon = the build shows only a 404; `live` = the full admin app
+ARG VITE_LAUNCH_MODE=
+ENV VITE_LAUNCH_MODE=$VITE_LAUNCH_MODE
 # Copy workspace manifests and shared configs
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY playwright.viewports.ts* ./

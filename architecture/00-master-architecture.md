@@ -63,7 +63,7 @@ pahadi-khatki/
 | **API Framework** | **Fastify** + TS | **5.x** | Schema-first, high throughput, raw-body webhooks (D-02). |
 | **Type Validation** | Zod | **4.x** | Single source of truth for contracts across monorepo. |
 | **Task Queue** | BullMQ + Redis | BullMQ latest, Redis 7+ | Async courier booking, invoices, notifications, sweepers. |
-| **Storage** | Cloudflare R2 (S3 API) | — | Public bucket: product images. **Private bucket: labels, invoices, statements (signed URLs)** (D-11). |
+| **Storage** | AWS S3 (D-58; R2 also supported) | — | One bucket: `products/*` public images. **`private/*`: labels, invoices, statements, receipts (signed URLs)** (D-11). |
 | **Payment Gateway** | Razorpay | Standard Checkout | UPI Intent (PhonePe/GPay), cards, refunds. Prepaid only at launch (D-25). |
 | **Logistics** | Shiprocket | **External API v1** (`apiv2.shiprocket.in/v1/external`) | AWB, labels, pickups, tracking webhooks. |
 | **Messaging** | WhatsApp (Cloud API / BSP) + SMS (MSG91, DLT) | — | Order updates, OTP, partner alerts (D-21, D-38). |
@@ -123,8 +123,8 @@ admin.pahadikhatki.in ───▶  Admin Portal + Partner PWA (static Vite buil
                      ▲                                   ▲                             │
                      └───────────────────────────────────┴─────────────────────────────┤
                                                                                        │
-            Cloudflare R2:  public bucket (product images, CDN)                        │
-                            private bucket (labels, invoices, statements → signed URLs)│
+            AWS S3 (D-58):  products/* public (images, CDN)                            │
+                            private/* (labels, invoices, statements → signed URLs)    │
                                                                                        ▼
             External:  Razorpay (orders, refunds, webhooks → API)
                        Shiprocket (orders, AWB, labels, pickups, tracking webhooks → API)

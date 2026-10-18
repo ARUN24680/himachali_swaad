@@ -54,6 +54,7 @@ export function createMockGateway(cfg: { redis: Redis; keySecret: string; webhoo
   return {
     kind: 'mock',
     keyId: 'rzp_test_mock',
+    checkoutUrl: () => null,
     keySecret: cfg.keySecret,
     webhookSecret: cfg.webhookSecret,
 

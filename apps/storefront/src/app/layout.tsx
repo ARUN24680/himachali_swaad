@@ -1,15 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import type { ReactNode } from 'react';
-import { JsonLd } from '@/components/common/JsonLd';
-import { SiteFooter } from '@/components/layout/SiteFooter';
-import { SiteHeader } from '@/components/layout/SiteHeader';
 import { site } from '@/config/site';
 import { env } from '@/lib/env';
-import { organizationJsonLd } from '@/lib/seo';
-import { AccountMenu } from '@/modules/account';
-import { ConsentPreferencesButton, ConsentRoot } from '@/modules/analytics';
-import { CartButton, CartRoot } from '@/modules/cart';
+import { ConsentRoot } from '@/modules/analytics';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import '@/styles/globals.css';
@@ -43,28 +37,21 @@ export const viewport: Viewport = {
   ],
 };
 
+/**
+ * Root: document, fonts, theme, query client and cookie consent only. Store chrome (header, footer,
+ * cart, Organization JSON-LD) lives in `(site)/layout.tsx` via `SiteShell`, so bare routes such as
+ * the public `/coming-soon` teaser ship none of it — not even in the RSC payload.
+ */
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en-IN" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <body className="flex min-h-dvh flex-col">
         <ThemeProvider>
           <QueryProvider>
-            <a
-              href="#main"
-              className="sr-only z-50 rounded-md bg-primary px-4 py-3 font-semibold text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
-            >
-              Skip to content
-            </a>
-            <SiteHeader account={<AccountMenu />} cart={<CartButton />} />
-            <main id="main" className="flex-1">
-              {children}
-            </main>
-            <SiteFooter consentControl={<ConsentPreferencesButton />} />
-            <CartRoot />
+            {children}
             <ConsentRoot />
           </QueryProvider>
         </ThemeProvider>
-        <JsonLd data={organizationJsonLd()} />
       </body>
     </html>
   );

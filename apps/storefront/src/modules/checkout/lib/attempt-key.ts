@@ -1,3 +1,4 @@
+import { newUuid } from '@pk/shared/uuid';
 import type { CartItem } from '@/modules/cart';
 
 /**
@@ -19,8 +20,6 @@ export const cartSignature = (items: CartItem[]) =>
     .map((i) => `${i.productId}:${i.quantity}`)
     .sort()
     .join('|');
-
-const newUuid = () => globalThis.crypto.randomUUID();
 
 function read(): StoredAttempt | null {
   try {

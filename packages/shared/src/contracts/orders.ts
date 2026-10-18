@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { OrderStatusEnum, PaymentStatusEnum, RefundStatusEnum } from '../order/rows';
 import { PhoneSchema } from '../schemas/common';
+import { PAYMENT_GATEWAYS } from './checkout';
 
 /** Customer-facing order endpoints (Phase 5 §5.8, §5.10, §5.11). Orders are addressed by orderCode. */
 
@@ -51,7 +52,8 @@ export const OrderStatusResponseSchema = z.object({
     .object({
       razorpayOrderId: z.string(),
       keyId: z.string(),
-      gateway: z.enum(['razorpay', 'mock']),
+      gateway: z.enum(PAYMENT_GATEWAYS),
+      checkoutUrl: z.url().nullable(),
       amountPaise: z.number().int(),
     })
     .nullable(),

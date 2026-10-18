@@ -53,27 +53,34 @@ export const toGatewayRefund = (r: RzpRefund): GatewayRefund => ({
   idempotencyKey: !Array.isArray(r.notes) && r.notes?.idempotency_key ? r.notes.idempotency_key : null,
 });
 
-/** Razorpay REST API (https://razorpay.com/docs/api/) with Basic auth. No SDK — four endpoints. */
+/**
+ * Razorpay REST API (https://razorpay.com/docs/api/) with Basic auth. No SDK — four endpoints.
+ * The same client talks to the Direct UPI service (apps/payment, D-59), which implements this
+ * API subset: only the base URL, the kind and the hosted pay page differ.
+ */
 export function createRazorpayGateway(cfg: {
   keyId: string;
   keySecret: string;
   webhookSecret: string;
   fetchImpl?: typeof fetch;
+  directUpi?: { apiUrl: string; publicUrl: string };
 }): PaymentGateway {
   const doFetch = cfg.fetchImpl ?? fetch;
+  const api = cfg.directUpi ? cfg.directUpi.apiUrl.replace(/\/+$/, '') : API;
+  const label = cfg.directUpi ? 'direct-upi' : 'razorpay';
   const auth = `Basic ${Buffer.from(`${cfg.keyId}:${cfg.keySecret}`).toString('base64')}`;
 
   async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
     let res: Response;
     try {
       res = await withTimeout(
-        doFetch(`${API}${path}`, {
+        doFetch(`${api}${path}`, {
           method,
           headers: { authorization: auth, ...(body ? { 'content-type': 'application/json' } : {}) },
           ...(body ? { body: JSON.stringify(body) } : {}),
         }),
         TIMEOUT_MS,
-        `razorpay ${method} ${path.split('/')[1]}`,
+        `${label} ${method} ${path.split('/')[1]}`,
       );
     } catch (err) {
       throw new GatewayError((err as Error).message, null);
@@ -82,7 +89,7 @@ export function createRazorpayGateway(cfg: {
     if (!res.ok) {
       // Never include the request body or key in the message (PII / secrets)
       throw new GatewayError(
-        `razorpay ${res.status}: ${json.error?.description ?? 'request failed'}`,
+        `${label} ${res.status}: ${json.error?.description ?? 'request failed'}`,
         res.status,
         json.error?.code ?? null,
       );
@@ -91,8 +98,11 @@ export function createRazorpayGateway(cfg: {
   }
 
   return {
-    kind: 'razorpay',
+    kind: cfg.directUpi ? 'direct_upi' : 'razorpay',
     keyId: cfg.keyId,
+
+    checkoutUrl: (gatewayOrderId) =>
+      cfg.directUpi ? new URL(`/pay/${encodeURIComponent(gatewayOrderId)}`, cfg.directUpi.publicUrl).toString() : null,
 
     async createOrder({ amountPaise, receipt, notes }) {
       const o = await call<{ id: string }>('POST', '/orders', {

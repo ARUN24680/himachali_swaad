@@ -106,6 +106,7 @@ const toSession = (o: CreateOrderResponse): PaymentSession => ({
   razorpayOrderId: o.razorpayOrderId,
   keyId: o.keyId,
   gateway: o.gateway,
+  checkoutUrl: o.checkoutUrl,
   amountPaise: o.amountPaise,
   expiresAt: o.expiresAt,
   prefill: o.prefill,

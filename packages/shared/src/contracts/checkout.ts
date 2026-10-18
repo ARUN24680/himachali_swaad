@@ -50,7 +50,7 @@ export type CreateOrderRequest = z.infer<typeof CreateOrderRequestSchema>;
 export const IdempotencyKeySchema = z.uuid('Idempotency-Key must be a UUID');
 export const CheckoutHeadersSchema = z.object({ 'idempotency-key': IdempotencyKeySchema });
 
-export const PAYMENT_GATEWAYS = ['razorpay', 'mock'] as const;
+export const PAYMENT_GATEWAYS = ['razorpay', 'mock', 'direct_upi'] as const;
 
 export const CreateOrderResponseSchema = z.object({
   orderCode: z.string(),
@@ -59,8 +59,13 @@ export const CreateOrderResponseSchema = z.object({
   currency: z.literal('INR'),
   /** Razorpay public key id (rzp_test_… / rzp_live_…); 'mock' for the dev gateway. */
   keyId: z.string(),
-  /** `razorpay` → open Razorpay Checkout; `mock` → dev-only simulated payment (never in production). */
+  /**
+   * `razorpay` → open Razorpay Checkout; `mock` → dev-only simulated payment (never in production);
+   * `direct_upi` → send the customer to `checkoutUrl` (our own UPI pay page, D-59).
+   */
   gateway: z.enum(PAYMENT_GATEWAYS),
+  /** Hosted pay page (direct_upi only), else null. */
+  checkoutUrl: z.url().nullable(),
   /** Reservation end — Razorpay `timeout` = seconds until this. */
   expiresAt: z.iso.datetime(),
   prefill: z.object({ name: z.string(), contact: z.string(), email: z.string().nullable() }),

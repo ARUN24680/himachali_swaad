@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./money": "./src/money.ts",
+    "./uuid": "./src/uuid.ts",
     "./errors": "./src/errors.ts",
     "./patterns": "./src/schemas/patterns.ts",
     "./limits": "./src/constants/limits.ts",

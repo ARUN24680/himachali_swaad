@@ -1,107 +1,63 @@
-'use client';
-
 import type { ProductListResponse } from '@pk/shared';
-import { Badge, buttonVariants, cn } from '@pk/ui';
-import { ArrowRight, CheckCircle2, ShieldCheck, Sparkles, Star } from 'lucide-react';
+import { buttonVariants, cn } from '@pk/ui';
+import { ArrowRight, Check, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
-import { MountainRidges } from '@/components/common/MountainRidges';
 import { formatDate } from '@/modules/catalog';
+import { HeroBackdrop } from './HeroBackdrop';
 
-const ANGLES = [
-  { id: 'studio', label: 'Studio Front', src: '/home/hero-jar-studio.webp' },
-  { id: 'elevated', label: '35° Tabletop', src: '/home/jar-elevated-spices.webp' },
-  { id: 'culinary', label: 'Homestay Table', src: '/home/jar-lifestyle-culinary.webp' },
-];
+/** Facts the store actually delivers on (no ratings, counts or certifications we can't back). */
+const TRUST = ['Cold-pressed mustard oil', 'No added preservatives', 'Batch-coded jars', 'Prepaid, tracked delivery'];
 
+/**
+ * Editorial hero on the Deep Pine band. The jar stands on a lit plinth inside a soft arch of warm
+ * light (no disc, no card), with the fresh-batch label tucked under its base. Server component (no
+ * client JS, D-51 static rendering): headline and both CTAs sit above the fold at 375 and 1440.
+ */
 export function HomeHero({
   freshestBatch,
-  heroImage = '/home/hero-jar-studio.webp',
-  heroAlt = 'Pahadi Khatki Artisanal Himachali Pickle Jar',
+  heroImage = '/home/heritage-jar.webp',
+  heroAlt = 'A glass jar of Pahadi Khatki pickle, pieces steeped in mustard oil',
 }: {
   freshestBatch?: ProductListResponse['freshestBatch'] | null;
-  heroImage?: string | null;
+  heroImage?: string;
   heroAlt?: string;
 }) {
-  const [activeImage, setActiveImage] = useState(heroImage || '/home/hero-jar-studio.webp');
-
   return (
     <section
       aria-labelledby="hero-title"
       className="relative isolate overflow-hidden bg-secondary text-secondary-foreground"
     >
-      {/* Ambient warm gradient highlights */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-40 right-0 -z-10 h-96 w-96 rounded-full bg-primary/15 blur-3xl"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-10 left-10 -z-10 h-80 w-80 rounded-full bg-primary/10 blur-3xl"
-      />
+      <HeroBackdrop />
 
-      <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-10 pb-28 md:grid-cols-2 md:gap-14 md:px-8 md:pt-16 md:pb-36 lg:pt-20">
-        {/* Left Column: Editorial Headline, Story, Trust & Actions */}
-        <div className="grid gap-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/15 px-3 py-1 text-xs font-semibold tracking-wider text-accent-foreground uppercase">
-              <Sparkles className="size-3.5" aria-hidden="true" />
-              Authentic Himalayan Kitchen
-            </span>
-            <div className="flex items-center gap-1 text-xs font-medium text-secondary-foreground/90">
-              <div className="flex text-primary">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="size-3.5 fill-primary text-primary" aria-hidden="true" />
-                ))}
-              </div>
-              <span className="ml-1 font-semibold text-secondary-foreground">4.9</span>
-              <span className="text-secondary-foreground/75">(1,200+ Jar Orders)</span>
-            </div>
-          </div>
+      <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-8 pb-16 sm:pb-20 md:grid-cols-12 md:gap-8 md:px-8 md:pt-14 md:pb-24 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-16 lg:pt-16 lg:pb-28">
+        <div className="grid gap-5 md:col-span-7 md:gap-6 lg:col-span-1">
+          <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
+            <MapPin className="size-3.5" aria-hidden="true" />
+            Small-batch · Himachal Pradesh
+          </p>
 
           <h1
             id="hero-title"
-            className="font-serif text-4xl leading-[1.08] font-medium tracking-tight text-balance sm:text-5xl lg:text-6xl"
+            className="font-serif text-4xl leading-[1.06] font-medium tracking-tight text-balance sm:text-5xl md:text-4xl lg:text-5xl"
           >
-            Taste the mountains, slow-cooked in small batches.
+            Taste the mountains, <span className="block text-primary">slow-cooked in small batches.</span>
           </h1>
 
-          <p className="max-w-xl text-base leading-relaxed text-secondary-foreground/85 md:text-lg">
-            Succulent chicken, tender mutton and cold-water trout slow-simmered in pure cold-pressed mustard oil with
-            hand-pounded Pahadi spices. Sealed in glass jars with zero artificial preservatives.
+          <p className="max-w-md text-base leading-relaxed text-pretty text-secondary-foreground/80 md:text-lg lg:max-w-lg">
+            Chicken, mutton and trout pickles simmered in cold-pressed mustard oil with hand-pounded Pahadi spices —
+            sealed in glass.
           </p>
 
-          {/* Key Trust Pillars */}
-          <div className="grid grid-cols-2 gap-3 pt-1 text-xs text-secondary-foreground/95 sm:flex sm:flex-wrap sm:gap-4 sm:text-sm">
-            <div className="flex items-center gap-2 rounded-md border border-secondary-foreground/10 bg-secondary-foreground/5 px-3 py-1.5">
-              <CheckCircle2 className="size-4 shrink-0 text-primary" aria-hidden="true" />
-              <span className="font-medium">Cold-Pressed Mustard Oil</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-md border border-secondary-foreground/10 bg-secondary-foreground/5 px-3 py-1.5">
-              <CheckCircle2 className="size-4 shrink-0 text-primary" aria-hidden="true" />
-              <span className="font-medium">No Preservatives</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-md border border-secondary-foreground/10 bg-secondary-foreground/5 px-3 py-1.5">
-              <CheckCircle2 className="size-4 shrink-0 text-primary" aria-hidden="true" />
-              <span className="font-medium">100% Real Meat Chunks</span>
-            </div>
-            <div className="flex items-center gap-2 rounded-md border border-secondary-foreground/10 bg-secondary-foreground/5 px-3 py-1.5">
-              <ShieldCheck className="size-4 shrink-0 text-primary" aria-hidden="true" />
-              <span className="font-medium">FSSAI Certified</span>
-            </div>
-          </div>
-
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center gap-3 pt-2">
+          <div id="hero-ctas" className="grid grid-cols-2 gap-3 pt-1 sm:flex sm:flex-wrap">
             <Link
               href="/products"
               className={cn(
                 buttonVariants({ size: 'lg' }),
-                'group shadow-md shadow-primary/20 transition-all hover:shadow-primary/30 active:scale-[0.98]',
+                'group px-5 shadow-lg shadow-primary/25 transition-[transform,box-shadow] hover:shadow-xl hover:shadow-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-secondary active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 sm:px-7',
               )}
             >
-              Taste the Mountains
+              Shop pickles
               <ArrowRight
                 aria-hidden="true"
                 className="transition-transform group-hover:translate-x-1 motion-reduce:transition-none"
@@ -111,100 +67,76 @@ export function HomeHero({
               href="/about"
               className={cn(
                 buttonVariants({ size: 'lg', variant: 'outline' }),
-                'border-secondary-foreground/30 text-secondary-foreground hover:border-secondary-foreground/50 hover:bg-secondary-foreground/10',
+                'border-secondary-foreground/30 bg-secondary-foreground/5 px-5 text-secondary-foreground backdrop-blur-sm hover:border-secondary-foreground/60 hover:bg-secondary-foreground/10 hover:text-secondary-foreground focus-visible:ring-primary active:scale-[0.98] motion-reduce:active:scale-100 sm:px-7',
               )}
             >
-              Our Heritage Story
+              Our story
             </Link>
           </div>
 
-          {/* Live Batch Code Badge */}
-          {freshestBatch && (
-            <div
-              className="flex flex-wrap items-center gap-2.5 rounded-lg border border-secondary-foreground/15 bg-secondary-foreground/5 p-3 text-xs text-secondary-foreground/85"
-              data-testid="current-batch"
-            >
-              <span className="text-[11px] font-semibold tracking-wider text-secondary-foreground uppercase">
-                Fresh Batch:
-              </span>
-              <Badge tone="primary" className="font-mono font-bold tracking-[0.06em] tabular-nums">
-                {freshestBatch.batchCode}
-              </Badge>
-              <span className="truncate">
-                {freshestBatch.productTitle} · Bottled on {formatDate(freshestBatch.manufacturedAt)}
-              </span>
-            </div>
-          )}
+          <ul className="mt-1 grid max-w-lg grid-cols-2 gap-x-3 gap-y-2.5 border-t border-secondary-foreground/10 pt-5 text-xs text-secondary-foreground/80 sm:gap-x-6 sm:text-sm md:gap-x-4 md:text-xs lg:gap-x-6 lg:text-sm">
+            {TRUST.map((t) => (
+              <li key={t} className="flex items-start gap-1.5 sm:gap-2">
+                <span className="mt-px grid size-4 shrink-0 place-items-center rounded-full bg-primary/15 sm:mt-0.5">
+                  <Check className="size-3 text-primary" strokeWidth={3} aria-hidden="true" />
+                </span>
+                {t}
+              </li>
+            ))}
+          </ul>
         </div>
 
-        {/* Right Column: Realistic Studio Jar Presentation with Angle Switcher */}
-        <div className="relative mx-auto w-full max-w-sm sm:max-w-md md:max-w-none">
-          {/* Subtle warm backlight behind the jar */}
+        {/* Product stage: warm light arch → jar → lit plinth with a contact shadow → batch label */}
+        <div className="relative mx-auto w-full max-w-64 sm:max-w-xs md:col-span-5 md:max-w-none lg:col-span-1">
           <div
-            className="absolute inset-0 -z-10 scale-95 transform-gpu rounded-3xl bg-primary/20 blur-3xl"
             aria-hidden="true"
+            className="absolute -inset-[12%] -z-10 bg-radial from-primary/25 via-primary/8 via-40% to-transparent to-70%"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-[6%] top-[-9%] bottom-[10%] -z-10 rounded-t-full border border-b-0 border-primary/20 bg-linear-to-b from-secondary-foreground/8 to-transparent mask-b-from-55%"
           />
 
-          {/* Main Visual Card */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-secondary-foreground/25 bg-card shadow-float transition-all duration-300">
+          <div className="relative aspect-square w-full">
+            {/* Plinth: a lit ellipse the jar stands on, with a gold rim catching the light */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-[4%] -bottom-[5%] h-[14%] rounded-[50%] border-t border-primary/30 bg-linear-to-b from-secondary-foreground/12 to-secondary-foreground/2"
+            />
+            {/* Contact shadow where the glass meets the plinth */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-[16%] -bottom-[1.5%] h-[6%] rounded-[50%] bg-secondary blur-md dark:bg-background/80"
+            />
             <Image
-              src={activeImage}
+              src={heroImage}
               alt={heroAlt}
               fill
-              sizes="(min-width: 1024px) 520px, (min-width: 768px) 45vw, 90vw"
-              priority
-              className="object-cover transition-all duration-500 ease-out"
+              sizes="(min-width: 1024px) 420px, (min-width: 768px) 280px, (min-width: 640px) 320px, 256px"
+              preload
+              fetchPriority="high"
+              className="object-contain drop-shadow-2xl"
             />
-
-            {/* Floating Top Badge */}
-            <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5 rounded-full border border-border/80 bg-card/95 px-3 py-1 text-[11px] font-semibold text-card-foreground shadow-md backdrop-blur-md">
-              <span className="size-2 animate-pulse rounded-full bg-success" aria-hidden="true" />
-              100% Artisanal Himachali Recipe
-            </div>
-
-            {/* Bottom Gradient Label */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-secondary/95 via-secondary/60 to-transparent p-4 pt-12 text-secondary-foreground">
-              <p className="font-serif text-lg font-medium tracking-wide drop-shadow-sm sm:text-xl">
-                Pahadi Khatki Non-Veg Pickle
-              </p>
-              <p className="text-xs text-secondary-foreground/85 drop-shadow-sm">
-                Steeped in pure cold-pressed mustard oil with roasted mountain spices
-              </p>
-            </div>
           </div>
 
-          {/* Interactive Photography Angle Switcher */}
-          <div className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-secondary-foreground/15 bg-secondary-foreground/5 p-2 backdrop-blur-sm">
-            <span className="px-1.5 text-[11px] font-semibold tracking-wider text-secondary-foreground/75 uppercase">
-              Select Angle:
-            </span>
-            <div className="flex items-center gap-2">
-              {ANGLES.map((angle) => {
-                const isSelected = activeImage === angle.src;
-                return (
-                  <button
-                    key={angle.id}
-                    type="button"
-                    onClick={() => setActiveImage(angle.src)}
-                    className={cn(
-                      'group relative flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
-                      isSelected
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'bg-secondary-foreground/10 text-secondary-foreground/80 hover:bg-secondary-foreground/20 hover:text-secondary-foreground',
-                    )}
-                  >
-                    <span>{angle.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          {freshestBatch && (
+            <p
+              className="relative z-10 mx-auto mt-3 grid w-fit max-w-[92%] justify-items-center gap-0.5 rounded-2xl border border-secondary-foreground/15 bg-secondary/85 px-4 py-2 text-center text-xs text-secondary-foreground/80 shadow-float backdrop-blur-md"
+              data-testid="current-batch"
+            >
+              <span className="flex flex-wrap items-center justify-center gap-x-2">
+                <span className="size-1.5 shrink-0 rounded-full bg-success ring-2 ring-success/25" aria-hidden="true" />
+                <span className="font-semibold text-secondary-foreground">Fresh batch</span>
+                <span className="font-mono font-semibold tracking-wide text-primary tabular-nums">
+                  {freshestBatch.batchCode}
+                </span>
+              </span>
+              <span className="text-balance">
+                {freshestBatch.productTitle} · bottled {formatDate(freshestBatch.manufacturedAt)}
+              </span>
+            </p>
+          )}
         </div>
-      </div>
-
-      {/* Mountain Ridges Base */}
-      <div className="absolute inset-x-0 bottom-0 -z-10 h-24 opacity-80 md:h-36 lg:h-44" aria-hidden="true">
-        <MountainRidges />
       </div>
     </section>
   );

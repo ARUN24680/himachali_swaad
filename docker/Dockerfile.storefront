@@ -23,11 +23,17 @@ COPY apps/storefront ./apps/storefront
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Build Next.js in standalone output mode
-ENV NEXT_OUTPUT_STANDALONE=true
-ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=1536"
-RUN pnpm --filter @pk/storefront build
+# Keep Docker builds predictable on hosts also running the application stack.
+# This caps each Node heap, not total build memory (native allocations/workers).
+# Override with docker compose build --build-arg NODE_OPTIONS=... storefront.
+ARG NODE_OPTIONS="--max-old-space-size=1536"
+ENV NEXT_OUTPUT_STANDALONE=true \
+    NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_BUILD_LOW_MEMORY=true \
+    NODE_OPTIONS=$NODE_OPTIONS
+# Next 16 defaults to Turbopack; use Webpack's memory optimizations for Docker.
+RUN pnpm --filter @pk/storefront build --webpack
 
 FROM node:24-alpine AS runner
 WORKDIR /app

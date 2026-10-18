@@ -11,7 +11,9 @@ export interface PaymentSession {
   orderCode: string;
   razorpayOrderId: string;
   keyId: string;
-  gateway: 'razorpay' | 'mock';
+  gateway: 'razorpay' | 'mock' | 'direct_upi';
+  /** direct_upi: our own UPI pay page — the customer is sent there instead of a modal (D-59). */
+  checkoutUrl: string | null;
   amountPaise: number;
   /** ISO time the jar reservation ends; the modal's `timeout` counts down to it. */
   expiresAt: string;
@@ -147,6 +149,20 @@ export function usePayment(onPaid: OnPaid) {
     (s: PaymentSession) => {
       settled.current = false;
       setSession(s);
+      if (s.gateway === 'direct_upi') {
+        if (secondsLeft(s.expiresAt) < 10) {
+          setPhase({ kind: 'failed', reason: 'Your jar reservation has ended.' });
+          return;
+        }
+        if (!s.checkoutUrl) {
+          setPhase({ kind: 'error', message: "The payment page isn't available right now. Please try again." });
+          return;
+        }
+        // Leaves the store; the pay page returns to /order/<code>, which polls until confirmed
+        setPhase({ kind: 'opening' });
+        window.location.assign(s.checkoutUrl);
+        return;
+      }
       if (s.gateway === 'mock') {
         setMockError(null);
         setMockOpen(true);

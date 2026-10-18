@@ -9,7 +9,7 @@
 ## 🎯 Architectural Invariants
 * Har endpoint ka body/query/params/headers **Zod** se validate (`fastify-type-provider-zod`).
 * Sensitive writes (checkout, payment confirmation, inventory, refunds) **`db.transaction()`** me — raw SQL, **no ORM**.
-* External calls (Razorpay, Shiprocket, WhatsApp, R2) **transaction ke bahar** (D-30); slow ones **BullMQ jobs** me.
+* External calls (Razorpay, Shiprocket, WhatsApp, S3) **transaction ke bahar** (D-30); slow ones **BullMQ jobs** me.
 * Order status sirf `transitionOrder()` se (D-29).
 * Money hamesha **integer paise** (`...Paise` fields) (D-26).
 * Har response me `requestId` (header `x-request-id` bhi).
@@ -121,7 +121,7 @@ Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 
 | Method | Path | Roles | Request → Response |
 | :--- | :--- | :--- | :--- |
 | GET | `/orders/:orderCode/status` | Public with `?phone=` (E.164) **or** session owner | → `OrderStatusResponse` (`packages/shared/src/contracts/orders.ts`): status, paymentStatus, items, totals, shippingCity (never the full address), refund, invoiceAvailable, canCancel, whatsappOptIn, retryPayment (`/order/[orderCode]` page polls until webhook confirms) |
-| GET | `/orders/:orderCode/invoice` | Session owner (or `?phone=`) | → `{ url, expiresAt }` signed private R2 URL (D-11, D-32) |
+| GET | `/orders/:orderCode/invoice` | Session owner (or `?phone=`) | → `{ url, expiresAt }` signed private S3 URL (D-11, D-32) |
 | POST | `/orders/:orderCode/cancel` | Session owner | `{ reason }` → allowed only in `CONFIRMED` / `AWAITING_PACKING`; triggers refund |
 | POST | `/track` | Public | `{ orderCode, phone (10-digit or +91…) }` **both required** (D-39) → `TrackResponse` (`packages/shared/src/contracts/tracking.ts`): `{ orderCode, customerFirstName, destinationCity, status, paymentStatus, items[{ title, netWeightG, quantity, batchCode, manufacturedAt }], courier{ name, awb, trackingUrl }\|null, etd, refund, timeline[{ key, label, at, detail, tone }], updatedAt }`. Mismatch / unpaid → generic `NOT_FOUND`. 60 s cache (D-55 b). |
 
@@ -169,7 +169,7 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | Method | Path | Request → Response |
 | :--- | :--- | :--- |
 | GET | `/partner/orders?status=AWAITING_PACKING\|PACKED\|PICKUP_SCHEDULED` | → `{ toPack, cutoffHourIst, orders: [{ orderCode, status, items: [{ title, sku, netWeightG, quantity, batches: [{ batchCode, quantity }] }], customerFirstName, city, state, courierName, awbCode, labelReady, confirmedAt, packBy, pickupDate }] }` oldest first — **no phone, full address or revenue** (D-54 c) |
-| GET | `/partner/orders/:orderCode/label` | → `{ url, expiresAt }` 4×6 PDF, 5-min signed private R2 URL (D-11, D-37); own kitchen's orders only (else 404); audited `LABEL_VIEW` (Phase 6) |
+| GET | `/partner/orders/:orderCode/label` | → `{ url, expiresAt }` 4×6 PDF, 5-min signed private S3 URL (D-11, D-37); own kitchen's orders only (else 404); audited `LABEL_VIEW` (Phase 6) |
 | GET | `/partner/labels/a4?orders=PK-7KQ2M9,PK-...` | 1–20 codes → `{ url, expiresAt }` merged A4 (4-per-page) PDF for cyber-cafe printing; each label audited |
 | GET | `/partner/manifests` | → `{ manifests: [{ pickupDate, kitchenCode, orderCodes, url, expiresAt }] }` latest pickup manifests (Phase 6 batches) |
 | POST | `/partner/orders/:orderCode/mark-packed` | Header `Idempotency-Key` (uuid); body `{ checklist: { correctBatch, weighed, sealChecked, shrinkApplied, bubbleWrapped, labelApplied } }` (all `true`, D-54 a) → `{ orderCode, status, changed, pickupDate }`; `AWAITING_PACKING → PACKED`, `SHIPROCKET_SCHEDULE_PICKUP` enqueued (D-36). Already packed → 200 `changed: false`; cancelled → 409 `ORDER_CANCELLED` |
@@ -228,7 +228,7 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | Queue | Job | jobId pattern | Trigger | Retries |
 | :--- | :--- | :--- | :--- | :--- |
 | `orders` | `SHIPROCKET_CREATE_ORDER` (create order → courier select via `min_courier_rating` / `max_courier_etd_days` → AWB) | `ship-<orderId>` | `CONFIRMED` | 5, exponential (30s base), only network/5xx/429 retried (4xx → dead letter at once); then `ops_issue` + `shipments.last_error` + admin alert |
-| `documents` | `FETCH_AND_STORE_LABEL` (label PDF → private R2 `labels/<orderCode>.pdf` → `AWAITING_PACKING`) | `label-<orderId>` | AWB assigned | 5, exponential |
+| `documents` | `FETCH_AND_STORE_LABEL` (label PDF → private S3 `private/labels/<orderCode>.pdf` → `AWAITING_PACKING`) | `label-<orderId>` | AWB assigned | 5, exponential |
 | `orders` | `SHIPROCKET_SCHEDULE_PICKUP` (fixes the pickup day: before cut-off → today, else next working day) | `pickup-<orderId>` | `PACKED` | 5, exponential |
 | `orders` | `SHIPROCKET_CANCEL_SHIPMENT` (AWB cancel, else Shiprocket order cancel; no-op if nothing booked) | `shipcancel-<orderId>` | Admin/customer cancel from `CONFIRMED` on | 5; then `ops_issue` + alert |
 | `documents` | `GENERATE_INVOICE` | `inv:<orderId>` | `CONFIRMED` | 3 |

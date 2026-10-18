@@ -84,3 +84,55 @@ describe('Razorpay signatures', () => {
     });
   });
 });
+
+describe('Direct UPI gateway (D-59)', () => {
+  const upi = {
+    PAYMENT_GATEWAY: 'direct_upi',
+    DIRECT_UPI_API_URL: 'https://pay.example.in/v1',
+    DIRECT_UPI_PUBLIC_URL: 'https://pay.example.in',
+    DIRECT_UPI_KEY_ID: 'upi_live_abcdefgh12',
+    DIRECT_UPI_KEY_SECRET: 'k'.repeat(40),
+    DIRECT_UPI_WEBHOOK_SECRET: 'w'.repeat(40),
+  };
+  it('needs all five settings, distinct secrets, and https + a live key in production', () => {
+    expect(() => parseEnv({ ...valid, PAYMENT_GATEWAY: 'direct_upi' })).toThrow(/DIRECT_UPI_API_URL/);
+    expect(parseEnv({ ...valid, ...upi }).PAYMENT_GATEWAY).toBe('direct_upi');
+    expect(() => parseEnv({ ...valid, ...upi, DIRECT_UPI_WEBHOOK_SECRET: upi.DIRECT_UPI_KEY_SECRET })).toThrow(
+      /webhook secret must differ/,
+    );
+    const prod = (over: Record<string, string>) => () =>
+      parseEnv({ ...valid, ...upi, NODE_ENV: 'production', ...over });
+    expect(prod({ DIRECT_UPI_API_URL: 'http://pay.example.in/v1' })).toThrow(/DIRECT_UPI_API_URL: must be https/);
+    expect(prod({ DIRECT_UPI_KEY_ID: 'upi_test_abcdefgh12' })).toThrow(/upi_live_/);
+  });
+
+  it('talks to the service base URL with Basic auth and points customers at its pay page', async () => {
+    const calls: { url: string; auth: string | null }[] = [];
+    const fetchImpl = (async (url: string, init?: RequestInit) => {
+      calls.push({ url, auth: new Headers(init?.headers).get('authorization') });
+      return new Response(JSON.stringify({ id: 'order_AbCdEfGh12345678' }), { status: 200 });
+    }) as typeof fetch;
+    const gw = createRazorpayGateway({
+      keyId: upi.DIRECT_UPI_KEY_ID,
+      keySecret: upi.DIRECT_UPI_KEY_SECRET,
+      webhookSecret: upi.DIRECT_UPI_WEBHOOK_SECRET,
+      fetchImpl,
+      directUpi: { apiUrl: 'https://pay.example.in/v1/', publicUrl: 'https://pay.example.in' },
+    });
+    expect(gw.kind).toBe('direct_upi');
+    const o = await gw.createOrder({ amountPaise: 49_999, receipt: 'PK-7KQ2M9', notes: {} });
+    expect(calls[0]!.url).toBe('https://pay.example.in/v1/orders');
+    expect(calls[0]!.auth).toBe(
+      `Basic ${Buffer.from(`${upi.DIRECT_UPI_KEY_ID}:${upi.DIRECT_UPI_KEY_SECRET}`).toString('base64')}`,
+    );
+    expect(gw.checkoutUrl(o.id)).toBe('https://pay.example.in/pay/order_AbCdEfGh12345678');
+    expect(gw.verifyWebhookSignature(Buffer.from('{}'), hmacHex(upi.DIRECT_UPI_WEBHOOK_SECRET, '{}'))).toBe(true);
+    expect(gw.verifyWebhookSignature(Buffer.from('{}'), hmacHex('other', '{}'))).toBe(false);
+  });
+
+  it('razorpay and mock have no hosted page', () => {
+    expect(
+      createRazorpayGateway({ keyId: 'rzp_test_x', keySecret: 'a', webhookSecret: 'b' }).checkoutUrl('order_1'),
+    ).toBeNull();
+  });
+});
