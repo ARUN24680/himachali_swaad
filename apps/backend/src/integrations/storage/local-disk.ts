@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, resolve, sep } from 'node:path';
-import { joinUrl, UPLOAD_URL_TTL_SEC, type ObjectStorage } from './storage';
+import { assertProductImageKey, joinUrl, UPLOAD_URL_TTL_SEC, type ObjectStorage } from './storage';
 
 export interface LocalDiskConfig {
   /** Directory files are written to (gitignored). */
@@ -75,6 +75,14 @@ export function createLocalDiskStorage(cfg: LocalDiskConfig): LocalDiskStorage {
       const file = pathFor(key);
       await mkdir(dirname(file), { recursive: true });
       await writeFile(file, body);
+    },
+    async delete(key) {
+      assertProductImageKey(key);
+      try {
+        await unlink(pathFor(key));
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+      }
     },
     async read(key) {
       try {

@@ -48,3 +48,37 @@ describe('local disk storage (dev stand-in)', () => {
     await expect(s.write('../../etc/evil', Buffer.from('x'))).rejects.toThrow(/escapes/);
   });
 });
+
+describe('local disk delete (product images)', () => {
+  it('unlinks the file, treats a missing file as deleted, refuses keys outside products/', async () => {
+    const { mkdtemp } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const dir = await mkdtemp(join(tmpdir(), 'pk-unit-del-'));
+    const s = createLocalDiskStorage({ dir, apiBaseUrl: 'http://localhost:4000', secret: 'k' });
+    await s.write('products/p1/a.webp', Buffer.from('x'));
+    await s.write('private/invoices/i.pdf', Buffer.from('x'));
+    await s.delete('products/p1/a.webp');
+    expect(await s.read('products/p1/a.webp')).toBeNull();
+    await expect(s.delete('products/p1/a.webp')).resolves.toBeUndefined(); // ENOENT = success
+    for (const bad of [
+      'private/invoices/i.pdf',
+      'products/../private/invoices/i.pdf',
+      'products/a.webp',
+      '/products/p1/a',
+    ]) {
+      await expect(s.delete(bad)).rejects.toThrow(/outside products/);
+    }
+    expect(await s.read('private/invoices/i.pdf')).not.toBeNull();
+  });
+});
+
+describe('assertProductImageKey', () => {
+  it('accepts products/<id>/<file> only', async () => {
+    const { assertProductImageKey } = await import('../../src/integrations/storage/storage');
+    expect(() => assertProductImageKey('products/7f0c/0a1b.webp')).not.toThrow();
+    for (const bad of ['', 'products/', 'products//a.webp', 'products/p/./a', 'products\\p\\a', 'labels/x.pdf']) {
+      expect(() => assertProductImageKey(bad)).toThrow();
+    }
+  });
+});

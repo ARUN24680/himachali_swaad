@@ -1,4 +1,5 @@
 import { ProductRowSchema, type ProductRow } from '@pk/shared';
+import { z } from 'zod';
 import type { Queryable } from '../../config/db';
 
 const parse = (rows: unknown[]) => rows.map((r) => ProductRowSchema.parse(r));
@@ -176,4 +177,10 @@ export async function findFreshestSellableBatch(db: Queryable, sellableBufferDay
     [sellableBufferDays],
   );
   return rows[0] ?? null;
+}
+
+/** Is this image key still on any product (re-added, or shared)? Guard before deleting the object. */
+export async function isImageReferenced(db: Queryable, key: string): Promise<boolean> {
+  const { rows } = await db.query('SELECT EXISTS (SELECT 1 FROM products WHERE $1 = ANY(images)) AS referenced', [key]);
+  return z.object({ referenced: z.boolean() }).parse(rows[0]).referenced;
 }

@@ -1,7 +1,7 @@
 import { AwsClient, AwsV4Signer } from 'aws4fetch';
 import { withTimeout } from '../../utils/with-timeout';
 import type { PrivateStorage } from './private';
-import { joinUrl, UPLOAD_URL_TTL_SEC, type ObjectStorage } from './storage';
+import { assertProductImageKey, joinUrl, UPLOAD_URL_TTL_SEC, type ObjectStorage } from './storage';
 
 /**
  * Any S3-API bucket (AWS S3, Cloudflare R2): object URL + SigV4 credentials. Uploads are presigned
@@ -74,24 +74,40 @@ async function presignUpload(t: S3Target, key: string, contentType: string, size
 
 /** Product images: browser uploads with a presigned PUT; the storefront reads `publicBaseUrl/<key>`. */
 export function createS3PublicStorage(kind: 'r2' | 's3', t: S3Target, publicBaseUrl: string): ObjectStorage {
+  // Few in-call retries: the DELETE_PRODUCT_IMAGE job already retries with backoff (aws4fetch default is 10)
+  const client = s3Client(t, { retries: 2 });
   return {
     kind,
     presignPut: ({ key, contentType, sizeBytes }) => presignUpload(t, key, contentType, sizeBytes),
     publicUrl: (key) => joinUrl(publicBaseUrl, key),
+    /** DeleteObject: S3 answers 204 (also for a missing key); R2 may answer 404 — both mean "gone". */
+    async delete(key) {
+      assertProductImageKey(key);
+      const res = await withTimeout(
+        client.fetch(t.objectUrl(key), { method: 'DELETE' }),
+        20_000,
+        `${kind} public delete`,
+      );
+      if (!res.ok && res.status !== 404) throw new Error(`${kind.toUpperCase()} DELETE failed with ${res.status}`);
+    },
   };
 }
+
+const s3Client = (t: S3Target, opts: { retries?: number } = {}) =>
+  new AwsClient({
+    accessKeyId: t.accessKeyId,
+    secretAccessKey: t.secretAccessKey,
+    service: 's3',
+    region: t.region,
+    ...opts,
+  });
 
 /**
  * Invoices, labels, manifests, statements, receipts: never public. `keyPrefix` lets one bucket hold
  * both kinds (AWS: `private/…`, kept out of the public-read bucket policy).
  */
 export function createS3PrivateStorage(kind: 'r2' | 's3', t: S3Target, keyPrefix = ''): PrivateStorage {
-  const client = new AwsClient({
-    accessKeyId: t.accessKeyId,
-    secretAccessKey: t.secretAccessKey,
-    service: 's3',
-    region: t.region,
-  });
+  const client = s3Client(t);
   const full = (key: string) => `${keyPrefix}${key}`;
   return {
     kind,

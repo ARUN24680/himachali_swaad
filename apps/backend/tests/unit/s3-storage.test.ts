@@ -111,6 +111,54 @@ describe('AWS S3 private storage (labels, invoices, statements, receipts)', () =
   });
 });
 
+describe('S3 / R2 public delete (product images)', () => {
+  const seen: { method: string; url: string; auth: string }[] = [];
+  let status = 204;
+  let base = '';
+  const server = createServer((req, res) => {
+    seen.push({ method: req.method!, url: req.url!, auth: String(req.headers.authorization ?? '') });
+    res.writeHead(status).end();
+  });
+  beforeAll(async () => {
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  });
+  afterAll(() => new Promise<void>((r) => server.close(() => r())));
+  const store = (kind: 's3' | 'r2' = 's3') =>
+    createS3PublicStorage(kind, { ...awsS3Target(aws), objectUrl: (key) => `${base}/bucket/${key}` }, base);
+
+  it('sends a SigV4-signed DELETE for the exact key; 204 and 404 both count as deleted', async () => {
+    status = 204;
+    await store().delete('products/p1/a.webp');
+    expect(seen.at(-1)).toMatchObject({ method: 'DELETE', url: '/bucket/products/p1/a.webp' });
+    expect(seen.at(-1)!.auth).toMatch(/^AWS4-HMAC-SHA256 Credential=AKIAEXAMPLEEXAMPLE12\/\d{8}\/eu-north-1\/s3\//);
+    status = 404;
+    await expect(store('r2').delete('products/p1/a.webp')).resolves.toBeUndefined();
+  });
+
+  it('403 / 5xx are errors (the job retries); keys outside products/ never reach the bucket', async () => {
+    status = 403;
+    await expect(store().delete('products/p1/a.webp')).rejects.toThrow(/S3 DELETE failed with 403/);
+    status = 503;
+    await expect(store('r2').delete('products/p1/a.webp')).rejects.toThrow(/R2 DELETE failed with 503/);
+    const before = seen.length;
+    await expect(store().delete('private/invoices/PK-1.pdf')).rejects.toThrow(/outside products/);
+    await expect(store().delete('products/../private/x.pdf')).rejects.toThrow(/outside products/);
+    expect(seen.length).toBe(before);
+  });
+
+  it('R2 deletes on the path-style bucket URL', async () => {
+    const { r2Target } = await import('../../src/integrations/storage/r2');
+    const t = r2Target({
+      endpoint: 'https://acc.r2.cloudflarestorage.com',
+      accessKeyId: 'a',
+      secretAccessKey: 's',
+      bucket: 'pk-public',
+    });
+    expect(t.objectUrl('products/p1/a.webp')).toBe('https://acc.r2.cloudflarestorage.com/pk-public/products/p1/a.webp');
+  });
+});
+
 describe('env + wiring for STORAGE_DRIVER=s3', () => {
   const valid = {
     DATABASE_URL: 'postgres://pk:pw@localhost:5433/pahadi_khatki',

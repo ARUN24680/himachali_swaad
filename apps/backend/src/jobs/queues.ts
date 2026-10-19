@@ -14,6 +14,8 @@ export interface JobPayloads {
   SHIPROCKET_SCHEDULE_PICKUP: { orderId: string };
   SHIPROCKET_CANCEL_SHIPMENT: { orderId: string };
   GENERATE_INVOICE: { orderId: string };
+  /** Remove a product image the admin dropped from a product (after commit; skipped if still referenced). */
+  DELETE_PRODUCT_IMAGE: { key: string };
   INITIATE_REFUND: { refundId: string };
   ORDER_CONFIRMED: { orderId: string };
   ORDER_CANCELLED: { orderId: string };
@@ -54,6 +56,7 @@ export const JOB_QUEUE: Record<JobName, QueueName> = {
   SHIPROCKET_CANCEL_SHIPMENT: 'orders',
   FETCH_AND_STORE_LABEL: 'documents',
   GENERATE_INVOICE: 'documents',
+  DELETE_PRODUCT_IMAGE: 'documents',
   INITIATE_REFUND: 'payments',
   ORDER_CONFIRMED: 'notify',
   ORDER_CANCELLED: 'notify',
@@ -99,6 +102,7 @@ const RETRIES: Partial<Record<JobName, number>> = {
   SHIPROCKET_SCHEDULE_PICKUP: 5,
   SHIPROCKET_CANCEL_SHIPMENT: 5,
   GENERATE_INVOICE: 3,
+  DELETE_PRODUCT_IMAGE: 5,
   INITIATE_REFUND: 5,
   ORDER_CONFIRMED: 3,
   ORDER_CANCELLED: 3,

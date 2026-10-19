@@ -15,9 +15,12 @@ import {
   type ProductUpdateRequest,
 } from '@pk/shared';
 import { DatabaseError } from 'pg';
+import type { Logger } from 'pino';
 import { z } from 'zod';
 import type { Db, Queryable } from '../../config/db';
-import type { ObjectStorage } from '../../integrations/storage/storage';
+import { PermanentJobError } from '../../jobs/errors';
+import type { JobQueue } from '../../jobs/queues';
+import { assertProductImageKey, type ObjectStorage } from '../../integrations/storage/storage';
 import type { StorefrontRevalidator } from '../../integrations/storefront/revalidate';
 import type { AuthContext } from '../../middleware/auth';
 import { AppError } from '../../utils/app-error';
@@ -76,8 +79,25 @@ export function createCatalogService(deps: {
   inventory: InventoryService;
   storage: ObjectStorage;
   revalidator: StorefrontRevalidator;
+  jobs: JobQueue;
+  logger: Logger;
 }) {
-  const { db, settings, inventory, storage, revalidator } = deps;
+  const { db, settings, inventory, storage, revalidator, jobs, logger } = deps;
+
+  /**
+   * After COMMIT (D-30): one DELETE_PRODUCT_IMAGE job per key the PATCH dropped. The product update
+   * already succeeded, so an enqueue failure (Redis down) is logged, not returned — the object is
+   * then an orphan for the image sweeper rather than a failed save.
+   */
+  async function enqueueImageDeletes(productId: string, removed: string[]) {
+    for (const key of removed) {
+      try {
+        await jobs.add('DELETE_PRODUCT_IMAGE', { key });
+      } catch (err) {
+        logger.error({ err, productId, key }, 'could not enqueue product image delete');
+      }
+    }
+  }
 
   const lowStockThreshold = (q: Queryable = db) => settings.getSetting(q, 'low_stock_threshold', Threshold);
   const imageUrls = (keys: string[]) => keys.map((k) => storage.publicUrl(k));
@@ -349,14 +369,32 @@ export function createCatalogService(deps: {
             after: values,
             ip: ctx.ip,
           });
-          return updated;
+          const kept = new Set(updated.images);
+          return { updated, removed: patch.images ? current.images.filter((k) => !kept.has(k)) : [] };
         })
         .catch(mapWriteError);
-      return afterWrite(product);
+      await enqueueImageDeletes(id, product.removed);
+      return afterWrite(product.updated);
     },
 
     publish: (auth: AuthContext, id: string, ctx: MutationContext) => setActive(auth, id, true, ctx),
     unpublish: (auth: AuthContext, id: string, ctx: MutationContext) => setActive(auth, id, false, ctx),
+
+    /**
+     * DELETE_PRODUCT_IMAGE job: removes the object unless a product still lists the key (re-added
+     * since the PATCH). Idempotent — a missing object counts as deleted, so retries are safe.
+     */
+    async purgeImage(key: string): Promise<{ deleted: boolean; reason?: 'STILL_REFERENCED' }> {
+      try {
+        assertProductImageKey(key);
+      } catch {
+        throw new PermanentJobError('Not a product image key');
+      }
+      if (await repo.isImageReferenced(db, key)) return { deleted: false, reason: 'STILL_REFERENCED' };
+      await storage.delete(key);
+      logger.info({ key }, 'product image deleted');
+      return { deleted: true };
+    },
 
     /** D-11: presigned PUT to the public bucket; the key is saved on the product via PATCH images. */
     async presignImage(input: ImageUploadRequest): Promise<ImageUploadResponse> {

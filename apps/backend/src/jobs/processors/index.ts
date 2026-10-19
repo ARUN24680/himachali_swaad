@@ -78,6 +78,7 @@ export function createProcessors(deps: {
     PARTNER_DAILY_DIGEST: () => svc.notifications.partnerDailyDigest(),
     OPS_ALERTS: () => svc.opsAlerts.run(deps.queueHealth),
     GENERATE_INVOICE: (d) => svc.invoices.generate(d.orderId),
+    DELETE_PRODUCT_IMAGE: (d) => svc.catalog.purgeImage(d.key),
     INITIATE_REFUND: (d) => svc.payments.initiateRefund(d.refundId),
     EXPIRE_RESERVATIONS: () => sweepers.expireReservations(),
     RECONCILE_CONFIRMED: () => sweepers.reconcileConfirmed(),

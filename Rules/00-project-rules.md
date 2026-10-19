@@ -112,6 +112,8 @@
 
 ## ⚙️ 2. Backend & Database Architecture Rules
 
+> **MANDATORY:** Har backend, business-logic, API, migration, job ya integration ka kaam **`backend-developer` agent** (`.claude/agents/backend-developer.md`) karega, jo is section ko follow karta hai. UI kaam `ui-developer` agent ka hai.
+
 ### 2.1 Pure Raw SQL & Zero-ORM Rule (Nexus Standard)
 * **Database Driver:** Direct `pg` (Node-Postgres Connection Pool). Migrations **`dbmate`** se (plain `.sql`, up + down) (D-01).
 * **Zero ORM Policy:** ❌ No Sequelize, ❌ No Prisma, ❌ No TypeORM.

@@ -46,6 +46,8 @@ origin (next/image allowlist + CSP `img-src`). Rebuild / restart the storefront 
 ```
 
 `s3:ListBucket` makes a missing file read as "not found" (404) instead of "access denied" (403).
+`s3:DeleteObject` is used by the worker (`DELETE_PRODUCT_IMAGE`) when an admin removes a product photo —
+without it the job fails with 403 and retries, and the photo stays in the bucket.
 `PutBucketCORS` / `PutBucketPolicy` are only needed for `s3:setup`; remove them afterwards if you like.
 
 ## 3. Bucket setup (once)

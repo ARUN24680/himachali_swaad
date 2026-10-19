@@ -34,3 +34,6 @@ next-env.d.ts
 
 # Local recovery dumps (contain private application data)
 packages/database/backups/
+
+# Private keys and certificates (never commit)
+*.pem

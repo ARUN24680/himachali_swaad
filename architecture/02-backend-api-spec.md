@@ -232,6 +232,7 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | `orders` | `SHIPROCKET_SCHEDULE_PICKUP` (fixes the pickup day: before cut-off → today, else next working day) | `pickup-<orderId>` | `PACKED` | 5, exponential |
 | `orders` | `SHIPROCKET_CANCEL_SHIPMENT` (AWB cancel, else Shiprocket order cancel; no-op if nothing booked) | `shipcancel-<orderId>` | Admin/customer cancel from `CONFIRMED` on | 5; then `ops_issue` + alert |
 | `documents` | `GENERATE_INVOICE` | `inv:<orderId>` | `CONFIRMED` | 3 |
+| `documents` | `DELETE_PRODUCT_IMAGE { key }` (removes a public `products/…` object the admin dropped via `PATCH /admin/products/:id` images; skipped if any product still lists the key; 204/404 = done; non-`products/` key → dead letter) | none (processor idempotent) | After COMMIT of an images PATCH that removed keys | 5, exponential |
 | `documents` | `GENERATE_SETTLEMENT_PDF` | `stmt:<settlementId>` | Finalize | 3 |
 | `payments` | `INITIATE_REFUND` (`{ refundId }` — intent row already written, D-52) | `refund-<refundId>` | Cancel / stockout / mismatch / duplicate payment / RTO | 5; then `ops_issue` |
 | `notify` | `ORDER_CONFIRMED`, `ORDER_CANCELLED`, `ORDER_STATUS_NOTIFY { template }` (WhatsApp → SMS fallback / push) | `notify-<template>-<orderId>` | Transitions (`07` §6) | 3 |

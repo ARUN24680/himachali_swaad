@@ -69,6 +69,8 @@ export function createCommerceServices(d: CommerceDeps) {
     inventory,
     storage: d.storage,
     revalidator: d.revalidator,
+    jobs: d.jobs,
+    logger: d.logger,
   });
   const cart = createCartService({ db: d.db, catalog, settings });
   const account = createAccountService({ db: d.db });

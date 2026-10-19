@@ -20,6 +20,7 @@ Jab bhi is repository me koi bhi task, feature, bug fix, ya phase execute karne 
 - **Code organisation:** Backend `routes → controller → service → repository`; Frontend hybrid `@pk/ui → components/common → modules/<feature>` (D-43, D-44).
 - **Money:** Integer paise.
 - **Design Reference Policy (Rules §1.5):** Stitch/Figma design sirf reference hai — copy nahi, better UI/aesthetic bana sakte ho toh banao (tokens, compliance, scope ke andar). Har UI kaam **`ui-developer` agent** (`.claude/agents/ui-developer.md`) se.
+- **Backend / logic / API kaam:** Har business logic, API, database migration, background job, integration (Razorpay/UPI, Shiprocket, WhatsApp/SMS, S3) aur frontend ko real endpoint se jodne ka kaam **sirf `backend-developer` agent** (`.claude/agents/backend-developer.md`) se. UI kaam `ui-developer` ke paas hi rahega.
 
 ## 🗺️ 3. Phase Execution Reference
 `Phases/00-phases-master.md` single source of truth hai. Phase files:
