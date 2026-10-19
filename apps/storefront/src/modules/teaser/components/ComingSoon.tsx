@@ -107,20 +107,17 @@ const PHOTO_TOP_FADE =
  * The hero's landscape: a wide Kangra valley panorama under the snow line. It is pulled up behind
  * the lede ("Born in the valleys…") and its top is masked with a long smoothstep fade
  * (`PHOTO_TOP_FADE`), so it dissolves into the night sky under the text with no seam.
- * The box is never wider than the photo's 16:9 (tall on phones and tablets, exactly 16:9 from lg
- * up), so `object-cover` only trims the sides and the bottom is never cut; the lower half fades out
+ * The box is exactly the photo's 16:9 at every width (v21: phones and tablets used to get a taller
+ * box that cropped both sides and cut the train's engine off), so the whole panorama shows edge to
+ * edge and nothing is cropped. Below lg the photo is short, so it tucks under the text much less
+ * (`-mt-12` … `md:-mt-36`) and the scroll cue stays over the faded sky; the lower half fades out
  * under an opaque band-colour wash into the next section (a wash, not a mask, so the hero's sun
  * glow never shows through as an edge), and a light band-colour wash keeps the daylight photo in
  * the page's evening mood. No product in frame.
  */
 function ValleyPhoto() {
   return (
-    <div
-      className={cn(
-        'relative -z-10 -mt-44 h-[62vh] min-h-96 w-full sm:-mt-52 md:-mt-60 md:h-[72vh] lg:aspect-video lg:h-auto lg:min-h-0',
-        PHOTO_TOP_FADE,
-      )}
-    >
+    <div className={cn('relative -z-10 -mt-12 aspect-video w-full sm:-mt-24 md:-mt-36 lg:-mt-60', PHOTO_TOP_FADE)}>
       <Image
         src="/teaser/kangra-valley.webp"
         alt="The Kangra valley in Himachal Pradesh: a narrow-gauge train winds past terraced gardens and deodar forest below the snow-capped Dhauladhar range"
@@ -128,7 +125,7 @@ function ValleyPhoto() {
         sizes="100vw"
         priority
         quality={100}
-        className="object-cover object-[50%_30%] md:object-center"
+        className="object-cover"
       />
       <div aria-hidden="true" className="absolute inset-0 bg-secondary/15" />
       <div

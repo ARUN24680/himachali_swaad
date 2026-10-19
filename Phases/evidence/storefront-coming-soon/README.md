@@ -218,3 +218,15 @@ At the owner's request, the hero's top bar now shows the horizontal logo where t
 - **Shots:** `v20-logo-hero-{375,768,1440,1920}-{light,dark}.png` (the hero section). Overflow is 0 px in all combinations.
 - **Checks:** typecheck, lint, Prettier and `check:colors` are clean; `smoke.spec.ts` passed 15/15.
 - **Follow-up (owner):** "Dev Bhoomi" is back, as a second line under "Himachal Pradesh" on the right of the top bar. It is right-aligned, smaller (`text-[0.625rem]`, wider tracking) and set in gold (`text-primary/80`). The `v20-logo-hero-*` shots were re-taken with it. Overflow is 0 px at 375 / 768 / 1440 / 1920 / 2000 in light and dark.
+
+## v21: full-width valley photo on phones and tablets (2026-10-20), `v21-fullwidth-*`
+The owner reported that on phones and tablets the hero photo was cut off on both sides. The train's blue engine (at the photo's left) was missing, and so was the river valley on the right. Below `lg`, the photo box used to be a tall `h-[62vh]` / `md:h-[72vh]` box, so `object-cover` trimmed the 16:9 panorama sideways.
+
+- **Fix:** the box is now `aspect-video` (the photo's own 16:9) at every width, so `object-cover` crops nothing and the whole panorama shows edge to edge. The photo is shorter on phones (211 px at 375), so it tucks under the text less: `-mt-12` / `sm:-mt-24` / `md:-mt-36`. `lg:-mt-60` is unchanged. The phone-only `object-[50%_30%]` is removed because there is nothing left to position. The v18 `PHOTO_TOP_FADE` mask and the bottom wash into the next section are unchanged.
+- **Desktop unchanged:** 1024 / 1440 / 1920 in light and dark are pixel-identical to the pre-change shots (the image diff bounding box is `None`).
+- **Engine:** fully visible at 375, 390, 640 and 768 (lower-left, with the coaches curving behind it). The right-hand river valley is visible too.
+- **Text:** the "Scroll" cue always ends above or at the photo's top, over the transparent part of the fade (for example 375: scroll bottom 594, photo top 601; 768: 636 / 592, about 10% into the fade). No text sits on the opaque photo.
+- **Seam re-check (v18 method, row means with the centred text columns excluded):** the largest row-to-row step within 15 px of the photo's top edge is 1.0–1.3 at 375 and about 0.9 at 768, in light and dark. That is a smooth ramp with no line. Larger steps appear only deeper in the photo content (the ridges and trees).
+- **Overflow:** 0 px at 320 / 375 / 390 / 640 / 768 / 812×375 (landscape) / 900 / 1000 / 1024 / 1440 / 1920, in light and dark.
+- **Shots:** `v21-fullwidth-{375,390,768,1024,1440,1920}-{light,dark}.png` (the hero section), plus `v21-fullwidth-before-{375,768}-light.png` for comparison.
+- **Checks:** storefront typecheck, lint, Prettier and `check:colors` are clean; `smoke.spec.ts` passed 15/15.
