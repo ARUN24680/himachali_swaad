@@ -48,7 +48,7 @@
     "@pk/tsconfig": "workspace:*",
     "@testcontainers/postgresql": "12.2.0",
     "@testcontainers/redis": "12.2.0",
-    "@types/node": "24.19.1",
+    "@types/node": "26.6.5",
     "@types/pg": "8.23.1",
     "@types/web-push": "3.6.4",
     "esbuild": "0.28.2",

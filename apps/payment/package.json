@@ -38,7 +38,7 @@
     "@tailwindcss/vite": "4.3.3",
     "@testcontainers/postgresql": "12.2.0",
     "@types/mailparser": "3.9.0",
-    "@types/node": "24.19.1",
+    "@types/node": "26.6.5",
     "@types/pg": "8.23.1",
     "@types/qrcode": "1.5.6",
     "@types/react": "19.3.0",
