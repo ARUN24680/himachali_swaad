@@ -18,10 +18,11 @@ export const AddressCreateRequestSchema = CheckoutAddressSchema.extend({
 });
 export type AddressCreateRequest = z.input<typeof AddressCreateRequestSchema>;
 
-export const AddressUpdateRequestSchema = AddressCreateRequestSchema.partial().refine(
-  (a) => Object.values(a).some((v) => v !== undefined),
-  { message: 'Nothing to update' },
-);
+// isDefault re-declared without its create-time default: zod 4 applies defaults inside .partial(), so
+// every PATCH would otherwise send isDefault=false and editing the default address would be refused.
+export const AddressUpdateRequestSchema = AddressCreateRequestSchema.extend({ isDefault: z.boolean().optional() })
+  .partial()
+  .refine((a) => Object.values(a).some((v) => v !== undefined), { message: 'Nothing to update' });
 export type AddressUpdateRequest = z.input<typeof AddressUpdateRequestSchema>;
 
 export const SavedAddressSchema = z.object({

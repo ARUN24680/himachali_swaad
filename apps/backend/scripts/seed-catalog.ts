@@ -4,11 +4,11 @@
  * fills them in and publishes from the admin portal. Idempotent: existing SKUs are never touched.
  *
  * --demo (never in production): fills PLACEHOLDER compliance values and logs a few batches through
- * the real inventory service, so local dev has FRESH / AGING / NOT_SELLABLE stock to look at.
+ * the real inventory service, so local dev has FRESH / AGING / NOT_SELLABLE stock to look at. Only
+ * catalog SKUs without any batch get one; with more than one active kitchen set DEMO_KITCHEN_CODE.
  * --demo --publish: also writes placeholder jar photos to LOCAL storage and publishes the six SKUs
  * (storefront dev + Playwright e2e). Refused unless STORAGE_DRIVER=local.
  */
-import { todayInIST } from '@pk/shared';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { createDb } from '../src/config/db';
@@ -16,10 +16,8 @@ import { parseEnv } from '../src/config/env';
 import { createLogger } from '../src/config/logger';
 import { storageFromEnv } from '../src/config/storage';
 import type { LocalDiskStorage } from '../src/integrations/storage/local-disk';
-import type { AuthContext } from '../src/middleware/auth';
 import { placeholderJarPng } from './placeholder-png';
-import { createInventoryService } from '../src/modules/inventory/inventory.service';
-import { createSettingsService } from '../src/modules/settings/settings.service';
+import { logCatalogDemoBatches } from './seed-catalog/demo-batches';
 
 interface SeedProduct {
   sku: string;
@@ -124,40 +122,18 @@ async function main() {
       [PRODUCTS.map((p) => p.sku)],
     );
 
-    const admin = await db.query<{ id: string }>("SELECT id FROM users WHERE role = 'ADMIN' AND is_active LIMIT 1");
-    if (!admin.rows[0]) throw new Error('Run pnpm db:seed:staff first (demo batches need an ADMIN actor)');
-    const existing = await db.query<{ n: number }>('SELECT COUNT(*)::int AS n FROM inventory_batches');
-    if (existing.rows[0]!.n > 0) {
-      process.stdout.write('• Batches already exist — demo batches skipped\n');
+    const batches = await logCatalogDemoBatches(
+      db,
+      PRODUCTS.map((p) => p.sku),
+      process.env.DEMO_KITCHEN_CODE ? { kitchenCode: process.env.DEMO_KITCHEN_CODE } : {},
+    );
+    if (batches.logged.length === 0) {
+      process.stdout.write('• All catalog SKUs already have batches — demo batches skipped\n');
     } else {
-      const inventory = createInventoryService({
-        db,
-        settings: createSettingsService(),
-        revalidator: { revalidate: async () => undefined },
-      });
-      const auth: AuthContext = { userId: admin.rows[0].id, role: 'ADMIN', pickupLocationIds: [], mfa: true };
-      const ids = await db.query<{ id: string; sku: string }>('SELECT id, sku FROM products ORDER BY sort_order');
-      const daysAgo = (n: number) => {
-        const d = new Date(`${todayInIST()}T00:00:00Z`);
-        d.setUTCDate(d.getUTCDate() - n);
-        return d.toISOString().slice(0, 10);
-      };
-      for (const p of ids.rows) {
-        await inventory.createBatch(auth, { productId: p.id, quantity: 48, totalCostPaise: 48 * 21_000 }, { ip: null });
-      }
-      // Shelf-status examples on CHK250 (shelf life 180, buffer 45 + 7): AGING (70 d left), NOT_SELLABLE (30 d left)
-      const chk = ids.rows.find((p) => p.sku === 'CHK250')!;
-      for (const [ago, qty] of [
-        [110, 12],
-        [150, 6],
-      ] as const) {
-        await inventory.createBatch(
-          auth,
-          { productId: chk.id, quantity: qty, totalCostPaise: qty * 20_000, manufacturedAt: daysAgo(ago) },
-          { ip: null },
-        );
-      }
-      process.stdout.write(`✔ Demo batches logged for ${ids.rows.length} products (+2 shelf-status examples)\n`);
+      process.stdout.write(
+        `✔ Demo batches logged at ${batches.kitchenCode} for ${batches.logged.join(', ')}` +
+          `${batches.shelfExamples ? ' (+2 shelf-status examples on CHK250)' : ''}\n`,
+      );
     }
     if (publish) await publishDemo(db);
     process.stdout.write(

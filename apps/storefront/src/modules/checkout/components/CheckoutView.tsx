@@ -11,7 +11,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { StateMessage } from '@/components/common/StateMessage';
 import { isApiError } from '@/lib/api-client';
 import { readLastPincode } from '@/lib/last-pincode';
-import { markOrderPaid, rememberOrderPhone } from '@/lib/order-session';
+import { markOrderPaid, markOrderPlacedHere, rememberOrderPhone, takeOrderPlacedHere } from '@/lib/order-session';
 import { isValidPincode } from '@/lib/pincode';
 import { formatMmSs, useCountdown } from '@/lib/use-countdown';
 import { openSignIn, useSession } from '@/modules/account';
@@ -51,9 +51,12 @@ export function CheckoutView() {
   const clearCart = useCartStore((s) => s.clear);
   const [leavingTo, setLeavingTo] = useState<string | null>(null);
 
-  // Clear the cart only once we're leaving, so the page never flashes "Your cart is empty"
+  // Clear the cart only once we're leaving, so the page never flashes "Your cart is empty". Consuming
+  // the "placed here" marker stops the order page clearing again later (e.g. a cart refilled meanwhile).
   useEffect(() => {
-    if (leavingTo) clearCart();
+    if (!leavingTo) return;
+    takeOrderPlacedHere(leavingTo);
+    clearCart();
   }, [leavingTo, clearCart]);
 
   if (leavingTo) {
@@ -236,6 +239,7 @@ function CheckoutFlow({ onLeave }: { onLeave: (orderCode: string) => void }) {
     try {
       const res = await createOrder.mutateAsync({ key });
       rememberOrderPhone(res.orderCode, `+91${values.phoneDigits}`);
+      markOrderPlacedHere(res.orderCode);
       setAttempt({ order: res, cart: sig, key });
       if (Date.parse(res.expiresAt) - Date.now() < 10_000) return; // same key, already lapsed → expired view
       payment.start(toSession(res));

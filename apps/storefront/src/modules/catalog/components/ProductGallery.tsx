@@ -4,6 +4,7 @@ import { cn } from '@pk/ui';
 import Image from 'next/image';
 import { useState } from 'react';
 import { ProductImage } from '@/components/common/ProductImage';
+import { resolveAssetUrl } from '@/lib/asset-url';
 
 /** Main photo (fixed square → zero CLS) + thumbnail strip when there is more than one image. */
 export function ProductGallery({ images, title }: { images: string[]; title: string }) {
@@ -33,7 +34,7 @@ export function ProductGallery({ images, title }: { images: string[]; title: str
                   i === active ? 'border-primary' : 'border-transparent opacity-80 hover:opacity-100',
                 )}
               >
-                <Image src={img} alt="" fill sizes="80px" className="object-cover" />
+                <Image src={resolveAssetUrl(img)} alt="" fill sizes="80px" className="object-cover" />
               </button>
             </li>
           ))}

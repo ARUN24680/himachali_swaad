@@ -10,6 +10,11 @@ export interface AuthContext {
   pickupLocationIds: string[];
   /** ADMIN has TOTP enrolled (D-19). */
   mfa: boolean;
+  /**
+   * Dev-only (D-57 i): a KITCHEN_PARTNER signed in through the OTP bypass, acting as a CUSTOMER on
+   * the storefront. `role` is then 'CUSTOMER' and the staff routes refuse the session.
+   */
+  devCustomer?: boolean;
 }
 
 declare module 'fastify' {
@@ -19,18 +24,29 @@ declare module 'fastify' {
 }
 
 /** Route guards (Phase 2 §2.5). Client-side guards are UX only — these are the real enforcement. */
-export function createAuthGuards(tokens: TokenService, opts: { adminTotpRequired?: boolean } = {}) {
+export function createAuthGuards(
+  tokens: TokenService,
+  opts: {
+    adminTotpRequired?: boolean;
+    /** Dev-only staff OTP bypass configured (never in production) — honour `dc` sessions (D-57 i). */
+    devCustomerSessions?: boolean;
+  } = {},
+) {
+  /** Claims → request.auth. A `dc` token is a CUSTOMER session, and is invalid when the bypass is off. */
+  const authFrom = async (token: string): Promise<AuthContext> => {
+    const claims = await tokens.verifyAccess(token);
+    if (claims.dc) {
+      if (!opts.devCustomerSessions || claims.role !== 'KITCHEN_PARTNER') throw new Error('dev customer session off');
+      return { userId: claims.sub, role: 'CUSTOMER', pickupLocationIds: [], mfa: false, devCustomer: true };
+    }
+    return { userId: claims.sub, role: claims.role, pickupLocationIds: claims.locs ?? [], mfa: claims.mfa === true };
+  };
+
   const requireAuth: preHandlerAsyncHookHandler = async (request: FastifyRequest) => {
     const token = request.cookies[ACCESS_COOKIE];
     if (!token) throw new AppError('UNAUTHENTICATED', 'Please sign in.');
     try {
-      const claims = await tokens.verifyAccess(token);
-      request.auth = {
-        userId: claims.sub,
-        role: claims.role,
-        pickupLocationIds: claims.locs ?? [],
-        mfa: claims.mfa === true,
-      };
+      request.auth = await authFrom(token);
     } catch {
       // Expired or tampered — the client refreshes once and retries
       throw new AppError('UNAUTHENTICATED', 'Your session has expired.', { reason: 'access_token_invalid' });
@@ -42,13 +58,7 @@ export function createAuthGuards(tokens: TokenService, opts: { adminTotpRequired
     const token = request.cookies[ACCESS_COOKIE];
     if (!token) return;
     try {
-      const claims = await tokens.verifyAccess(token);
-      request.auth = {
-        userId: claims.sub,
-        role: claims.role,
-        pickupLocationIds: claims.locs ?? [],
-        mfa: claims.mfa === true,
-      };
+      request.auth = await authFrom(token);
     } catch {
       // expired/invalid → treat as a guest
     }

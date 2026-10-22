@@ -58,23 +58,27 @@ export function DailyBars({ days, metric }: { days: Day[]; metric: 'orders' | 'r
           <span>{formatShortDate(days[days.length - 1]!.date)}</span>
         </div>
       )}
-      <table className="sr-only">
-        <caption>{metric === 'orders' ? 'Orders per day' : 'Revenue per day (incl. GST)'}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Date</th>
-            <th scope="col">{metric === 'orders' ? 'Orders' : 'Revenue'}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {days.map((d) => (
-            <tr key={d.date}>
-              <td>{formatShortDate(d.date)}</td>
-              <td>{fmt(d)}</td>
+      {/* sr-only on a wrapper div, not the <table>: tables ignore height/overflow, so an
+          absolute sr-only table keeps its full row height and stretches the page past the shell. */}
+      <div className="sr-only">
+        <table>
+          <caption>{metric === 'orders' ? 'Orders per day' : 'Revenue per day (incl. GST)'}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">{metric === 'orders' ? 'Orders' : 'Revenue'}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {days.map((d) => (
+              <tr key={d.date}>
+                <td>{formatShortDate(d.date)}</td>
+                <td>{fmt(d)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }
@@ -200,23 +204,27 @@ export function HourlyBars({ hours }: { hours: Hour[] }) {
           <span>{hourLabel(at(hours.length - 1).hour)}</span>
         </div>
       )}
-      <table className="sr-only">
-        <caption>Orders per hour, last 24 hours (IST)</caption>
-        <thead>
-          <tr>
-            <th scope="col">Hour</th>
-            <th scope="col">Orders</th>
-          </tr>
-        </thead>
-        <tbody>
-          {hours.map((h) => (
-            <tr key={h.hour}>
-              <td>{span(h)}</td>
-              <td>{h.orders}</td>
+      {/* sr-only on a wrapper div, not the <table>: tables ignore height/overflow, so an
+          absolute sr-only table keeps its full row height and stretches the page past the shell. */}
+      <div className="sr-only">
+        <table>
+          <caption>Orders per hour, last 24 hours (IST)</caption>
+          <thead>
+            <tr>
+              <th scope="col">Hour</th>
+              <th scope="col">Orders</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {hours.map((h) => (
+              <tr key={h.hour}>
+                <td>{span(h)}</td>
+                <td>{h.orders}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }

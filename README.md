@@ -62,10 +62,12 @@ for build-time URLs, shared data, backups, and the October 2026 recovery verific
 
 Phase status and outstanding launch requirements: [`Phases/00-phases-master.md`](Phases/00-phases-master.md).
 
-## Ten demo pickle products
+## Demo pickle products (10 recipes, 12 jars)
 
-The optional demo set adds **10 new 250 g products** (3 chicken, 3 mutton, 2 fish, 2 prawn),
-each with its own photo, complete sample product details and **32 sellable jars**. Both admin
+The optional demo set adds **10 recipes as 12 new products** (3 chicken, 3 mutton, 2 fish,
+2 prawn): every recipe has a 250 g jar, and Garlic Chicken and Black Pepper Chicken also have a
+500 g family jar in the same product group (one storefront card with a 250 g / 500 g toggle).
+Each recipe has its own photo, complete sample product details and **32 sellable jars**. Both admin
 and storefront read these records from the same database. Existing products, photos, staff,
 customers, settings and orders are not replaced. This does not adopt the older six launch seeds.
 
@@ -92,7 +94,8 @@ and repository changes: `docker compose -f docker-compose.prod.yml up -d --build
 The script invalidates the storefront cache using `STOREFRONT_REVALIDATE_URL` and
 `DOCKER_STOREFRONT_URL` when configured; refresh open browser pages afterwards.
 
-Seed is idempotent: rerunning it does not add stock or overwrite admin edits. Reset intentionally
+Seed is idempotent: rerunning it does not add stock or overwrite admin edits; an older install
+with only the ten 250 g demos gains the two 500 g jars on the next seed. Reset intentionally
 restores this demo set's original values. Clear/reset refuse unfinished demo orders; finish or
 cancel them through the normal app first. Clear is **archival**, not destructive deletion:
 product IDs, completed orders, images, batches, append-only stock movements and audit history
@@ -110,3 +113,47 @@ Implementation: [`apps/backend/scripts/demo-catalog.ts`](apps/backend/scripts/de
 Regression coverage: [`demo-catalog.test.ts`](apps/backend/tests/integration/demo-catalog.test.ts)
 checks concurrent seeding, storefront/admin/cart visibility, clear/reinsert/reset, preservation
 of existing products, ledger balance, SKU collisions and live-order protection.
+
+## Clear local website data
+
+`pnpm db:clear:data` wipes test orders and customers from your **local** database so you can start
+fresh, without touching logins or configuration. It refuses to run unless `NODE_ENV` is explicitly
+`development` or `test`, prints the target database/Redis and the row counts first, and asks you to
+type the database name (or pass `--yes`).
+
+```bash
+pnpm db:clear:data -- --dry-run         # show what would be deleted, change nothing
+pnpm db:clear:data                      # clear (type the DB name to confirm)
+pnpm db:clear:data -- --yes             # clear without the prompt
+pnpm db:clear:data -- --with-catalog    # ALSO delete products, batches, stock history, demo ownership
+pnpm db:demo:seed                       # …then reseed (or: pnpm db:seed:catalog -- --demo --publish)
+```
+
+Other flags: `--skip-payment` (leave the Direct UPI database alone), `--skip-redis`.
+
+| Kept (never written) | Cleared |
+| :--- | :--- |
+| ADMIN / KITCHEN_PARTNER users incl. password hashes and TOTP secrets | Orders, order items, allocations, status logs |
+| Staff sessions (you stay logged in) and staff push subscriptions | Payments, refunds, webhook events |
+| Kitchens (`pickup_locations`), kitchen links, `settings` | Shipments, tracking events, notifications log |
+| Products, batches, PRODUCTION/ADJUSTMENT/WASTAGE stock history (unless `--with-catalog`) | Invoice sequences, settlements + items, expenses |
+| Audit entries for staff, sessions, settings, kitchens, catalog | CUSTOMER users + their sessions, addresses, push subscriptions |
+| `.env`, storage credentials, files in storage | Other audit entries (orders, settlements, expenses, exports, webhooks, ops) |
+| Redis: BullMQ queues, Shiprocket token, pending TOTP enrolments, worker heartbeat | Redis: every other `pk:*` key (OTP, rate limits, login locks, caches, mock inbox/gateway) |
+| Payment DB: observer devices, nonces, device audit | Payment DB (`PAYMENT_DATABASE_URL`, if set): UPI orders, alerts, payments, refunds, outbox, other audit |
+
+- **Stock (catalog kept):** the order-linked `RESERVE`/`RELEASE` ledger rows are removed and each
+  affected batch's `available_stock` is reset to the sum of its remaining movements, so reserved
+  *and* sold jars of the cleared orders come back, as if the orders never happened. The doc 07
+  ledger invariant holds afterwards.
+- Everything in the main database happens in **one transaction**; the payment database and Redis
+  are cleared after it commits (rerun is safe). Order tables are `TRUNCATE`d **without** `CASCADE`,
+  so PostgreSQL refuses if a kept table ever references them. If a kept row points at a customer
+  (e.g. `settings.updated_by`), the whole clear rolls back and nothing changes.
+- Not touched: BullMQ jobs (jobs for cleared orders will no-op or fail; deleting queue keys under a
+  running worker corrupts BullMQ and drops cron schedules), Shiprocket/Razorpay sandbox data, and
+  private files (invoices, labels, statements, receipts). The command prints how many of those files
+  are now orphaned; delete them by hand if you care.
+
+Implementation: [`apps/backend/scripts/clear-data.ts`](apps/backend/scripts/clear-data.ts).
+Regression coverage: [`clear-data.test.ts`](apps/backend/tests/integration/clear-data.test.ts).

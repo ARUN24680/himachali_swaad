@@ -47,6 +47,21 @@ const EnvSchema = z.object({
    * dev/test default off so seeded admins work without an authenticator.
    */
   ADMIN_TOTP_REQUIRED: z.enum(['true', 'false']).optional(),
+  /**
+   * Dev-only (D-57 note): comma-separated E.164 phones of STAFF users allowed to sign in through the
+   * customer phone-OTP flow, for local storefront testing. The OTP itself is still verified. Refused
+   * in production.
+   */
+  OTP_DEV_STAFF_BYPASS_PHONES: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.string().regex(/^\+91[6-9]\d{9}$/, 'E.164 Indian mobile'))),
   MSG91_AUTH_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
   MSG91_OTP_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
 
@@ -218,6 +233,13 @@ const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
       code: 'custom',
       path: ['ADMIN_TOTP_REQUIRED'],
       message: 'ADMIN 2FA cannot be turned off in production',
+    });
+  }
+  if (env.NODE_ENV === 'production' && env.OTP_DEV_STAFF_BYPASS_PHONES.length > 0) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['OTP_DEV_STAFF_BYPASS_PHONES'],
+      message: 'the staff OTP bypass is dev-only and must be empty in production',
     });
   }
   if (env.NODE_ENV === 'production' && env.STORAGE_DRIVER === 'local') {

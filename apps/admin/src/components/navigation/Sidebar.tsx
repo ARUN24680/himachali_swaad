@@ -49,7 +49,7 @@ export function Sidebar({ items }: { items: NavItem[] }) {
                           cn(
                             'group flex min-h-11 items-center justify-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary lg:justify-start',
                             isActive
-                              ? 'bg-secondary-foreground/10 text-primary-foreground'
+                              ? 'bg-secondary-foreground/10 text-primary' /* Mountain Gold on Deep Pine (AA in both themes) */
                               : 'text-secondary-foreground/80 hover:bg-secondary-foreground/5 hover:text-secondary-foreground',
                           )
                         }

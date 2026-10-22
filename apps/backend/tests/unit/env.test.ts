@@ -54,6 +54,39 @@ describe('parseEnv', () => {
     expect(() => parseEnv({ ...valid, TOTP_ENC_KEY: 'c2hvcnQ=' })).toThrow(/TOTP_ENC_KEY/);
   });
 
+  it('OTP_DEV_STAFF_BYPASS_PHONES: empty by default, E.164 only, refused in production', () => {
+    expect(parseEnv(valid).OTP_DEV_STAFF_BYPASS_PHONES).toEqual([]);
+    expect(
+      parseEnv({ ...valid, OTP_DEV_STAFF_BYPASS_PHONES: ' +919000000101 , +919000000102' }).OTP_DEV_STAFF_BYPASS_PHONES,
+    ).toEqual(['+919000000101', '+919000000102']);
+    expect(() => parseEnv({ ...valid, OTP_DEV_STAFF_BYPASS_PHONES: '9000000101' })).toThrow(
+      /OTP_DEV_STAFF_BYPASS_PHONES/,
+    );
+    const prod = {
+      ...valid,
+      NODE_ENV: 'production',
+      OTP_PROVIDER: 'msg91',
+      MSG91_AUTH_KEY: 'k',
+      MSG91_OTP_TEMPLATE_ID: 't',
+    };
+    const prodIssues = (extra: Record<string, string>) => {
+      try {
+        parseEnv({ ...prod, ...extra });
+        return [];
+      } catch (err) {
+        return (err as EnvValidationError).issues;
+      }
+    };
+    expect(
+      prodIssues({ OTP_DEV_STAFF_BYPASS_PHONES: '+919000000101' }).some((i) =>
+        i.startsWith('OTP_DEV_STAFF_BYPASS_PHONES'),
+      ),
+    ).toBe(true);
+    expect(
+      prodIssues({ OTP_DEV_STAFF_BYPASS_PHONES: '' }).some((i) => i.startsWith('OTP_DEV_STAFF_BYPASS_PHONES')),
+    ).toBe(false);
+  });
+
   it('treats an empty SENTRY_DSN as unset', () => {
     expect(parseEnv({ ...valid, SENTRY_DSN: '' }).SENTRY_DSN).toBeUndefined();
   });

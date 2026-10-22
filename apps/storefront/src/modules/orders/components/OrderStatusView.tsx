@@ -25,6 +25,7 @@ import { markOrderPaid, readOrderPhone, rememberOrderPhone, wasOrderPaid } from 
 import { formatMmSs, useCountdown } from '@/lib/use-countdown';
 import { useHydrated } from '@/lib/use-hydrated';
 import { PaymentHost, usePayment, type PaymentController } from '@/modules/checkout';
+import { useClearCartWhenPaid } from '../hooks/useClearCartWhenPaid';
 import { useOrderStatus } from '../hooks/useOrderStatus';
 import { ACTIVE_STATUSES, ORDER_STATUS_LABEL, formatDateTime } from '../lib/labels';
 import { CancelOrderButton, InvoiceButton } from './OrderActions';
@@ -60,6 +61,7 @@ function OrderFlow({ orderCode }: { orderCode: string }) {
     setPaid(true);
     status.refresh();
   });
+  useClearCartWhenPaid(status.data);
 
   if (status.needsPhone) {
     return (

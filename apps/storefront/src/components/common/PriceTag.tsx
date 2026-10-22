@@ -33,7 +33,7 @@ export function PriceTag({
           className={cn(
             'font-semibold text-foreground tabular-nums',
             size === 'sm' && 'text-base',
-            size === 'md' && 'text-xl',
+            size === 'md' && 'text-2xl leading-none tracking-tight',
             size === 'lg' && 'text-3xl',
           )}
         >
@@ -45,7 +45,8 @@ export function PriceTag({
               <span className="sr-only">Was </span>
               {formatINR(comparePricePaise, { trimZeroPaise: true })}
             </span>
-            <span className="rounded-sm bg-tertiary/15 px-1.5 py-0.5 text-xs font-semibold text-tertiary tabular-nums">
+            {/* Solid chip: AA in both themes (white on pine-green / ink on mint) — the tinted one read as faint */}
+            <span className="self-center rounded-full bg-success px-2 py-0.5 text-xs leading-4 font-semibold text-success-foreground tabular-nums">
               {off}% off
             </span>
           </>

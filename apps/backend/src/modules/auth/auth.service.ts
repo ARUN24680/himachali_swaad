@@ -8,7 +8,7 @@ import type { OtpProvider } from '../../integrations/sms/otp-provider';
 import { AppError } from '../../utils/app-error';
 import { audit } from '../audit/audit.service';
 import * as repo from './auth.repository';
-import { hashToken, newRefreshToken, type TokenService } from './auth.tokens';
+import { DEV_CUSTOMER_REFRESH_PREFIX, hashToken, newRefreshToken, type TokenService } from './auth.tokens';
 import { currentTotp, decryptSecret, encryptSecret, newTotpSecret, totpUrl, verifyTotp } from './auth.totp';
 import type { UserRow } from './auth.validation';
 
@@ -57,6 +57,12 @@ export interface AuthServiceDeps {
   /** 32-byte AES key for TOTP secrets at rest. */
   totpKey: Buffer;
   refreshTtlSec: number;
+  /**
+   * Dev-only (env OTP_DEV_STAFF_BYPASS_PHONES, refused in production): exact E.164 phones of active
+   * KITCHEN_PARTNER users allowed to finish the customer OTP flow. Skips only the staff refusal —
+   * the code is verified exactly as for everyone else.
+   */
+  otpDevStaffBypassPhones?: readonly string[];
 }
 
 const otpKeys = (phone: string) => ({
@@ -96,13 +102,27 @@ export const cleanupRefreshTokens = (db: Queryable): Promise<number> => repo.del
 
 export function createAuthService(deps: AuthServiceDeps) {
   const { db, redis, tokens } = deps;
+  const staffOtpBypass = new Set(deps.otpDevStaffBypassPhones ?? []);
 
   const otpHash = (phone: string, code: string) =>
     createHmac('sha256', deps.otpPepper).update(`${phone}:${code}`).digest('hex');
 
-  /** Creates a refresh-token row (new family unless one is given) and signs an access token. */
-  async function issueSession(client: Queryable, user: UserRow, ctx: RequestContext, familyId: string = randomUUID()) {
-    const refreshToken = newRefreshToken();
+  /** Dev-only (D-57 i): an active KITCHEN_PARTNER whose phone is in OTP_DEV_STAFF_BYPASS_PHONES. */
+  const isDevCustomer = (user: UserRow) =>
+    user.is_active && user.role === 'KITCHEN_PARTNER' && user.phone !== null && staffOtpBypass.has(user.phone);
+
+  /**
+   * Creates a refresh-token row (new family unless one is given) and signs an access token.
+   * `devCustomer`: the dev OTP bypass session — acts as CUSTOMER on the storefront (D-57 i).
+   */
+  async function issueSession(
+    client: Queryable,
+    user: UserRow,
+    ctx: RequestContext,
+    familyId: string = randomUUID(),
+    devCustomer = false,
+  ) {
+    const refreshToken = (devCustomer ? DEV_CUSTOMER_REFRESH_PREFIX : '') + newRefreshToken();
     const refreshId = await repo.insertRefreshToken(client, {
       userId: user.id,
       familyId,
@@ -111,6 +131,11 @@ export function createAuthService(deps: AuthServiceDeps) {
       userAgent: ctx.userAgent?.slice(0, 300) ?? null,
       ip: ctx.ip,
     });
+    if (devCustomer) {
+      const accessToken = await tokens.signAccess({ userId: user.id, role: user.role, devCustomer: true });
+      const sessionUser: SessionUser = { ...toSessionUser(user), role: 'CUSTOMER', totpEnabled: false };
+      return { refreshId, session: { user: sessionUser, pickupLocationIds: [], accessToken, refreshToken } };
+    }
     const pickupLocationIds = user.role === 'KITCHEN_PARTNER' ? await repo.listPickupLocationIds(client, user.id) : [];
     const accessToken = await tokens.signAccess({
       userId: user.id,
@@ -119,6 +144,23 @@ export function createAuthService(deps: AuthServiceDeps) {
       mfa: user.totp_secret_enc !== null,
     });
     return { refreshId, session: { user: toSessionUser(user), pickupLocationIds, accessToken, refreshToken } };
+  }
+
+  /**
+   * Dev-only staff OTP bypass (D-57 i). Runs only after the code matched. The session is a CUSTOMER
+   * session for this account (`dc` claim); the DB role stays KITCHEN_PARTNER and the staff login is
+   * unaffected. ADMIN is never allowed here — that would skip password + TOTP.
+   */
+  async function devStaffBypassUser(client: Queryable, phone: string): Promise<UserRow | null> {
+    if (!staffOtpBypass.has(phone)) return null;
+    const user = await repo.findUserByPhone(client, phone);
+    if (!user || !isDevCustomer(user)) return null;
+    await repo.touchLastLogin(client, user.id);
+    deps.logger.warn(
+      { userId: user.id, role: user.role, phoneMasked: maskPhone(phone) },
+      'DEV OTP staff bypass used (OTP_DEV_STAFF_BYPASS_PHONES) — never enable in production',
+    );
+    return user;
   }
 
   return {
@@ -181,10 +223,12 @@ export function createAuthService(deps: AuthServiceDeps) {
       await redis.del(key);
 
       return db.transaction(async (client) => {
-        const user = await repo.upsertCustomerByPhone(client, phone);
+        const customer = await repo.upsertCustomerByPhone(client, phone);
+        if (customer) return (await issueSession(client, customer, ctx)).session;
+        const devCustomer = await devStaffBypassUser(client, phone);
         // Staff or deactivated phone: never log in via OTP. Same message as a wrong code.
-        if (!user) throw new AppError('OTP_INVALID', INVALID_OTP);
-        return (await issueSession(client, user, ctx)).session;
+        if (!devCustomer) throw new AppError('OTP_INVALID', INVALID_OTP);
+        return (await issueSession(client, devCustomer, ctx, undefined, true)).session;
       });
     },
 
@@ -284,12 +328,14 @@ export function createAuthService(deps: AuthServiceDeps) {
         if (row.expires_at.getTime() <= Date.now()) return { kind: 'expired' as const };
 
         const user = await repo.findUserById(client, row.user_id);
-        if (!user || !user.is_active) {
+        // A dev-customer family ends as soon as the account leaves the bypass list (D-57 i)
+        const devCustomer = rawToken.startsWith(DEV_CUSTOMER_REFRESH_PREFIX);
+        if (!user || !user.is_active || (devCustomer && !isDevCustomer(user))) {
           await repo.revokeFamily(client, row.family_id);
           return { kind: 'inactive' as const };
         }
 
-        const { refreshId, session } = await issueSession(client, user, ctx, row.family_id);
+        const { refreshId, session } = await issueSession(client, user, ctx, row.family_id, devCustomer);
         await repo.markRotated(client, row.id, refreshId);
         return { kind: 'ok' as const, session };
       });
@@ -324,10 +370,18 @@ export function createAuthService(deps: AuthServiceDeps) {
       });
     },
 
-    async me(userId: string): Promise<{ user: SessionUser; pickupLocationIds: string[] }> {
+    async me(
+      userId: string,
+      opts: { devCustomer?: boolean } = {},
+    ): Promise<{ user: SessionUser; pickupLocationIds: string[] }> {
       const user = await repo.findUserById(db, userId);
       if (!user || !user.is_active)
         throw new AppError('UNAUTHENTICATED', 'Your session has ended. Please sign in again.');
+      if (opts.devCustomer) {
+        if (!isDevCustomer(user))
+          throw new AppError('UNAUTHENTICATED', 'Your session has ended. Please sign in again.');
+        return { user: { ...toSessionUser(user), role: 'CUSTOMER', totpEnabled: false }, pickupLocationIds: [] };
+      }
       const pickupLocationIds = user.role === 'KITCHEN_PARTNER' ? await repo.listPickupLocationIds(db, user.id) : [];
       return { user: toSessionUser(user), pickupLocationIds };
     },

@@ -94,32 +94,60 @@ const recipes = [
   ],
 ] as const;
 
-/** Stable IDs/keys identify ONLY this set. Existing products, including old seeds, are never adopted. */
-export const DEMO_PRODUCTS = recipes.map(([key, title, meat, price, spice, short, ingredients], index) => {
+/**
+ * Recipes that also ship a 500 g family jar (same product_group → one storefront card with a 250 g / 500 g
+ * toggle). Price ≈ 1.85 × the 250 g price, rounded to a ₹…9 price.
+ */
+const FAMILY_JARS: Partial<Record<(typeof recipes)[number][0], number>> = {
+  'garlic-chicken': 86900,
+  'pepper-chicken': 88900,
+};
+
+const allergensFor = (meat: (typeof recipes)[number][2]) =>
+  meat === 'FISH'
+    ? 'Contains fish and mustard.'
+    : meat === 'PRAWN'
+      ? 'Contains crustaceans (prawns) and mustard.'
+      : 'Contains mustard.';
+
+/**
+ * Stable IDs/keys identify ONLY this set. Existing products, including old seeds, are never adopted.
+ * 250 g jars keep their original v1 IDs/keys/SKUs (…-0000000000NN, DEMONN250). 500 g jars use
+ * …-0000000005NN, DEMONN500 and a `-500g` key suffix, so they never collide and existing installs gain
+ * them on the next `seed`. Both sizes share sort_order: the listing orders by sort_order, product_group,
+ * net_weight_g, so the 250 g jar stays first (and the default) in its group.
+ */
+export const DEMO_PRODUCTS = recipes.flatMap(([key, title, meat, price, spice, short, ingredients], index) => {
   const sequence = String(index + 1).padStart(2, '0');
-  const id = `d30c0001-0000-4000-8000-${String(index + 1).padStart(12, '0')}`;
-  return {
-    id,
-    key: `pickle-demo-v1/${key}`,
-    imageFile: `${key}.png`,
-    imageKey: `products/${id}/demo-v1.png`,
-    sku: `DEMO${sequence}250`,
-    slug: `demo-${key}-pickle-250g`,
-    group: `demo-${key}-pickle`,
-    title: `${title} (Demo)`,
-    meat,
-    price,
-    spice,
-    short,
-    description: `${short} Serve a spoonful alongside dal-rice, rotis or a favourite meal. DEMO PRODUCT: sample content and AI-generated image for testing; nutrition, tax and shelf-life values are placeholders, not verified product claims.`,
-    ingredients: `DEMO VALUES: ${ingredients}`,
-    allergens:
-      meat === 'FISH'
-        ? 'Contains fish and mustard.'
-        : meat === 'PRAWN'
-          ? 'Contains crustaceans (prawns) and mustard.'
-          : 'Contains mustard.',
-    sortOrder: 100 + index,
-  };
+  const family = FAMILY_JARS[key];
+  const sizes = family
+    ? ([
+        [250, price],
+        [500, family],
+      ] as const)
+    : ([[250, price]] as const);
+  return sizes.map(([grams, sizePrice]) => {
+    const id = `d30c0001-0000-4000-8000-${String((grams === 250 ? 0 : 500) + index + 1).padStart(12, '0')}`;
+    return {
+      id,
+      key: `pickle-demo-v1/${key}${grams === 250 ? '' : `-${grams}g`}`,
+      imageFile: `${key}.png`,
+      imageKey: `products/${id}/demo-v1.png`,
+      sku: `DEMO${sequence}${grams}`,
+      slug: `demo-${key}-pickle-${grams}g`,
+      group: `demo-${key}-pickle`,
+      title: `${title} (Demo)`,
+      meat,
+      grams,
+      packedGrams: grams + 230,
+      price: sizePrice,
+      spice,
+      short,
+      description: `${short} Serve a spoonful alongside dal-rice, rotis or a favourite meal. DEMO PRODUCT: sample content and AI-generated image for testing; nutrition, tax and shelf-life values are placeholders, not verified product claims.`,
+      ingredients: `DEMO VALUES: ${ingredients}`,
+      allergens: allergensFor(meat),
+      sortOrder: 100 + index,
+    };
+  });
 });
 export type DemoProduct = (typeof DEMO_PRODUCTS)[number];

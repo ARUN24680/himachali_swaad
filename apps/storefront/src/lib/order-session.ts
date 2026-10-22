@@ -46,3 +46,30 @@ export function wasOrderPaid(orderCode: string): boolean {
     return false;
   }
 }
+
+/**
+ * Set by checkout when THIS tab places the order. The order page uses it to empty the cart once the
+ * order is paid — needed for Direct UPI, which leaves the store for the pay page and comes back to
+ * /order/<code> without checkout's success callback. One-shot: taking it removes it, so the cart is
+ * cleared at most once, and someone opening an order link elsewhere (no marker) never loses theirs.
+ */
+const placedKey = (orderCode: string) => `pk-order-placed:${orderCode}`;
+
+export function markOrderPlacedHere(orderCode: string): void {
+  try {
+    window.sessionStorage.setItem(placedKey(orderCode), '1');
+  } catch {
+    // ignore — worst case the cart keeps the paid jars and the shopper removes them
+  }
+}
+
+/** True (and the marker is removed) if this tab placed the order and hasn't consumed the marker yet. */
+export function takeOrderPlacedHere(orderCode: string): boolean {
+  try {
+    if (window.sessionStorage.getItem(placedKey(orderCode)) !== '1') return false;
+    window.sessionStorage.removeItem(placedKey(orderCode));
+    return true;
+  } catch {
+    return false;
+  }
+}

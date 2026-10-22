@@ -15,20 +15,36 @@ test('browse → variant toggle → add to cart → reload → cart persists', a
   await expect(page.getByRole('heading', { level: 1, name: 'Himachali non-veg pickles' })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  // 1) Grid card: switch to the 500 g jar and add it
-  const card = page.getByTestId('product-card').first();
+  // 0) One-size recipes still get a size row: a static chip, not a control
+  const single = page
+    .getByTestId('product-card')
+    .filter({ hasNot: page.getByRole('radio') })
+    .first();
+  await expect(single.getByTestId('product-card-size')).toHaveText(/Jar size\s*250 g/);
+  await expect(single.getByRole('radio')).toHaveCount(0);
+
+  // 1) Grid card with two jar sizes: switch to the 500 g jar and add it
+  const card = page
+    .getByTestId('product-card')
+    .filter({ has: page.getByRole('radio', { name: '500 g jar' }) })
+    .first();
   await expect(card.getByRole('img', { name: 'Non-vegetarian' })).toBeVisible();
   const big = card.getByRole('radio', { name: '500 g jar' });
   await big.click();
   await expect(big).toHaveAttribute('aria-checked', 'true');
-  await expect(card.getByText('Net wt. 500 g')).toBeVisible();
+  // The size row is the card's weight declaration (no separate "Net wt." line on cards)
+  await expect(card.getByRole('radio', { name: '250 g jar' })).toHaveAttribute('aria-checked', 'false');
   const cardTitle = (await card.getByRole('heading', { level: 3 }).textContent())!.trim();
   await card.getByRole('button', { name: 'Add to cart' }).click();
   await expect(card.getByRole('button', { name: 'Added' })).toBeVisible();
   await expect(page.getByTestId('cart-button')).toHaveAccessibleName('Cart, 1 jar');
 
   // 2) Product detail of the second recipe: variant switch is a real URL change
-  const second = page.getByTestId('product-card').nth(1);
+  // (another two-size recipe, so the PDP's 500 g link exists and it's a different line)
+  const second = page
+    .getByTestId('product-card')
+    .filter({ has: page.getByRole('radio', { name: '500 g jar' }) })
+    .nth(1);
   const secondTitle = (await second.getByRole('heading', { level: 3 }).textContent())!.trim();
   await second.getByRole('link', { name: secondTitle }).click();
   await expect(page.getByRole('heading', { level: 1, name: secondTitle })).toBeVisible();

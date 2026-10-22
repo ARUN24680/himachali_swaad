@@ -16,8 +16,8 @@ export async function lockDemoSet(db: Queryable) {
     if (owned && owned.product_id !== p.id) throw new Error(`Unexpected ownership for ${p.sku}`);
     if (!owned) {
       const collision = await db.query(
-        'SELECT 1 FROM products WHERE id = $1 OR sku = $2 OR slug = $3 OR (product_group = $4 AND net_weight_g = 250)',
-        [p.id, p.sku, p.slug, p.group],
+        'SELECT 1 FROM products WHERE id = $1 OR sku = $2 OR slug = $3 OR (product_group = $4 AND net_weight_g = $5)',
+        [p.id, p.sku, p.slug, p.group, p.grams],
       );
       if (collision.rowCount) throw new Error(`Refusing to overwrite unowned product ${p.sku}`);
     }
@@ -58,6 +58,8 @@ export async function writeProduct(db: Queryable, p: DemoProduct, exists: boolea
     DEMO_SHELF_LIFE_DAYS,
     [p.imageKey],
     p.sortOrder,
+    p.grams,
+    p.packedGrams,
   ];
   const columns = [
     'id',
@@ -76,8 +78,10 @@ export async function writeProduct(db: Queryable, p: DemoProduct, exists: boolea
     'shelf_life_days',
     'images',
     'sort_order',
+    'net_weight_g',
+    'packed_weight_g',
   ];
-  const extra = `net_weight_g = 250, packed_weight_g = 480, gst_rate_bp = 500, hsn_code = '2001',
+  const extra = `gst_rate_bp = 500, hsn_code = '2001',
     storage_instructions = 'DEMO: Store in a cool, dry place. Use a clean, dry spoon. Refrigerate after opening.',
     nutrition = '{"energy_kcal":310,"protein_g":18,"fat_g":24,"carbs_g":6,"sugar_g":1,"sodium_mg":1450}', is_active = TRUE`;
   if (exists) {
@@ -90,8 +94,8 @@ export async function writeProduct(db: Queryable, p: DemoProduct, exists: boolea
     );
   } else {
     await db.query(
-      `INSERT INTO products (${columns.join(', ')}, net_weight_g)
-      VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')}, 250)`,
+      `INSERT INTO products (${columns.join(', ')})
+      VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')})`,
       values,
     );
     await db.query(`UPDATE products SET ${extra} WHERE id = $1`, [p.id]);

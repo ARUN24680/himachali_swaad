@@ -14,6 +14,8 @@ export function authConfigFromEnv(env: Env): AuthConfig {
     totpKey: Buffer.from(env.TOTP_ENC_KEY, 'base64'),
     adminTotpRequired: env.NODE_ENV === 'production' || env.ADMIN_TOTP_REQUIRED === 'true',
     otpProvider,
+    // Belt and braces: env validation already refuses a non-empty list in production
+    otpDevStaffBypassPhones: env.NODE_ENV === 'production' ? [] : env.OTP_DEV_STAFF_BYPASS_PHONES,
     cookies: {
       // Host-only cookie on localhost; `.pahadikhatki.in` in staging/prod so admin + storefront share the API session
       domain: env.COOKIE_DOMAIN === 'localhost' ? undefined : env.COOKIE_DOMAIN,

@@ -70,6 +70,8 @@ export interface AuthConfig {
   /** ADMIN API needs TOTP enrolled (always true in production, D-19). */
   adminTotpRequired?: boolean;
   otpProvider: OtpProvider;
+  /** Dev-only: STAFF phones allowed through the customer OTP flow (never set in production). */
+  otpDevStaffBypassPhones?: readonly string[];
   cookies: CookieConfig;
 }
 
@@ -165,7 +167,10 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   // ── Services (one instance per app) ──────────────────────────────────────
   const tokens = createTokenService({ secret: deps.auth.jwtSecret, accessTtlSec: deps.auth.cookies.accessTtlSec });
-  const guards = createAuthGuards(tokens, { adminTotpRequired: deps.auth.adminTotpRequired ?? false });
+  const guards = createAuthGuards(tokens, {
+    adminTotpRequired: deps.auth.adminTotpRequired ?? false,
+    devCustomerSessions: (deps.auth.otpDevStaffBypassPhones?.length ?? 0) > 0,
+  });
   const authService = createAuthService({
     db: deps.db,
     redis: deps.redis,
@@ -173,6 +178,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     tokens,
     otpProvider: deps.auth.otpProvider,
     otpPepper: deps.auth.jwtSecret,
+    otpDevStaffBypassPhones: deps.auth.otpDevStaffBypassPhones ?? [],
     totpKey: deps.auth.totpKey,
     refreshTtlSec: deps.auth.cookies.refreshTtlSec,
   });

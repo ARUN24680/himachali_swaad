@@ -15,6 +15,7 @@
     "seed:staff": "tsx --env-file-if-exists=../../.env scripts/seed-staff.ts",
     "seed:catalog": "tsx --env-file-if-exists=../../.env scripts/seed-catalog.ts",
     "seed:demo": "tsx --env-file-if-exists=../../.env scripts/demo-catalog.ts",
+    "clear:data": "tsx --env-file-if-exists=../../.env scripts/clear-data.ts",
     "s3:check": "tsx --env-file-if-exists=../../.env scripts/s3-tools.ts check",
     "s3:setup": "tsx --env-file-if-exists=../../.env scripts/s3-tools.ts setup",
     "s3:sync": "tsx --env-file-if-exists=../../.env scripts/s3-tools.ts sync"

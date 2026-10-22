@@ -15,6 +15,11 @@ export async function findUserById(db: Queryable, id: string): Promise<UserRow |
   return one(rows, (r) => UserRowSchema.parse(r));
 }
 
+export async function findUserByPhone(db: Queryable, phone: string): Promise<UserRow | null> {
+  const { rows } = await db.query(`SELECT ${USER_COLUMNS} FROM users WHERE phone = $1`, [phone]);
+  return one(rows, (r) => UserRowSchema.parse(r));
+}
+
 /**
  * Customer OTP login (D-18). Inserts a new CUSTOMER or touches an existing active CUSTOMER.
  * Returns null when the phone belongs to staff or a deactivated user — OTP must never log in staff.

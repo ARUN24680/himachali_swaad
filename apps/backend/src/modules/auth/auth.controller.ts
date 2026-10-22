@@ -58,7 +58,10 @@ export function createAuthController(service: AuthService, cookies: CookieConfig
       return ok(request, { loggedOut: true as const });
     },
 
-    me: async (request: FastifyRequest) => ok(request, await service.me(authOf(request).userId)),
+    me: async (request: FastifyRequest) => {
+      const auth = authOf(request);
+      return ok(request, await service.me(auth.userId, { devCustomer: auth.devCustomer }));
+    },
 
     changePassword: async (request: FastifyRequest<{ Body: ChangePasswordRequest }>, reply: FastifyReply) =>
       startSession(request, reply, await service.changePassword(authOf(request).userId, request.body, ctxOf(request))),

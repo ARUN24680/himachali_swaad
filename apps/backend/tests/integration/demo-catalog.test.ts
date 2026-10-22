@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 import { afterEach, beforeEach, expect, inject, it } from 'vitest';
 import { DEMO_PRODUCTS, DEMO_QUANTITY } from '../../scripts/demo-catalog/fixtures';
+import { writeProduct } from '../../scripts/demo-catalog/repository';
 import { runDemoCatalog } from '../../scripts/demo-catalog/service';
 import { listProducts } from '../../src/modules/catalog/catalog.repository';
 import { findLedgerMismatches, listProductOptions } from '../../src/modules/inventory/inventory.repository';
@@ -32,11 +33,11 @@ afterEach(async () => {
   await t?.destroy();
 });
 
-it('publishes ten stocked products to admin/storefront/cart, and concurrent reseeding preserves edits and stock', async () => {
+it('publishes twelve stocked products to admin/storefront/cart, and concurrent reseeding preserves edits and stock', async () => {
   const original = await liveProduct(t.db, actors.kitchenA.id, { stock: 5 });
   const before = (await t.db.query('SELECT * FROM products WHERE id = $1', [original.id])).rows;
   const results = await Promise.all([runDemoCatalog(t.db, 'seed', opts()), runDemoCatalog(t.db, 'seed', opts())]);
-  expect(results.map((r) => r.created).sort()).toEqual([0, 10]);
+  expect(results.map((r) => r.created).sort()).toEqual([0, 12]);
   const res = await app.inject({ method: 'GET', url: '/api/v1/products' });
   expect(res.statusCode).toBe(200);
   const cards = res
@@ -44,14 +45,14 @@ it('publishes ten stocked products to admin/storefront/cart, and concurrent rese
     .data.groups.flatMap(
       (g: { variants: { sku: string; title: string; images: string[]; sellableStock: number }[] }) => g.variants,
     );
-  expect(cards.filter((p: { title: string }) => p.title.endsWith('(Demo)'))).toHaveLength(10);
+  expect(cards.filter((p: { title: string }) => p.title.endsWith('(Demo)'))).toHaveLength(12);
   for (const p of cards.filter((p: { title: string }) => p.title.endsWith('(Demo)'))) {
     expect(p.sellableStock).toBe(DEMO_QUANTITY);
     expect(p.images[0]).toMatch(/\/products\/d30c.+\/demo-v1.png$/);
   }
   const admin = await as(app, actors.adminJar).get('/api/v1/admin/products');
   expect(admin.statusCode).toBe(200);
-  expect(admin.json().data.products.filter((p: { sku: string }) => p.sku.startsWith('DEMO'))).toHaveLength(10);
+  expect(admin.json().data.products.filter((p: { sku: string }) => p.sku.startsWith('DEMO'))).toHaveLength(12);
   const quote = await app.inject({
     method: 'POST',
     url: '/api/v1/cart/quote',
@@ -61,7 +62,7 @@ it('publishes ten stocked products to admin/storefront/cart, and concurrent rese
   expect(quote.statusCode).toBe(200);
   expect(quote.json().data.items[0]).toMatchObject({ quantity: 2, unitPricePaise: 44900, issue: null });
   await t.db.query('UPDATE products SET title = $2 WHERE id = $1', [DEMO_PRODUCTS[0]!.id, 'My admin edit']);
-  expect((await runDemoCatalog(t.db, 'seed', opts())).skipped).toBe(10);
+  expect((await runDemoCatalog(t.db, 'seed', opts())).skipped).toBe(12);
   expect((await t.db.query('SELECT title FROM products WHERE id = $1', [DEMO_PRODUCTS[0]!.id])).rows[0]!.title).toBe(
     'My admin edit',
   );
@@ -73,18 +74,18 @@ it('clear hides only owned fixtures; reinsert/reset retain IDs and immutable his
   const original = await liveProduct(t.db, actors.kitchenA.id, { stock: 5 });
   const before = (await t.db.query('SELECT * FROM products WHERE id = $1', [original.id])).rows;
   await runDemoCatalog(t.db, 'seed', opts());
-  expect((await runDemoCatalog(t.db, 'clear', opts())).cleared).toBe(10);
+  expect((await runDemoCatalog(t.db, 'clear', opts())).cleared).toBe(12);
   expect((await listProducts(t.db, { activeOnly: false })).map((p) => p.id)).toEqual([original.id]);
   expect((await listProductOptions(t.db)).map((p) => p.id)).toEqual([original.id]);
   expect((await app.inject({ method: 'GET', url: `/api/v1/products/${DEMO_PRODUCTS[0]!.slug}` })).statusCode).toBe(404);
   expect((await runDemoCatalog(t.db, 'clear', opts())).cleared).toBe(0);
-  expect((await runDemoCatalog(t.db, 'seed', opts())).restored).toBe(10);
-  expect((await runDemoCatalog(t.db, 'reset', opts())).restored).toBe(10);
+  expect((await runDemoCatalog(t.db, 'seed', opts())).restored).toBe(12);
+  expect((await runDemoCatalog(t.db, 'reset', opts())).restored).toBe(12);
   const stock = await t.db.query(
     'SELECT SUM(available_stock)::int AS qty, COUNT(*)::int AS batches FROM inventory_batches WHERE product_id = ANY($1::uuid[])',
     [DEMO_PRODUCTS.map((p) => p.id)],
   );
-  expect(stock.rows[0]).toEqual({ qty: 320, batches: 30 });
+  expect(stock.rows[0]).toEqual({ qty: 384, batches: 36 });
   expect((await t.db.query('SELECT * FROM products WHERE id = $1', [original.id])).rows).toEqual(before);
   expect(await findLedgerMismatches(t.db)).toEqual([]);
   await expect(
@@ -93,6 +94,45 @@ it('clear hides only owned fixtures; reinsert/reset retain IDs and immutable his
       [DEMO_PRODUCTS[0]!.id],
     ),
   ).rejects.toThrow();
+});
+
+it('groups the 250 g / 500 g demo jars into one card each, 250 g first, and seed adds them to a v1 install', async () => {
+  // A v1 install owns only the ten 250 g fixtures (written exactly like the old seed did).
+  const v1 = DEMO_PRODUCTS.filter((p) => p.grams === 250);
+  expect(v1).toHaveLength(10);
+  await t.db.transaction(async (client) => {
+    for (const p of v1) await writeProduct(client, p, false);
+  });
+  const result = await runDemoCatalog(t.db, 'seed', opts());
+  expect(result).toMatchObject({ created: 2, restored: 0, skipped: 10 });
+  expect((await t.db.query('SELECT COUNT(*)::int AS n FROM demo_catalog_products')).rows[0]!.n).toBe(12);
+
+  const res = await app.inject({ method: 'GET', url: '/api/v1/products' });
+  type Card = { slug: string; netWeightG: number; pricePaise: number; sellableStock: number; images: string[] };
+  const groups: { productGroup: string; variants: Card[] }[] = res.json().data.groups;
+  const demo = groups.filter((g) => g.productGroup.startsWith('demo-'));
+  expect(demo).toHaveLength(10);
+  const sizes = Object.fromEntries(demo.map((g) => [g.productGroup, g.variants.map((v) => [v.slug, v.netWeightG])]));
+  expect(sizes['demo-garlic-chicken-pickle']).toEqual([
+    ['demo-garlic-chicken-pickle-250g', 250],
+    ['demo-garlic-chicken-pickle-500g', 500],
+  ]);
+  expect(sizes['demo-pepper-chicken-pickle']).toEqual([
+    ['demo-pepper-chicken-pickle-250g', 250],
+    ['demo-pepper-chicken-pickle-500g', 500],
+  ]);
+  const family = demo.flatMap((g) => g.variants).filter((v) => v.netWeightG === 500);
+  expect(family.map((v) => [v.slug, v.pricePaise])).toEqual([
+    ['demo-garlic-chicken-pickle-500g', 86900],
+    ['demo-pepper-chicken-pickle-500g', 88900],
+  ]);
+  for (const v of family) {
+    expect(v.sellableStock).toBe(DEMO_QUANTITY);
+    expect(v.images[0]).toMatch(/\/products\/d30c0001-0000-4000-8000-0000000005\d\d\/demo-v1.png$/);
+  }
+  expect(new Set(DEMO_PRODUCTS.map((p) => p.id)).size).toBe(12);
+  expect(DEMO_PRODUCTS.filter((p) => p.grams === 500).map((p) => p.sku)).toEqual(['DEMO02500', 'DEMO03500']);
+  expect(await findLedgerMismatches(t.db)).toEqual([]);
 });
 
 it('refuses unowned SKU collisions and ambiguous kitchens without partially seeding', async () => {
@@ -111,7 +151,9 @@ it('blocks clear/reset with a live checkout reservation, leaving the order, stoc
   for (const action of ['clear', 'reset'] as const)
     await expect(runDemoCatalog(t.db, action, opts())).rejects.toThrow('unfinished orders');
   expect((await t.db.query('SELECT * FROM orders')).rows).toEqual(before);
-  expect((await t.db.query('SELECT SUM(available_stock)::int AS qty FROM inventory_batches')).rows[0]!.qty).toBe(319);
+  expect((await t.db.query('SELECT SUM(available_stock)::int AS qty FROM inventory_batches')).rows[0]!.qty).toBe(
+    12 * DEMO_QUANTITY - 1,
+  );
   expect((await t.db.query('SELECT * FROM demo_catalog_products WHERE cleared_at IS NOT NULL')).rowCount).toBe(0);
   expect(await findLedgerMismatches(t.db)).toEqual([]);
   const { verifyBody } = await payAtGateway(gateway, order.json().data.razorpayOrderId);
@@ -122,7 +164,7 @@ it('blocks clear/reset with a live checkout reservation, leaving the order, stoc
   });
   expect(cancelled.statusCode).toBe(200);
   const history = (await t.db.query('SELECT * FROM orders')).rows;
-  expect((await runDemoCatalog(t.db, 'reset', opts())).restored).toBe(10);
+  expect((await runDemoCatalog(t.db, 'reset', opts())).restored).toBe(12);
   expect((await t.db.query('SELECT * FROM orders')).rows).toEqual(history);
   expect((await t.db.query('SELECT COUNT(*)::int AS n FROM order_items')).rows[0]!.n).toBe(1);
   expect(await findLedgerMismatches(t.db)).toEqual([]);

@@ -3,25 +3,48 @@ import { Flame } from 'lucide-react';
 
 const WORDS = ['', 'Mild', 'Gentle', 'Medium', 'Hot', 'Fiery'];
 
-/** 1–5 flames; the text label carries the meaning, the icons are decorative. */
+/**
+ * 1–5 flames read as ONE image by screen readers ("Spice level 4 of 5, Hot"); the visible word is
+ * optional. Empty flames use a faded foreground so the scale stays legible on light and dark cards.
+ */
 export function SpiceLevel({
   level,
   showWord = true,
+  size = 'md',
   className,
 }: {
   level: number;
   showWord?: boolean;
+  size?: 'sm' | 'md';
   className?: string;
 }) {
+  const word = WORDS[level] ?? '';
   return (
-    <span className={cn('inline-flex items-center gap-1.5 text-sm text-muted-foreground', className)}>
-      <span aria-hidden="true" className="inline-flex">
+    <span
+      role="img"
+      aria-label={`Spice level ${level} of 5${word ? `, ${word}` : ''}`}
+      className={cn(
+        'inline-flex items-center gap-1.5 text-muted-foreground',
+        size === 'sm' ? 'text-xs' : 'text-sm',
+        className,
+      )}
+    >
+      <span aria-hidden="true" className="inline-flex gap-px">
         {Array.from({ length: 5 }, (_, i) => (
-          <Flame key={i} className={cn('size-3.5', i < level ? 'fill-tertiary/80 text-tertiary' : 'text-border')} />
+          <Flame
+            key={i}
+            className={cn(
+              size === 'sm' ? 'size-3.5' : 'size-4',
+              i < level ? 'fill-tertiary/80 text-tertiary' : 'text-muted-foreground/35',
+            )}
+          />
         ))}
       </span>
-      <span className="sr-only">Spice level {level} of 5</span>
-      {showWord && <span aria-hidden="true">{WORDS[level] ?? ''}</span>}
+      {showWord && (
+        <span aria-hidden="true" className="font-medium">
+          {word}
+        </span>
+      )}
     </span>
   );
 }

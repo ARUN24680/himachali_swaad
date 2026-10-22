@@ -18,6 +18,8 @@ export interface AddToCartProduct {
 /**
  * Instant local add (D-15 — no network round-trip, no useOptimistic). Micro-interaction: the label
  * flips to "Added" with a check for a moment and the header bag pulses; screen readers hear it too.
+ * Once the jar is in the cart the button carries a quiet "N in cart" chip, so a shopper scanning the
+ * grid can see what they already picked without opening the drawer.
  */
 export function AddToCartButton({
   product,
@@ -36,6 +38,10 @@ export function AddToCartButton({
 }) {
   const add = useCartStore((s) => s.add);
   const bump = useCartUiStore((s) => s.bump);
+  // 0 until the persisted cart rehydrates, so server and first client render match (skipHydration)
+  const inCart = useCartStore((s) =>
+    s.hydrated ? (s.items.find((i) => i.productId === product.productId)?.quantity ?? 0) : 0,
+  );
   const [added, setAdded] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -79,6 +85,11 @@ export function AddToCartButton({
           <>
             <ShoppingBag aria-hidden="true" />
             {label}
+            {inCart > 0 && (
+              <span className="ml-0.5 rounded-full bg-primary-foreground/12 px-2 py-0.5 text-xs leading-4 font-semibold tabular-nums">
+                {inCart} in cart
+              </span>
+            )}
           </>
         )}
       </Button>
