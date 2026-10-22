@@ -33,8 +33,7 @@
     "db:demo:seed": "pnpm db:demo seed",
     "db:demo:clear": "pnpm db:demo clear",
     "db:demo:reset": "pnpm db:demo reset",
-    "db:demo:status": "pnpm db:demo status",
-    "db:clear:data": "pnpm --filter @pk/backend clear:data"
+    "db:demo:status": "pnpm db:demo status"
   },
   "packageManager": "pnpm@12.10.1",
   "lint-staged": {
