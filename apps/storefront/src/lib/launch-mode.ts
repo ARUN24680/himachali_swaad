@@ -34,13 +34,15 @@ export function launchMode(
 
   // 2. Pre-launch lock applies strictly to production domains (pahadikhatki.in / www.pahadikhatki.in).
   // Staging (staging.pahadikhatki.in), preview, and development environments are never locked.
-  if (host && !isProductionHost(host)) {
+  if (!isProductionHost(host)) {
     return 'live';
   }
 
-  // 3. For production domain (or default production environment):
-  if (env.LAUNCH_MODE === 'coming-soon') return 'coming-soon';
-  return env.NODE_ENV === 'production' ? 'coming-soon' : 'live';
+  // 3. For the production domain: locked to coming-soon in production
+  if (env.LAUNCH_MODE === 'coming-soon' || env.NODE_ENV === 'production') {
+    return 'coming-soon';
+  }
+  return 'live';
 }
 
 /** Internal page with the neutral 404 UI; the proxy rewrites locked URLs to it with status 404. */
