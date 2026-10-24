@@ -7,7 +7,9 @@ import { launchMode, lockDecision } from '@/lib/launch-mode';
  * product-neutral not-found page. Development and `LAUNCH_MODE=live` pass everything through.
  */
 export function proxy(request: NextRequest) {
-  if (launchMode() !== 'coming-soon') return NextResponse.next();
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.hostname;
+
+  if (launchMode(process.env, host) !== 'coming-soon') return NextResponse.next();
   const decision = lockDecision(request.nextUrl.pathname);
   if (decision.action === 'pass') return NextResponse.next();
   const url = request.nextUrl.clone();

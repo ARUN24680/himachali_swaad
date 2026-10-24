@@ -9,8 +9,37 @@
  */
 export type LaunchMode = 'coming-soon' | 'live';
 
-export function launchMode(env: { NODE_ENV?: string; LAUNCH_MODE?: string } = process.env): LaunchMode {
-  if (env.LAUNCH_MODE === 'live' || env.LAUNCH_MODE === 'coming-soon') return env.LAUNCH_MODE;
+/**
+ * Production domains where the pre-launch lock applies.
+ * All other domains (e.g. staging.pahadikhatki.in, localhost, preview) remain live.
+ */
+export const PRODUCTION_DOMAINS = new Set(['pahadikhatki.in', 'www.pahadikhatki.in']);
+
+export function cleanHost(host?: string | null): string {
+  if (!host) return '';
+  const first = host.split(',')[0] ?? '';
+  return (first.split(':')[0] ?? '').trim().toLowerCase();
+}
+
+export function isProductionHost(host?: string | null): boolean {
+  return PRODUCTION_DOMAINS.has(cleanHost(host));
+}
+
+export function launchMode(
+  env: { NODE_ENV?: string; LAUNCH_MODE?: string } = process.env,
+  host?: string | null,
+): LaunchMode {
+  // 1. Explicit global live switch (launch day override)
+  if (env.LAUNCH_MODE === 'live') return 'live';
+
+  // 2. Pre-launch lock applies strictly to production domains (pahadikhatki.in / www.pahadikhatki.in).
+  // Staging (staging.pahadikhatki.in), preview, and development environments are never locked.
+  if (host && !isProductionHost(host)) {
+    return 'live';
+  }
+
+  // 3. For production domain (or default production environment):
+  if (env.LAUNCH_MODE === 'coming-soon') return 'coming-soon';
   return env.NODE_ENV === 'production' ? 'coming-soon' : 'live';
 }
 

@@ -182,7 +182,7 @@ services:
       args:
         VITE_API_URL: ${DOCKER_BROWSER_API_URL:-}
         # Pre-launch lock: the build shows only a 404 until this is `live` (apps/admin/src/lib/launch-mode.ts)
-        VITE_LAUNCH_MODE: ${VITE_LAUNCH_MODE:-coming-soon}
+        VITE_LAUNCH_MODE: ${VITE_LAUNCH_MODE:-live}
     restart: unless-stopped
     ports:
       - '${HOST_ADMIN_PORT:-127.0.0.1:5174}:80'
