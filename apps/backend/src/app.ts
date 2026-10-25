@@ -72,6 +72,8 @@ export interface AuthConfig {
   otpProvider: OtpProvider;
   /** Dev-only: STAFF phones allowed through the customer OTP flow (never set in production). */
   otpDevStaffBypassPhones?: readonly string[];
+  /** Optional testing default OTP (e.g. 123456). If set, verification accepts this code. */
+  defaultOtp?: string;
   cookies: CookieConfig;
 }
 
@@ -179,6 +181,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     otpProvider: deps.auth.otpProvider,
     otpPepper: deps.auth.jwtSecret,
     otpDevStaffBypassPhones: deps.auth.otpDevStaffBypassPhones ?? [],
+    defaultOtp: deps.auth.defaultOtp,
     totpKey: deps.auth.totpKey,
     refreshTtlSec: deps.auth.cookies.refreshTtlSec,
   });

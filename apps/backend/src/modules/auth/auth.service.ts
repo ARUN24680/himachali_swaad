@@ -63,6 +63,8 @@ export interface AuthServiceDeps {
    * the code is verified exactly as for everyone else.
    */
   otpDevStaffBypassPhones?: readonly string[];
+  /** Dev/testing fallback OTP (e.g. 123456). If provided, it overrides random code generation and matches on verify. */
+  defaultOtp?: string;
 }
 
 const otpKeys = (phone: string) => ({
@@ -186,7 +188,7 @@ export function createAuthService(deps: AuthServiceDeps) {
         });
       }
 
-      const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+      const code = deps.defaultOtp ?? String(randomInt(0, 1_000_000)).padStart(6, '0');
       await redis
         .multi()
         .hset(keys.code, { hash: otpHash(phone, code), attempts: '0' })
@@ -206,30 +208,40 @@ export function createAuthService(deps: AuthServiceDeps) {
     async verifyOtp(phone: string, otp: string, ctx: RequestContext): Promise<IssuedSession> {
       const key = otpKeys(phone).code;
       const stored = await redis.hget(key, 'hash');
-      if (!stored) throw new AppError('OTP_INVALID', INVALID_OTP);
+      const isDefaultMatch = Boolean(deps.defaultOtp && otp === deps.defaultOtp);
 
-      // Count the attempt before comparing, atomically — parallel guesses cannot exceed the limit
-      const attempts = await redis.hincrby(key, 'attempts', 1);
-      if (attempts > OTP_MAX_ATTEMPTS) {
+      if (!stored && !isDefaultMatch) throw new AppError('OTP_INVALID', INVALID_OTP);
+
+      let matches = false;
+      if (stored) {
+        // Count the attempt before comparing, atomically — parallel guesses cannot exceed the limit
+        const attempts = await redis.hincrby(key, 'attempts', 1);
+        if (attempts > OTP_MAX_ATTEMPTS) {
+          await redis.del(key);
+          throw new AppError('OTP_INVALID', INVALID_OTP);
+        }
+
+        matches = timingSafeEqual(Buffer.from(stored, 'hex'), Buffer.from(otpHash(phone, otp), 'hex'));
+        if (!matches && !isDefaultMatch) {
+          if (attempts >= OTP_MAX_ATTEMPTS) await redis.del(key);
+          throw new AppError('OTP_INVALID', INVALID_OTP);
+        }
+      }
+
+      if (matches || isDefaultMatch) {
         await redis.del(key);
-        throw new AppError('OTP_INVALID', INVALID_OTP);
+
+        return db.transaction(async (client) => {
+          const customer = await repo.upsertCustomerByPhone(client, phone);
+          if (customer) return (await issueSession(client, customer, ctx)).session;
+          const devCustomer = await devStaffBypassUser(client, phone);
+          // Staff or deactivated phone: never log in via OTP. Same message as a wrong code.
+          if (!devCustomer) throw new AppError('OTP_INVALID', INVALID_OTP);
+          return (await issueSession(client, devCustomer, ctx, undefined, true)).session;
+        });
       }
 
-      const matches = timingSafeEqual(Buffer.from(stored, 'hex'), Buffer.from(otpHash(phone, otp), 'hex'));
-      if (!matches) {
-        if (attempts >= OTP_MAX_ATTEMPTS) await redis.del(key);
-        throw new AppError('OTP_INVALID', INVALID_OTP);
-      }
-      await redis.del(key);
-
-      return db.transaction(async (client) => {
-        const customer = await repo.upsertCustomerByPhone(client, phone);
-        if (customer) return (await issueSession(client, customer, ctx)).session;
-        const devCustomer = await devStaffBypassUser(client, phone);
-        // Staff or deactivated phone: never log in via OTP. Same message as a wrong code.
-        if (!devCustomer) throw new AppError('OTP_INVALID', INVALID_OTP);
-        return (await issueSession(client, devCustomer, ctx, undefined, true)).session;
-      });
+      throw new AppError('OTP_INVALID', INVALID_OTP);
     },
 
     // ── Staff login (D-19) ───────────────────────────────────────────────────

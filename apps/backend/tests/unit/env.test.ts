@@ -87,6 +87,34 @@ describe('parseEnv', () => {
     ).toBe(false);
   });
 
+  it('DEFAULT_OTP: allows 6-digit OTP outside production, rejects invalid formats, and refuses in production', () => {
+    expect(parseEnv({ ...valid, DEFAULT_OTP: '123456' }).DEFAULT_OTP).toBe('123456');
+    expect(() => parseEnv({ ...valid, DEFAULT_OTP: '1234' })).toThrow(/DEFAULT_OTP/);
+    expect(() => parseEnv({ ...valid, DEFAULT_OTP: 'abcdef' })).toThrow(/DEFAULT_OTP/);
+
+    const prodIssues = (overrides: Record<string, string>) => {
+      try {
+        parseEnv({
+          ...valid,
+          NODE_ENV: 'production',
+          OTP_PROVIDER: 'msg91',
+          MSG91_AUTH_KEY: 'k',
+          MSG91_OTP_TEMPLATE_ID: 't',
+          STORAGE_DRIVER: 's3',
+          AWS_REGION: 'ap-south-1',
+          AWS_ACCESS_KEY_ID: 'k',
+          AWS_SECRET_ACCESS_KEY: 's',
+          AWS_S3_BUCKET_NAME: 'b',
+          ...overrides,
+        });
+        return [];
+      } catch (err) {
+        return (err as EnvValidationError).issues;
+      }
+    };
+    expect(prodIssues({ DEFAULT_OTP: '123456' }).some((i) => i.startsWith('DEFAULT_OTP'))).toBe(true);
+  });
+
   it('treats an empty SENTRY_DSN as unset', () => {
     expect(parseEnv({ ...valid, SENTRY_DSN: '' }).SENTRY_DSN).toBeUndefined();
   });

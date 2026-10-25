@@ -64,6 +64,18 @@ const EnvSchema = z.object({
     .pipe(z.array(z.string().regex(/^\+91[6-9]\d{9}$/, 'E.164 Indian mobile'))),
   MSG91_AUTH_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
   MSG91_OTP_TEMPLATE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
+  /**
+   * Optional default OTP for development/staging testing (e.g. 123456).
+   * When set, any phone will accept this code instead of generating a random one.
+   * If unset or empty, normal random generation / SMS dispatch is used.
+   */
+  DEFAULT_OTP: z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .regex(/^\d{6}$/, 'Must be a 6-digit OTP')
+      .optional(),
+  ),
 
   /** Public base URL of this API (local image uploads, links in messages). */
   API_PUBLIC_URL: z.url().default('http://localhost:4000'),
@@ -241,6 +253,9 @@ const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
       path: ['OTP_DEV_STAFF_BYPASS_PHONES'],
       message: 'the staff OTP bypass is dev-only and must be empty in production',
     });
+  }
+  if (env.NODE_ENV === 'production' && env.DEFAULT_OTP) {
+    ctx.addIssue({ code: 'custom', path: ['DEFAULT_OTP'], message: 'DEFAULT_OTP is not allowed in production mode' });
   }
   if (env.NODE_ENV === 'production' && env.STORAGE_DRIVER === 'local') {
     ctx.addIssue({ code: 'custom', path: ['STORAGE_DRIVER'], message: 'local storage is not allowed in production' });

@@ -88,6 +88,7 @@ services:
       STOREFRONT_REVALIDATE_URL: ${DOCKER_REVALIDATE_URL:-}
       LOCAL_UPLOADS_DIR: /app/.uploads
       LOCAL_PRIVATE_UPLOADS_DIR: /app/.uploads-private
+      DEFAULT_OTP: ${DEFAULT_OTP:-}
     volumes:
       - ./apps/backend/.uploads:/app/.uploads
       - ./apps/backend/.uploads-private:/app/.uploads-private
