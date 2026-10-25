@@ -32,6 +32,7 @@ export default defineConfig(({ command, mode }) => {
     launchMode: process.env.VITE_LAUNCH_MODE ?? env.VITE_LAUNCH_MODE,
   });
   return {
+    base: process.env.VITE_BASE_PATH || '/admin/',
     define: { __PK_ADMIN_LOCKED__: JSON.stringify(locked) },
     plugins: [
       react(),

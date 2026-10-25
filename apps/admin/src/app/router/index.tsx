@@ -60,88 +60,93 @@ const gated = (capability: Parameters<typeof rolesFor>[0], children: { path: str
   children,
 });
 
-export const router = createBrowserRouter([
+export const router = createBrowserRouter(
+  [
+    {
+      element: <PublicRoute />,
+      children: [
+        { path: 'login', element: <LoginPage /> },
+        ...(TokensPage ? [{ path: 'dev/tokens', element: <TokensPage /> }] : []),
+      ],
+    },
+    {
+      // UX-only guards — the API enforces auth + roles on every request
+      element: <AuthGuard />,
+      children: [
+        {
+          element: <RoleGuard roles={STAFF} fallback={<NotStaffNotice />} />,
+          children: [
+            {
+              // Packing Desk PWA (Phase 7, D-16): KITCHEN_PARTNER + ADMIN, own mobile shell
+              path: 'desk',
+              element: <RoleGuard roles={rolesFor('packing:operate')} fallback={<NoAccess />} />,
+              children: [
+                {
+                  element: <PartnerLayout />,
+                  children: [
+                    { index: true, element: <PackingQueuePage /> },
+                    { path: 'pack/:orderCode', element: <PackOrderPage /> },
+                    { path: 'batches', element: <BatchLoggerPage /> },
+                    { path: 'hisaab', element: <HisaabPage /> },
+                    { path: 'hisaab/:settlementId', element: <HisaabDetailPage /> },
+                    { path: 'settings', element: <DeskSettingsPage /> },
+                    { path: '*', element: <NotFound /> },
+                  ],
+                },
+              ],
+            },
+            {
+              element: <AdminLayout />,
+              children: [
+                { index: true, element: <IndexRoute /> },
+                {
+                  element: <RoleGuard roles={rolesFor('catalog:manage')} fallback={<NoAccess />} />,
+                  children: [
+                    { path: 'products', element: <ProductsListPage /> },
+                    { path: 'products/new', element: <ProductEditorPage /> },
+                    { path: 'products/:productId', element: <ProductEditorPage /> },
+                  ],
+                },
+                {
+                  element: <RoleGuard roles={rolesFor('batches:manage')} fallback={<NoAccess />} />,
+                  children: [
+                    { path: 'batches', element: <BatchesListPage /> },
+                    { path: 'batches/:batchId/ledger', element: <StockLedgerPage /> },
+                  ],
+                },
+                { path: 'account', element: <AccountPage /> },
+                // ── Phase 9 admin console ──
+                gated('orders:all', [
+                  { path: 'orders', element: <OrdersListPage /> },
+                  { path: 'orders/:orderCode', element: <OrdersListPage /> },
+                  { path: 'ops-issues', element: <Navigate to="/orders?tab=attention" replace /> },
+                  { path: 'exports', element: <ExportsPage /> },
+                ]),
+                gated('customers:read', [
+                  { path: 'customers', element: <CustomersListPage /> },
+                  { path: 'customers/:phone', element: <CustomerDetailPage /> },
+                ]),
+                gated('settlements:manage', [
+                  { path: 'settlements', element: <SettlementsListPage /> },
+                  { path: 'settlements/:settlementId', element: <SettlementDetailPage /> },
+                  { path: 'expenses', element: <ExpensesListPage /> },
+                ]),
+                gated('settings:manage', [
+                  { path: 'settings', element: <SettingsPage /> },
+                  { path: 'staff', element: <StaffListPage /> },
+                  { path: 'kitchens', element: <KitchensPage /> },
+                  { path: 'audit-log', element: <AuditLogPage /> },
+                ]),
+                gated('queues:view', [{ path: 'ops', element: <OpsPage /> }]),
+                { path: '*', element: <NotFound /> },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
   {
-    element: <PublicRoute />,
-    children: [
-      { path: 'login', element: <LoginPage /> },
-      ...(TokensPage ? [{ path: 'dev/tokens', element: <TokensPage /> }] : []),
-    ],
+    basename: (import.meta.env.BASE_URL || '/admin').replace(/\/+$/, '') || '/',
   },
-  {
-    // UX-only guards — the API enforces auth + roles on every request
-    element: <AuthGuard />,
-    children: [
-      {
-        element: <RoleGuard roles={STAFF} fallback={<NotStaffNotice />} />,
-        children: [
-          {
-            // Packing Desk PWA (Phase 7, D-16): KITCHEN_PARTNER + ADMIN, own mobile shell
-            path: 'desk',
-            element: <RoleGuard roles={rolesFor('packing:operate')} fallback={<NoAccess />} />,
-            children: [
-              {
-                element: <PartnerLayout />,
-                children: [
-                  { index: true, element: <PackingQueuePage /> },
-                  { path: 'pack/:orderCode', element: <PackOrderPage /> },
-                  { path: 'batches', element: <BatchLoggerPage /> },
-                  { path: 'hisaab', element: <HisaabPage /> },
-                  { path: 'hisaab/:settlementId', element: <HisaabDetailPage /> },
-                  { path: 'settings', element: <DeskSettingsPage /> },
-                  { path: '*', element: <NotFound /> },
-                ],
-              },
-            ],
-          },
-          {
-            element: <AdminLayout />,
-            children: [
-              { index: true, element: <IndexRoute /> },
-              {
-                element: <RoleGuard roles={rolesFor('catalog:manage')} fallback={<NoAccess />} />,
-                children: [
-                  { path: 'products', element: <ProductsListPage /> },
-                  { path: 'products/new', element: <ProductEditorPage /> },
-                  { path: 'products/:productId', element: <ProductEditorPage /> },
-                ],
-              },
-              {
-                element: <RoleGuard roles={rolesFor('batches:manage')} fallback={<NoAccess />} />,
-                children: [
-                  { path: 'batches', element: <BatchesListPage /> },
-                  { path: 'batches/:batchId/ledger', element: <StockLedgerPage /> },
-                ],
-              },
-              { path: 'account', element: <AccountPage /> },
-              // ── Phase 9 admin console ──
-              gated('orders:all', [
-                { path: 'orders', element: <OrdersListPage /> },
-                { path: 'orders/:orderCode', element: <OrdersListPage /> },
-                { path: 'ops-issues', element: <Navigate to="/orders?tab=attention" replace /> },
-                { path: 'exports', element: <ExportsPage /> },
-              ]),
-              gated('customers:read', [
-                { path: 'customers', element: <CustomersListPage /> },
-                { path: 'customers/:phone', element: <CustomerDetailPage /> },
-              ]),
-              gated('settlements:manage', [
-                { path: 'settlements', element: <SettlementsListPage /> },
-                { path: 'settlements/:settlementId', element: <SettlementDetailPage /> },
-                { path: 'expenses', element: <ExpensesListPage /> },
-              ]),
-              gated('settings:manage', [
-                { path: 'settings', element: <SettingsPage /> },
-                { path: 'staff', element: <StaffListPage /> },
-                { path: 'kitchens', element: <KitchensPage /> },
-                { path: 'audit-log', element: <AuditLogPage /> },
-              ]),
-              gated('queues:view', [{ path: 'ops', element: <OpsPage /> }]),
-              { path: '*', element: <NotFound /> },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-]);
+);

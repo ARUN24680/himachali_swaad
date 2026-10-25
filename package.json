@@ -33,7 +33,11 @@
     "db:demo:seed": "pnpm db:demo seed",
     "db:demo:clear": "pnpm db:demo clear",
     "db:demo:reset": "pnpm db:demo reset",
-    "db:demo:status": "pnpm db:demo status"
+    "db:demo:status": "pnpm db:demo status",
+    "deploy:storefront": "./scripts/deploy.sh storefront",
+    "deploy:backend": "./scripts/deploy.sh backend",
+    "deploy:admin": "./scripts/deploy.sh admin",
+    "deploy:all": "./scripts/deploy.sh all"
   },
   "packageManager": "pnpm@12.10.1",
   "lint-staged": {
