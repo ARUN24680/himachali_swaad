@@ -46,16 +46,16 @@
   "devDependencies": {
     "@pk/database": "workspace:*",
     "@pk/tsconfig": "workspace:*",
-    "@testcontainers/postgresql": "12.2.0",
-    "@testcontainers/redis": "12.2.0",
+    "@testcontainers/postgresql": "12.2.1",
+    "@testcontainers/redis": "12.2.1",
     "@types/node": "24.19.1",
     "@types/pg": "8.23.1",
     "@types/web-push": "3.6.4",
     "esbuild": "0.28.2",
     "pino-pretty": "13.2.0",
-    "testcontainers": "12.2.0",
+    "testcontainers": "12.2.1",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
-    "vitest": "5.0.3"
+    "vitest": "5.0.5"
   }
 }
