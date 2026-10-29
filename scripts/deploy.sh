@@ -6,7 +6,7 @@ set -e
 # Builds images on your Mac and streams them to EC2 (0% build load on EC2)
 # ==============================================================================
 
-SERVER_IP="${SERVER_IP:-51.20.3.146}"
+SERVER_IP="${SERVER_IP:-13.62.100.10}"
 SERVER_USER="${SERVER_USER:-ubuntu}"
 SERVER_DIR="${SERVER_DIR:-~/himachali_swaad}"
 
