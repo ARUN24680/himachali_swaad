@@ -50,7 +50,22 @@ services:
           memory: 80M
 
   # ==========================================
-  # 3. BACKEND API: Fastify Server (:4000)
+  # 3. AUTOMATIC DB MIGRATIONS (dbmate)
+  # ==========================================
+  migrate:
+    image: amacneil/dbmate:2.36.0
+    restart: 'no'
+    environment:
+      DATABASE_URL: postgres://pk:pk_local_only@postgres:5432/pahadi_khatki?sslmode=disable
+    volumes:
+      - ./packages/database/migrations:/db/migrations
+    command: --migrations-dir /db/migrations --no-dump-schema up
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ==========================================
+  # 4. BACKEND API: Fastify Server (:4000)
   # ==========================================
   backend-api:
     build:
@@ -73,6 +88,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:
@@ -98,6 +115,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:
