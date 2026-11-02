@@ -9,6 +9,6 @@
     "db:wait": "dbmate --env-file ../../.env --migrations-dir ./migrations --no-dump-schema wait"
   },
   "devDependencies": {
-    "dbmate": "2.36.0"
+    "dbmate": "2.37.0"
   }
 }
