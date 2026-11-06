@@ -37,7 +37,10 @@
     "deploy:storefront": "./scripts/deploy.sh storefront",
     "deploy:backend": "./scripts/deploy.sh backend",
     "deploy:admin": "./scripts/deploy.sh admin",
-    "deploy:all": "./scripts/deploy.sh all"
+    "deploy:all": "./scripts/deploy.sh all",
+    "deploy:nginx": "./scripts/deploy.sh nginx",
+    "deploy:check": "./scripts/deploy.sh check",
+    "check:launch": "node scripts/check-launch-readiness.mjs --env .env"
   },
   "packageManager": "pnpm@12.10.1",
   "lint-staged": {

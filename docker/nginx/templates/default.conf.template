@@ -1,0 +1,86 @@
+# Pahadi Khatki edge proxy (rendered from this template by the nginx image's envsubst at start-up).
+# Switches come from .env via docker-compose.prod.yml:
+#   STAGING_HTTPS = off | on   → on once the Let's Encrypt cert covers staging.pahadikhatki.in (docs/ops/staging-https.md)
+#   LAUNCH_MODE   = coming-soon | live → the same switch the storefront uses (D-61); both must agree
+# Only ${UPPER_CASE} tokens are substituted (NGINX_ENVSUBST_FILTER); nginx's own $variables are untouched.
+# Audit 2026-11-03: HSTS on every TLS block, server banner off, staging never indexed, raw-IP traffic dropped,
+# optional admin IP allow-list, request-rate ceilings in front of the API's own Redis limiter.
+
+server_tokens off;
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+# Per-IP request ceilings (the API keeps its own per-route limits in Redis; these only cap floods).
+limit_req_zone $binary_remote_addr zone=pk_api:10m  rate=20r/s;
+limit_req_zone $binary_remote_addr zone=pk_auth:10m rate=60r/m;
+limit_req_status 429;
+
+upstream storefront_service { server storefront:3000; }
+upstream backend_service   { server backend-api:4000; }
+upstream admin_service     { server admin:80; }
+
+# ========================================================
+# 1. STAGING — HTTP (full store + admin while STAGING_HTTPS=off; redirect to HTTPS when on)
+# ========================================================
+server {
+    listen 80;
+    server_name staging.pahadikhatki.in;
+
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location = /healthz { access_log off; return 200 "healthy\n"; }
+
+    include /etc/nginx/snippets/staging-http-${STAGING_HTTPS}.conf;
+}
+
+# 1b. STAGING — HTTPS (only rendered when STAGING_HTTPS=on)
+include /etc/nginx/snippets/staging-tls-${STAGING_HTTPS}.conf;
+
+# ========================================================
+# 2. PRODUCTION — HTTP → HTTPS
+# ========================================================
+server {
+    listen 80;
+    server_name pahadikhatki.in www.pahadikhatki.in;
+
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location = /healthz { access_log off; return 200 "healthy\n"; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+# ========================================================
+# 3. PRODUCTION — HTTPS (pre-launch lock or live, per LAUNCH_MODE)
+# ========================================================
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name pahadikhatki.in www.pahadikhatki.in;
+
+    ssl_certificate     /etc/letsencrypt/live/pahadikhatki.in/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/pahadikhatki.in/privkey.pem;
+    include /etc/nginx/snippets/tls-params.conf;
+
+    client_max_body_size 25M;
+
+    location = /healthz { access_log off; return 200 "healthy\n"; }
+
+    include /etc/nginx/snippets/api-locations-tls.conf;
+    include /etc/nginx/snippets/prod-locations-${LAUNCH_MODE}.conf;
+}
+
+# ========================================================
+# 4. DEFAULT — raw IP / unknown hosts: close the connection (no redirect that leaks hostnames)
+# ========================================================
+server {
+    listen 80 default_server;
+    listen 443 ssl default_server;
+    server_name _;
+    ssl_certificate     /etc/letsencrypt/live/pahadikhatki.in/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/pahadikhatki.in/privkey.pem;
+    include /etc/nginx/snippets/tls-params.conf;
+
+    location = /healthz { access_log off; return 200 "healthy\n"; }
+    location / { return 444; }
+}

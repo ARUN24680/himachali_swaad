@@ -9,6 +9,8 @@ ENV VITE_API_URL=$VITE_API_URL
 # Pre-launch lock: empty/coming-soon = the build shows only a 404; `live` = the full admin app
 ARG VITE_LAUNCH_MODE=live
 ENV VITE_LAUNCH_MODE=$VITE_LAUNCH_MODE
+ARG VITE_ADMIN_IDLE_MINUTES=30
+ENV VITE_ADMIN_IDLE_MINUTES=$VITE_ADMIN_IDLE_MINUTES
 # Copy workspace manifests and shared configs
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY playwright.viewports.ts* ./
