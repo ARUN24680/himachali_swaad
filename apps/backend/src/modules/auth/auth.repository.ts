@@ -81,7 +81,7 @@ export async function insertRefreshToken(
 /** Locks the token row so two concurrent refreshes cannot both rotate it. */
 export async function findRefreshTokenForUpdate(db: Queryable, tokenHash: string): Promise<RefreshTokenRow | null> {
   const { rows } = await db.query(
-    `SELECT id, user_id, family_id, expires_at, revoked_at, replaced_by_id
+    `SELECT id, user_id, family_id, expires_at, revoked_at, replaced_by_id, created_at
        FROM refresh_tokens WHERE token_hash = $1 FOR UPDATE`,
     [tokenHash],
   );
@@ -90,7 +90,7 @@ export async function findRefreshTokenForUpdate(db: Queryable, tokenHash: string
 
 export async function findRefreshToken(db: Queryable, tokenHash: string): Promise<RefreshTokenRow | null> {
   const { rows } = await db.query(
-    'SELECT id, user_id, family_id, expires_at, revoked_at, replaced_by_id FROM refresh_tokens WHERE token_hash = $1',
+    'SELECT id, user_id, family_id, expires_at, revoked_at, replaced_by_id, created_at FROM refresh_tokens WHERE token_hash = $1',
     [tokenHash],
   );
   return one(rows, (r) => RefreshTokenRowSchema.parse(r));

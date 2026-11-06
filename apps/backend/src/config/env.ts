@@ -41,6 +41,13 @@ const EnvSchema = z.object({
     ),
   ACCESS_TOKEN_TTL_SEC: z.coerce.number().int().min(60).max(3600).default(900),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
+  /**
+   * ADMIN idle session timeout (audit 2026-11-03 M-8 / R-12): an ADMIN refresh token older than this
+   * many minutes (= minutes since the last refresh, i.e. last activity) is refused and its family
+   * revoked. Must exceed the access-token TTL or an active admin would be logged out on every
+   * refresh. KITCHEN_PARTNER / CUSTOMER sessions are not affected (offline packing desk).
+   */
+  ADMIN_IDLE_TIMEOUT_MIN: z.coerce.number().int().min(5).max(720).default(30),
   OTP_PROVIDER: z.enum(['mock', 'msg91']).default('mock'),
   /**
    * D-19 / Phase 10: ADMIN must have TOTP enrolled to use the admin API. Always on in production;
@@ -237,6 +244,13 @@ const EnvSchema = z.object({
 });
 
 const EnvSchemaChecked = EnvSchema.superRefine((env, ctx) => {
+  if (env.ADMIN_IDLE_TIMEOUT_MIN * 60 <= env.ACCESS_TOKEN_TTL_SEC) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['ADMIN_IDLE_TIMEOUT_MIN'],
+      message: 'must be longer than ACCESS_TOKEN_TTL_SEC (the admin refreshes only when the access token expires)',
+    });
+  }
   if (env.NODE_ENV === 'production' && env.OTP_PROVIDER === 'mock') {
     ctx.addIssue({ code: 'custom', path: ['OTP_PROVIDER'], message: 'mock OTP provider is not allowed in production' });
   }

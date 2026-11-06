@@ -28,3 +28,4 @@ export * from './notifications';
 export * from './contracts/admin';
 export * from './settings/schemas';
 export { PHONE_REGEX, PINCODE_REGEX } from './schemas/patterns';
+export * from './contracts/waitlist';

@@ -17,6 +17,7 @@ export function authConfigFromEnv(env: Env): AuthConfig {
     // Belt and braces: env validation already refuses a non-empty list in production
     otpDevStaffBypassPhones: env.NODE_ENV === 'production' ? [] : env.OTP_DEV_STAFF_BYPASS_PHONES,
     defaultOtp: env.DEFAULT_OTP,
+    adminIdleTimeoutMin: env.ADMIN_IDLE_TIMEOUT_MIN,
     cookies: {
       // Host-only cookie on localhost; `.pahadikhatki.in` in staging/prod so admin + storefront share the API session
       domain: env.COOKIE_DOMAIN === 'localhost' ? undefined : env.COOKIE_DOMAIN,

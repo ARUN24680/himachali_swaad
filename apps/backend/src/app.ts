@@ -27,7 +27,7 @@ import type { StorefrontRevalidator } from './integrations/storefront/revalidate
 import { createAuthGuards } from './middleware/auth';
 import type { CookieConfig } from './modules/auth/auth.cookies';
 import { authRoutes } from './modules/auth/auth.routes';
-import { createAuthService } from './modules/auth/auth.service';
+import { createAuthService, DEFAULT_ADMIN_IDLE_TIMEOUT_MIN } from './modules/auth/auth.service';
 import { createTokenService } from './modules/auth/auth.tokens';
 import { analyticsRoutes } from './modules/analytics/analytics.routes';
 import { cartRoutes } from './modules/cart/cart.routes';
@@ -47,6 +47,8 @@ import { devShippingRoutes } from './modules/dev-shipping/dev-shipping.routes';
 import { labelRoutes } from './modules/logistics/logistics.routes';
 import { myOrdersRoutes, trackRoutes } from './modules/tracking/tracking.routes';
 import { adminRoutes } from './modules/admin/admin.routes';
+import { adminWaitlistRoutes, waitlistRoutes } from './modules/waitlist/waitlist.routes';
+import { createWaitlistService } from './modules/waitlist/waitlist.service';
 import { adminSettlementRoutes, partnerSettlementRoutes } from './modules/settlements/settlements.routes';
 import { kitchenRoutes, staffRoutes } from './modules/users/users.routes';
 import { whatsappWebhookRoutes } from './modules/notifications/whatsapp-webhook.routes';
@@ -74,6 +76,11 @@ export interface AuthConfig {
   otpDevStaffBypassPhones?: readonly string[];
   /** Optional testing default OTP (e.g. 123456). If set, verification accepts this code. */
   defaultOtp?: string;
+  /**
+   * ADMIN idle session timeout in minutes (audit 2026-11-03 M-8): a refresh token older than this
+   * (= minutes since the last refresh) is refused and its family revoked. Default 30. ADMIN only.
+   */
+  adminIdleTimeoutMin?: number;
   cookies: CookieConfig;
 }
 
@@ -184,7 +191,9 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     defaultOtp: deps.auth.defaultOtp,
     totpKey: deps.auth.totpKey,
     refreshTtlSec: deps.auth.cookies.refreshTtlSec,
+    adminIdleTimeoutMin: deps.auth.adminIdleTimeoutMin ?? DEFAULT_ADMIN_IDLE_TIMEOUT_MIN,
   });
+  const waitlistService = createWaitlistService({ db: deps.db, logger: deps.logger, ipPepper: deps.auth.jwtSecret });
   const svc = createCommerceServices({
     db: deps.db,
     redis: deps.redis,
@@ -272,10 +281,13 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(adminSettlementRoutes, { prefix: '/api/v1/admin', service: svc.settlements, guards });
   await app.register(partnerSettlementRoutes, { prefix: '/api/v1/partner', service: svc.settlements, guards });
   await app.register(staffRoutes, { prefix: '/api/v1/admin/staff', service: svc.users, guards });
+  await app.register(adminWaitlistRoutes, { prefix: '/api/v1/admin', service: waitlistService, guards });
   await app.register(kitchenRoutes, { prefix: '/api/v1/admin/kitchens', service: svc.users, guards });
 
   // ── Phase 8: tracking ───────────────────────────────────────────────────
   await app.register(trackRoutes, { prefix: '/api/v1', service: svc.tracking });
+  // Pre-launch waitlist (audit 2026-11-03 R-5) — public, 5 / 10 min per IP
+  await app.register(waitlistRoutes, { prefix: '/api/v1', service: waitlistService });
   await app.register(myOrdersRoutes, { prefix: '/api/v1/me', service: svc.tracking, guards });
   await app.register(whatsappWebhookRoutes, {
     prefix: '/api/v1/webhooks',

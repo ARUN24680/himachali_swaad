@@ -115,6 +115,21 @@ describe('parseEnv', () => {
     expect(prodIssues({ DEFAULT_OTP: '123456' }).some((i) => i.startsWith('DEFAULT_OTP'))).toBe(true);
   });
 
+  it('ADMIN_IDLE_TIMEOUT_MIN: default 30, integer within 5–720, and longer than the access-token TTL', () => {
+    expect(parseEnv(valid).ADMIN_IDLE_TIMEOUT_MIN).toBe(30);
+    expect(parseEnv({ ...valid, ADMIN_IDLE_TIMEOUT_MIN: '120' }).ADMIN_IDLE_TIMEOUT_MIN).toBe(120);
+    for (const bad of ['4', '721', '0', '-5', '12.5', 'abc']) {
+      expect(() => parseEnv({ ...valid, ADMIN_IDLE_TIMEOUT_MIN: bad }), bad).toThrow(/ADMIN_IDLE_TIMEOUT_MIN/);
+    }
+    // 10 min idle with a 15 min access token would sign an active admin out on every refresh
+    expect(() => parseEnv({ ...valid, ADMIN_IDLE_TIMEOUT_MIN: '10', ACCESS_TOKEN_TTL_SEC: '900' })).toThrow(
+      /ADMIN_IDLE_TIMEOUT_MIN/,
+    );
+    expect(
+      parseEnv({ ...valid, ADMIN_IDLE_TIMEOUT_MIN: '10', ACCESS_TOKEN_TTL_SEC: '300' }).ADMIN_IDLE_TIMEOUT_MIN,
+    ).toBe(10);
+  });
+
   it('treats an empty SENTRY_DSN as unset', () => {
     expect(parseEnv({ ...valid, SENTRY_DSN: '' }).SENTRY_DSN).toBeUndefined();
   });

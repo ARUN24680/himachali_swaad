@@ -25,6 +25,13 @@ export const BCRYPT_COST = 12;
  * rotated. Within this window that is a race, not theft — reject without revoking the family (D-48).
  */
 export const REFRESH_RACE_GRACE_MS = 10_000;
+/**
+ * ADMIN idle timeout (audit 2026-11-03 M-8 / R-12): the admin console refreshes only when the
+ * 15-min access token expires, so a refresh token's age is the time since the admin was last
+ * active. Older than this → session ended, family revoked. Staff on the packing desk and
+ * customers are not affected. Overridden by env ADMIN_IDLE_TIMEOUT_MIN.
+ */
+export const DEFAULT_ADMIN_IDLE_TIMEOUT_MIN = 30;
 const TOTP_PENDING_TTL_SEC = 10 * 60;
 /** Staff login lockout (Phase 10 §10.1, OWASP ASVS 2.2.1). */
 export const LOGIN_MAX_FAILURES = 5;
@@ -57,6 +64,8 @@ export interface AuthServiceDeps {
   /** 32-byte AES key for TOTP secrets at rest. */
   totpKey: Buffer;
   refreshTtlSec: number;
+  /** ADMIN idle session timeout in minutes (see DEFAULT_ADMIN_IDLE_TIMEOUT_MIN). */
+  adminIdleTimeoutMin?: number;
   /**
    * Dev-only (env OTP_DEV_STAFF_BYPASS_PHONES, refused in production): exact E.164 phones of active
    * KITCHEN_PARTNER users allowed to finish the customer OTP flow. Skips only the staff refusal —
@@ -105,6 +114,7 @@ export const cleanupRefreshTokens = (db: Queryable): Promise<number> => repo.del
 export function createAuthService(deps: AuthServiceDeps) {
   const { db, redis, tokens } = deps;
   const staffOtpBypass = new Set(deps.otpDevStaffBypassPhones ?? []);
+  const adminIdleTimeoutMin = deps.adminIdleTimeoutMin ?? DEFAULT_ADMIN_IDLE_TIMEOUT_MIN;
 
   const otpHash = (phone: string, code: string) =>
     createHmac('sha256', deps.otpPepper).update(`${phone}:${code}`).digest('hex');
@@ -347,6 +357,25 @@ export function createAuthService(deps: AuthServiceDeps) {
           return { kind: 'inactive' as const };
         }
 
+        // ADMIN idle timeout: this token was issued at the last refresh; too old = inactive admin
+        const tokenAgeMs = Date.now() - row.created_at.getTime();
+        if (user.role === 'ADMIN' && !devCustomer && tokenAgeMs > adminIdleTimeoutMin * 60_000) {
+          const revoked = await repo.revokeFamily(client, row.family_id);
+          await audit(client, {
+            actorId: row.user_id,
+            action: 'SESSION_IDLE_TIMEOUT',
+            entityType: 'refresh_token_family',
+            entityId: row.family_id,
+            after: {
+              revokedTokens: revoked,
+              idleTimeoutMin: adminIdleTimeoutMin,
+              tokenAgeSec: Math.floor(tokenAgeMs / 1000),
+            },
+            ip: ctx.ip,
+          });
+          return { kind: 'idle_timeout' as const, userId: row.user_id, familyId: row.family_id };
+        }
+
         const { refreshId, session } = await issueSession(client, user, ctx, row.family_id, devCustomer);
         await repo.markRotated(client, row.id, refreshId);
         return { kind: 'ok' as const, session };
@@ -357,6 +386,19 @@ export function createAuthService(deps: AuthServiceDeps) {
         deps.logger.warn(
           { userId: outcome.userId, familyId: outcome.familyId },
           'SECURITY refresh token reuse — family revoked',
+        );
+      }
+      if (outcome.kind === 'idle_timeout') {
+        deps.logger.info(
+          { userId: outcome.userId, familyId: outcome.familyId, idleTimeoutMin: adminIdleTimeoutMin },
+          'admin session ended after inactivity — family revoked',
+        );
+        throw new AppError(
+          'UNAUTHENTICATED',
+          'You were signed out after a period of inactivity. Please sign in again.',
+          {
+            reason: 'idle_timeout',
+          },
         );
       }
       throw new AppError('UNAUTHENTICATED', 'Your session has ended. Please sign in again.', { reason: outcome.kind });

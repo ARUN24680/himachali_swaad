@@ -21,5 +21,7 @@ export const RefreshTokenRowSchema = z.object({
   expires_at: z.date(),
   revoked_at: z.date().nullable(),
   replaced_by_id: z.uuid().nullable(),
+  /** Issue time — rotation happens on every refresh, so age = time since the last refresh. */
+  created_at: z.date(),
 });
 export type RefreshTokenRow = z.infer<typeof RefreshTokenRowSchema>;
