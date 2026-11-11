@@ -38,7 +38,12 @@ Items that need the real production infrastructure are marked **(deploy)** and t
 | `POST /payments/verify` | 30 / 10 min per IP |
 | `POST /track` | 10 / 10 min per IP (D-39) |
 | `POST /shipping/check-pincode`, `GET /shipping/pincodes/:pincode` | 30 / min per IP |
+| `POST /waitlist` (public pre-launch teaser, audit 2026-11-03 R-5) | 5 / 10 min per IP; duplicates answer 200 `alreadyJoined` (no enumeration) |
+| `GET /admin/waitlist/export.csv` (ADMIN, PII, audited `EXPORT`) | 30 / min |
+| `POST /auth/refresh` — ADMIN idle timeout (M-8 / R-12) | ADMIN refresh token older than `ADMIN_IDLE_TIMEOUT_MIN` (default 30, 5–720) → 401 `idle_timeout`, family revoked, audited `SESSION_IDLE_TIMEOUT` |
 | Webhooks (Razorpay, courier, WhatsApp) | no IP limit — authenticated by signature / token; duplicates deduped by event id |
+
+Per-IP limits key on `request.ip`; behind nginx the API runs with `TRUST_PROXY=true` so the client address comes from `X-Forwarded-For` (audit M-2) — test `rate-limit-proxy.test.ts`.
 
 ## Findings
 | # | Finding | Severity | Status |

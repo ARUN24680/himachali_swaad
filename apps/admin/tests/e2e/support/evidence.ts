@@ -43,3 +43,17 @@ export async function phase10Shot(
   await page.waitForTimeout(150);
   await page.screenshot({ path: `${EVIDENCE_10}${name}-${width}-${scheme}.png`, fullPage });
 }
+
+/** Website-audit fixes (Phases/evidence/audit-2026-11/), PK_EVIDENCE=1 only. 375 / 768 / 1440, light + dark. */
+export const EVIDENCE_AUDIT = fileURLToPath(new URL('../../../../../Phases/evidence/audit-2026-11/', import.meta.url));
+
+export async function auditShot(page: Page, info: TestInfo, name: string, scheme: 'light' | 'dark', fullPage = true) {
+  if (!enabled) return;
+  mkdirSync(EVIDENCE_AUDIT, { recursive: true });
+  if (fullPage) await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(150);
+  await page.screenshot({
+    path: `${EVIDENCE_AUDIT}${name}-${VIEWPORT[info.project.name] ?? info.project.name}-${scheme}.png`,
+    fullPage,
+  });
+}

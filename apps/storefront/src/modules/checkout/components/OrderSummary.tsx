@@ -151,7 +151,11 @@ function SummaryLine({
   return (
     <li className="grid grid-cols-[3.5rem_1fr] gap-3 py-4" data-testid="summary-line">
       <div className={cn('overflow-hidden rounded-md border border-border', unavailable && 'opacity-60 grayscale')}>
-        <ProductImage src={line.image} alt="" sizes="56px" />
+        <ProductImage
+          src={line.image}
+          alt={line.title ? `${title}${line.netWeightG ? `, ${line.netWeightG} g` : ''} jar` : 'Unavailable product'}
+          sizes="56px"
+        />
       </div>
       <div className="grid min-w-0 gap-1.5">
         <div className="flex items-start gap-2">

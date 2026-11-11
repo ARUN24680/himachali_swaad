@@ -1,6 +1,7 @@
 import { Clock, Mail, MapPin, MessageCircle, Phone, ShieldQuestion } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { PendingValue } from '@/components/common/PendingValue';
 import { SectionHeading } from '@/components/common/SectionHeading';
 import { seller } from '@/config/site';
@@ -10,12 +11,15 @@ import { SellerCard } from './SellerCard';
 export function ContactContent() {
   return (
     <div className="mx-auto grid max-w-5xl gap-10 px-4 py-10 md:px-8 md:py-14">
-      <SectionHeading
-        as="h1"
-        eyebrow="We're here to help"
-        title="Contact us"
-        lead="Questions about an order, a damaged jar or bulk gifting? Reach us on any of these — keep your order code handy."
-      />
+      <div className="grid gap-6">
+        <Breadcrumbs items={[{ name: 'Contact', href: '/contact' }]} />
+        <SectionHeading
+          as="h1"
+          eyebrow="We're here to help"
+          title="Contact us"
+          lead="Questions about an order, a damaged jar or bulk gifting? Reach us on any of these — keep your order code handy."
+        />
+      </div>
       <ul className="grid gap-4 sm:grid-cols-2" data-testid="contact-channels">
         <Channel icon={<Phone />} title="Call customer care">
           <PendingValue value={seller.phone} label="Customer care phone">

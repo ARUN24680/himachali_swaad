@@ -63,7 +63,7 @@
 | POST | `/auth/logout-all` | Any | Revokes all refresh-token families of the user |
 | GET | `/auth/me` | Any authenticated | → `{ user, pickupLocationIds? }` |
 
-Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 s resend cooldown (D-21, D-48). OTP never logs in staff/deactivated users (D-48). `/auth/refresh` 401 carries `details.reason` = `reuse` · `expired` · `unknown` · `inactive` · `race` (race = 10 s two-tab grace, retry the request). Cookies `pk_at` (15 min JWT) and `pk_rt` (30 din opaque) — `httpOnly; Secure; SameSite=Lax; Domain=.pahadikhatki.in` (D-20).
+Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 s resend cooldown (D-21, D-48). OTP never logs in staff/deactivated users (D-48). `/auth/refresh` 401 carries `details.reason` = `reuse` · `expired` · `unknown` · `inactive` · `race` (race = 10 s two-tab grace, retry the request) · `idle_timeout` (ADMIN only: refresh token older than `ADMIN_IDLE_TIMEOUT_MIN`, default 30 min, range 5–720 and must exceed the access-token TTL → family revoked, cookies cleared, audited `SESSION_IDLE_TIMEOUT`; KITCHEN_PARTNER / CUSTOMER never idle-timed — audit 2026-11-03 M-8). Cookies `pk_at` (15 min JWT) and `pk_rt` (30 din opaque) — `httpOnly; Secure; SameSite=Lax; Domain=.pahadikhatki.in` (D-20).
 
 ---
 
@@ -124,6 +124,11 @@ Notes: OTP 6-digit, Redis TTL 5 min (HMAC hash only), max 5 verify attempts, 30 
 | GET | `/orders/:orderCode/invoice` | Session owner (or `?phone=`) | → `{ url, expiresAt }` signed private S3 URL (D-11, D-32) |
 | POST | `/orders/:orderCode/cancel` | Session owner | `{ reason }` → allowed only in `CONFIRMED` / `AWAITING_PACKING`; triggers refund |
 | POST | `/track` | Public | `{ orderCode, phone (10-digit or +91…) }` **both required** (D-39) → `TrackResponse` (`packages/shared/src/contracts/tracking.ts`): `{ orderCode, customerFirstName, destinationCity, status, paymentStatus, items[{ title, netWeightG, quantity, batchCode, manufacturedAt }], courier{ name, awb, trackingUrl }\|null, etd, refund, timeline[{ key, label, at, detail, tone }], updatedAt }`. Mismatch / unpaid → generic `NOT_FOUND`. 60 s cache (D-55 b). |
+
+### Pre-launch waitlist (audit 2026-11-03 R-5)
+| Method | Path | Roles | Request → Response |
+| :--- | :--- | :--- | :--- |
+| POST | `/waitlist` | Public (guest, Origin-checked) | `WaitlistJoinRequest` `{ phone? (10-digit / +91…, normalised to E.164), email? (lower-cased), name? ≤ 80, source: coming-soon \| storefront = coming-soon, consent: true }` — phone or e-mail required → `{ joined: true, alreadyJoined }`. Duplicate phone / e-mail → **200** `alreadyJoined: true` (never 409, no enumeration). Stored: HMAC-SHA256 of IP (never the IP), user-agent ≤ 300 chars, `consent_at`. Table `waitlist_entries` (migration 0009). |
 
 ### Customer Account (CUSTOMER)
 
@@ -210,6 +215,8 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | | `POST /admin/settlements/:id/finalize` | Blocked while warnings exist (422); locks numbers, statement PDF, `settlement_ready` to partners |
 | | `POST /admin/settlements/:id/mark-paid` | `{ bankReference, paidAt }` (FINALIZED only) |
 | | `GET /admin/settlements/:id/statement` | `{ url, expiresAt }` signed PDF |
+| Waitlist | `GET /admin/waitlist` | `AdminWaitlistQuery` (`packages/shared/src/contracts/waitlist.ts`): `page`, `pageSize ≤ 100`, `q` (contains on phone / e-mail, LIKE wildcards literal), `source` (`coming-soon` \| `storefront`) → `{ entries[{ id, phone, email, name, source, consentAt, createdAt }], total, page, pageSize }`, newest first |
+| | `GET /admin/waitlist/export.csv` | CSV attachment (BOM, CSV-injection escaped like other exports), columns `phone,email,name,source,consent_at_ist,joined_at_ist`; audited `EXPORT` `{ entityId: 'waitlist', pii: true }`; 30 / min |
 | Exports | `GET /admin/exports/:type` | `type = orders \| gst \| inventory-ledger \| customers \| settlement` (`?from&to`, `?settlementId`) → CSV attachment, audited `EXPORT` |
 | Webhooks | `GET /admin/webhooks/failures`, `POST /admin/webhooks/:id/replay` | Stored events with `last_error`; replay re-runs the handler (idempotent), audited |
 | Audit log | `GET /admin/audit-log` | `?action&entityType&entityId&page` |
@@ -260,6 +267,8 @@ Rule: business errors → `webhook_events.last_error`, return `200` + admin aler
 | `POST /auth/otp/verify` | 5 attempts per OTP; 20 / 10 min per IP |
 | `POST /auth/staff/login` | 5 / 15 min per email + IP |
 | `POST /track` | 10 / 10 min per IP |
+| `POST /waitlist` | 5 / 10 min per IP |
+| `GET /admin/waitlist/export.csv` | 30 / min per user/IP |
 | `GET /orders/:orderCode/status` | 60 / 10 min per IP (3 s poll for 60 s, D-52) |
 | `POST /shipping/check-pincode`, `POST /cart/quote` | 60 / min per IP |
 | `POST /checkout/create-order` | 10 / 10 min per IP; 5 / 10 min per phone |

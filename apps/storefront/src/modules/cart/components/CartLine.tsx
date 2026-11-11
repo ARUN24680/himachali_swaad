@@ -2,7 +2,7 @@
 
 import type { CartQuoteLine } from '@pk/shared';
 import { formatINR, multiplyPaise } from '@pk/shared/money';
-import { NonVegMark, cn } from '@pk/ui';
+import { Badge, Button, NonVegMark, cn } from '@pk/ui';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { ProductImage } from '@/components/common/ProductImage';
@@ -40,7 +40,7 @@ export function CartLine({
           unavailable && 'opacity-60 grayscale',
         )}
       >
-        <ProductImage src={line.image} alt="" sizes="88px" />
+        <ProductImage src={line.image} alt={line.title ? `${name} jar` : 'Unavailable product'} sizes="88px" />
       </div>
       <div className="grid min-w-0 gap-2">
         <div className="flex items-start gap-2">
@@ -87,7 +87,13 @@ export function CartLine({
 
         <div className="flex items-center justify-between gap-2">
           {unavailable ? (
-            <span className="text-sm text-muted-foreground">Remove to continue</span>
+            <div className="flex flex-wrap items-center gap-2" data-testid="cart-line-unavailable">
+              <Badge tone="destructive">{line.issue === 'OUT_OF_STOCK' ? 'Sold out' : 'No longer available'}</Badge>
+              <Button type="button" variant="outline" size="sm" className="h-9" onClick={onRemove}>
+                <Trash2 aria-hidden="true" />
+                Remove
+              </Button>
+            </div>
           ) : (
             <QuantityStepper value={quantity} max={max} onChange={onQuantity} itemLabel={name} size="sm" />
           )}

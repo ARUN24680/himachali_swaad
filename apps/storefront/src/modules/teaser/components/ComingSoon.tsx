@@ -1,5 +1,6 @@
 import {
   ArrowUp,
+  BellRing,
   ChevronDown,
   Eye,
   Flame,
@@ -17,13 +18,15 @@ import type { ReactNode } from 'react';
 import Image from 'next/image';
 import logoHorizontal from '@pk/ui/brand/logo-horizontal-dark.png';
 import { HimalayaRange } from './HimalayaRange';
+import { StayInTouch } from './StayInTouch';
 
 /**
  * Public "coming soon" teaser — a scrollable night-in-the-hills story that deliberately says nothing
  * about WHAT is coming: no product, category, food words or imagery. The brand logo sits in the hero's
  * top bar (owner's request, v20); the copy itself never names the brand or the product. Only that
- * something is on its way from Himachal. Server component, no client JS, static (D-51). Token
- * colours only; motion = a ping dot and a slow glow pulse, both off under prefers-reduced-motion.
+ * something is on its way from Himachal. Server component, static (D-51); the only client JS is the
+ * waitlist form (audit R-5) that `StayInTouch` mounts before the closing. Token colours only; motion =
+ * a ping dot and a slow glow pulse, both off under prefers-reduced-motion.
  */
 export function ComingSoon() {
   return (
@@ -36,6 +39,7 @@ export function ComingSoon() {
       <Making />
       <Sealed />
       <WhatWeCanSay />
+      <StayInTouch />
       <Closing />
     </div>
   );
@@ -76,9 +80,19 @@ function Hero() {
           Born in the valleys of Himachal Pradesh, taking its time — and almost ready to make the journey down.
         </p>
 
+        {/* Hero conversion cue (R-5): a quiet gold link to the waitlist, so the hero keeps its mood and stays static */}
+        <a
+          href="#notify"
+          data-testid="hero-notify-link"
+          className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-full border border-primary/40 bg-secondary/60 px-5 text-sm font-semibold text-primary backdrop-blur-sm transition-colors outline-none hover:border-primary hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <BellRing aria-hidden="true" className="size-4" />
+          Be the first to know
+        </a>
+
         <a
           href="#story"
-          className="group mt-8 inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-md px-3 text-[0.6875rem] font-semibold tracking-[0.28em] text-secondary-foreground/85 uppercase outline-none text-shadow-md text-shadow-secondary/80 hover:text-secondary-foreground focus-visible:ring-2 focus-visible:ring-primary"
+          className="group mt-5 inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-md px-3 text-[0.6875rem] font-semibold tracking-[0.28em] text-secondary-foreground/85 uppercase outline-none text-shadow-md text-shadow-secondary/80 hover:text-secondary-foreground focus-visible:ring-2 focus-visible:ring-primary"
         >
           Scroll
           <ChevronDown
@@ -484,6 +498,12 @@ function Closing() {
           <span className="block text-primary italic">the mountains.</span>
         </h2>
         <Pill>Unveiling soon</Pill>
+        <a
+          href="#notify"
+          className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-secondary-foreground/75 underline-offset-4 outline-none hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          Or let us tell you the moment it opens
+        </a>
       </div>
 
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 border-t border-secondary-foreground/10 pt-6 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-[0.6875rem] tracking-[0.24em] text-secondary-foreground/60 uppercase sm:flex-row">

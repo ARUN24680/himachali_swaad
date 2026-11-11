@@ -4,6 +4,8 @@ import { Navigate, Outlet, useLocation } from 'react-router';
 import { FullPageError, FullPageLoading } from '@/components/common/FullPageStatus';
 import { isNetworkError, isSignedOutError, OfflineSessionContext, useMe } from '@/hooks/useMe';
 import { identityToMe, loadIdentity } from '@/lib/offline-cache';
+import { loginUrl } from '@/lib/login-url';
+import { isIdleTimeout } from '@/services/api/http';
 
 const isDeskPath = (p: string) => p === '/desk' || p.startsWith('/desk/');
 
@@ -63,8 +65,10 @@ export function AuthGuard() {
   if (me.data) return outlet(null);
 
   if (signedOut) {
-    const next = location.pathname + location.search;
-    return <Navigate to={next === '/' ? '/login' : `/login?next=${encodeURIComponent(next)}`} replace />;
+    // Server ended an ADMIN session for inactivity (audit R-12) → the login page says so
+    return (
+      <Navigate to={loginUrl({ idle: isIdleTimeout(me.error), next: location.pathname + location.search })} replace />
+    );
   }
 
   if (offlineMe) {

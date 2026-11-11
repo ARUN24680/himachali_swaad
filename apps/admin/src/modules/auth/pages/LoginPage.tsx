@@ -1,6 +1,10 @@
+import { Alert } from '@pk/ui';
+import { Clock } from 'lucide-react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { useMe } from '@/hooks/useMe';
+import { env } from '@/lib/env';
+import { IDLE_REASON } from '@/lib/login-url';
 import { LoginBrandHeader, LoginBrandPanel } from '../components/LoginBrandPanel';
 import { LoginForm } from '../components/LoginForm';
 
@@ -15,6 +19,8 @@ export default function LoginPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const next = safeNext(params.get('next'));
+  // Idle auto-logout (audit R-12 / M-8): say why they are here, calmly — it is not an error
+  const idle = params.get('reason') === IDLE_REASON;
   const me = useMe();
 
   // Already signed in (e.g. opened /login in a second tab) → straight through
@@ -50,6 +56,15 @@ export default function LoginPage() {
               aria-hidden="true"
               className="absolute inset-x-0 top-0 hidden h-1 bg-primary lg:block dark:lg:hidden"
             />
+            {idle && (
+              <Alert tone="info" role="status" data-testid="idle-notice" className="mb-6">
+                <Clock aria-hidden="true" />
+                <span>
+                  You were signed out after {env.VITE_ADMIN_IDLE_MINUTES} minutes of inactivity. Sign in again to carry
+                  on.
+                </span>
+              </Alert>
+            )}
             <LoginForm onSignedIn={() => void navigate(next, { replace: true })} />
           </section>
         </main>

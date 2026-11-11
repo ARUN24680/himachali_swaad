@@ -20,7 +20,9 @@ test('browse → variant toggle → add to cart → reload → cart persists', a
     .getByTestId('product-card')
     .filter({ hasNot: page.getByRole('radio') })
     .first();
-  await expect(single.getByTestId('product-card-size')).toHaveText(/Jar size\s*250 g/);
+  // Audit §3.2 card rework: "Jar size" is the row label, the chip holds the weight
+  await expect(single.getByText('Jar size', { exact: true })).toBeVisible();
+  await expect(single.getByTestId('product-card-size')).toContainText('250 g');
   await expect(single.getByRole('radio')).toHaveCount(0);
 
   // 1) Grid card with two jar sizes: switch to the 500 g jar and add it

@@ -64,12 +64,19 @@ function RoleHint() {
   );
 }
 
+/** The security facts, visibly (audit 2026-11-03 R-4: the page only hinted at 2FA before). */
 function StaffNotice() {
   return (
-    <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-      <Lock aria-hidden="true" className="size-3.5" />
-      Staff access only · activity is logged
-    </p>
+    <div className="grid justify-items-center gap-1.5 text-xs text-muted-foreground">
+      <p className="flex items-center gap-1.5">
+        <ShieldCheck aria-hidden="true" className="size-3.5 text-success" />
+        Admin accounts are protected by two-factor authentication
+      </p>
+      <p className="flex items-center gap-1.5">
+        <Lock aria-hidden="true" className="size-3.5" />
+        Staff access only · sign-in attempts are limited and logged
+      </p>
+    </div>
   );
 }
 

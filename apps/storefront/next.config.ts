@@ -32,18 +32,71 @@ const localImageOrigin =
 const apiOrigin = publicApiUrl ? new URL(publicApiUrl).origin : '';
 
 /**
+ * A localhost / private-network origin must never reach a public HTTPS site's CSP (audit 2026-11-03,
+ * R-8: production shipped `img-src http://localhost:4001` because NEXT_PUBLIC_ASSETS_BASE_URL was left
+ * at the Docker default). In an HTTPS build such origins are dropped (images then come from the same
+ * origin or a real CDN) and the build logs a warning so the misconfiguration is visible.
+ */
+function cspOrigin(origin: string, what: string): string {
+  if (!origin) return '';
+  const { hostname, protocol } = new URL(origin);
+  if (enforceHttps && (isPrivateHost(hostname) || protocol !== 'https:')) {
+    console.warn(`[next.config] ${what} "${origin}" is not a public HTTPS origin — left out of the CSP`);
+    return '';
+  }
+  return origin;
+}
+const imageCspOrigin = cspOrigin(imagePattern.origin, 'NEXT_PUBLIC_ASSETS_BASE_URL');
+const apiCspOrigin = cspOrigin(apiOrigin, 'NEXT_PUBLIC_API_URL');
+
+/**
  * Security headers (Phase 10 §10.1, D-57). script-src keeps 'unsafe-inline' for Next's inline
  * hydration scripts — a nonce would make every page dynamic (no ISR / static product pages);
  * everything else is an explicit allowlist: Razorpay Checkout, GA4 + Meta Pixel (consent-gated),
  * Sentry, the API and the image CDN.
  */
+/** Joins sources, dropping blanks so an unset origin never leaves a double space in the header. */
+const directive = (name: string, ...sources: string[]) => [name, ...sources.filter(Boolean)].join(' ');
+
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://checkout.razorpay.com https://www.googletagmanager.com https://connect.facebook.net`,
+  directive(
+    'script-src',
+    "'self'",
+    "'unsafe-inline'",
+    isDev ? "'unsafe-eval'" : '',
+    'https://checkout.razorpay.com',
+    'https://www.googletagmanager.com',
+    'https://connect.facebook.net',
+  ),
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${imagePattern.origin} https://*.razorpay.com https://www.facebook.com https://www.googletagmanager.com https://*.google-analytics.com`,
+  directive(
+    'img-src',
+    "'self'",
+    'data:',
+    'blob:',
+    imageCspOrigin,
+    'https://*.razorpay.com',
+    'https://www.facebook.com',
+    'https://www.googletagmanager.com',
+    'https://*.google-analytics.com',
+  ),
   "font-src 'self' data:",
-  `connect-src 'self' ${apiOrigin} https://api.razorpay.com https://lumberjack.razorpay.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net https://*.ingest.sentry.io https://*.ingest.us.sentry.io${isDev ? ' ws: http://localhost:*' : ''}`,
+  directive(
+    'connect-src',
+    "'self'",
+    apiCspOrigin,
+    'https://api.razorpay.com',
+    'https://lumberjack.razorpay.com',
+    'https://*.google-analytics.com',
+    'https://*.analytics.google.com',
+    'https://www.googletagmanager.com',
+    'https://www.facebook.com',
+    'https://connect.facebook.net',
+    'https://*.ingest.sentry.io',
+    'https://*.ingest.us.sentry.io',
+    isDev ? 'ws: http://localhost:*' : '',
+  ),
   'frame-src https://api.razorpay.com https://checkout.razorpay.com',
   "object-src 'none'",
   "base-uri 'self'",

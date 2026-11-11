@@ -32,3 +32,24 @@ export function stockLabel(badge: StockBadge, sellable: number): string {
 
 export const shelfLifeLabel = (days: number) =>
   days % 30 === 0 && days >= 60 ? `${days / 30} months (${days} days)` : `${days} days`;
+
+/**
+ * Long-tail search phrasing derived from the product's own data (audit R-17) — never a hardcoded
+ * product name. "Himachali chicken pickle online", "Kangra mutton pickle" etc. The product title stays
+ * the H1; these feed the eyebrow/subtitle and `generateMetadata`.
+ */
+export function seoPhrases(product: {
+  title: string;
+  meatType: MeatType;
+  netWeightG: number;
+  shortDescription: string | null;
+}) {
+  const meat = MEAT_LABEL[product.meatType].toLowerCase();
+  const weight = formatWeight(product.netWeightG);
+  const eyebrow = `Himachali ${meat} pickle · ${weight} jar`;
+  const subtitle = `Small-batch Kangra ${meat} pickle, slow-cooked in cold-pressed mustard oil with hand-pounded Pahadi spices. No added preservatives.`;
+  const metaTitle = `${product.title} (${weight}) — Himachali ${meat} pickle online`;
+  const lead = product.shortDescription?.replace(/\.?\s*$/, '') ?? `Kangra ${meat} pickle in mustard oil`;
+  const metaDescription = `Buy ${product.title}, a small-batch Himachali ${meat} pickle from Kangra. ${lead}. ${weight} glass jar, no added preservatives, prepaid delivery across India.`;
+  return { eyebrow, subtitle, metaTitle, metaDescription: metaDescription.slice(0, 300) };
+}

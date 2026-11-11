@@ -1,5 +1,6 @@
 import type { ProductListResponse } from '@pk/shared';
 import { Leaf, Hourglass, ScanLine, Truck } from 'lucide-react';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { SectionHeading } from '@/components/common/SectionHeading';
 import { StateMessage } from '@/components/common/StateMessage';
 import { ProductGrid, ProductGridSkeleton } from './ProductGrid';
@@ -7,6 +8,7 @@ import { ProductGrid, ProductGridSkeleton } from './ProductGrid';
 function ListingHeader() {
   return (
     <div className="grid gap-6">
+      <Breadcrumbs items={[{ name: 'Pickles', href: '/products' }]} />
       <SectionHeading
         as="h1"
         eyebrow="The pantry"

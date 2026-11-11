@@ -45,6 +45,9 @@ export function Sidebar({ items }: { items: NavItem[] }) {
                       <NavLink
                         to={to}
                         end={end}
+                        // The 768–1023px rail hides the text label → keep an accessible name + hover tooltip
+                        aria-label={label}
+                        title={label}
                         className={({ isActive }) =>
                           cn(
                             'group flex min-h-11 items-center justify-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary lg:justify-start',

@@ -1,11 +1,11 @@
 import type { ProductDetail } from '@pk/shared';
 import { Badge, NonVegMark } from '@pk/ui';
-import { ChevronRight, Droplets, Leaf, Mountain, Truck } from 'lucide-react';
-import Link from 'next/link';
+import { Droplets, Leaf, Mountain, Truck } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { PendingValue } from '@/components/common/PendingValue';
-import { seller } from '@/config/site';
-import { MEAT_LABEL, formatDate, formatWeight, shelfLifeLabel } from '../lib/format';
+import { origin, seller } from '@/config/site';
+import { formatDate, formatWeight, seoPhrases, shelfLifeLabel } from '../lib/format';
 import { NutritionTable } from './NutritionTable';
 import { PincodeChecker } from './PincodeChecker';
 import { ProductGallery } from './ProductGallery';
@@ -25,6 +25,7 @@ const DEFAULT_STORAGE =
 export function ProductDetailView({ product }: { product: ProductDetail }) {
   const fssai = product.fssaiLicenseNo ?? seller.fssaiLicenseNo;
   const weight = formatWeight(product.netWeightG);
+  const seo = seoPhrases(product);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-4 pb-28 md:px-8 md:pt-6 md:pb-20">
@@ -38,31 +39,13 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
         }}
       />
 
-      <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted-foreground md:mb-6">
-        <ol className="flex flex-wrap items-center gap-1">
-          <li>
-            <Link
-              href="/"
-              className="inline-flex min-h-11 items-center rounded-sm hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:min-h-0"
-            >
-              Home
-            </Link>
-          </li>
-          <ChevronRight aria-hidden="true" className="size-3.5" />
-          <li>
-            <Link
-              href="/products"
-              className="inline-flex min-h-11 items-center rounded-sm hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:min-h-0"
-            >
-              Pickles
-            </Link>
-          </li>
-          <ChevronRight aria-hidden="true" className="size-3.5" />
-          <li aria-current="page" className="truncate text-foreground">
-            {product.title}
-          </li>
-        </ol>
-      </nav>
+      <Breadcrumbs
+        className="mb-4 md:mb-6"
+        items={[
+          { name: 'Pickles', href: '/products' },
+          { name: product.title, href: `/products/${product.slug}` },
+        ]}
+      />
 
       <div className="grid gap-8 md:grid-cols-2 md:gap-10 lg:gap-14">
         <div className="md:sticky md:top-24 md:self-start">
@@ -73,13 +56,17 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
           <div className="grid gap-3">
             <p className="flex items-center gap-2 text-xs font-semibold tracking-[0.12em] text-accent-foreground uppercase">
               <NonVegMark size="md" />
-              <span>Non-veg · {MEAT_LABEL[product.meatType]} pickle</span>
+              <span>Non-veg · {seo.eyebrow}</span>
             </p>
             <h1 className="font-serif text-3xl leading-tight font-medium text-balance text-foreground md:text-4xl">
               {product.title}
             </h1>
+            {/* Keyword-rich subtitle (audit R-17), derived from meat type + weight — never hardcoded */}
+            <p className="text-sm leading-relaxed text-pretty text-muted-foreground" data-testid="product-subtitle">
+              {seo.subtitle}
+            </p>
             {product.shortDescription && (
-              <p className="text-base leading-relaxed text-muted-foreground md:text-lg">{product.shortDescription}</p>
+              <p className="text-base leading-relaxed text-foreground/90 md:text-lg">{product.shortDescription}</p>
             )}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
               <span className="tabular-nums">Net wt. {weight}</span>
@@ -117,7 +104,7 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
           <ul className="grid grid-cols-2 gap-3 text-sm">
             <Assurance icon={<Droplets />} title="Cold-pressed mustard oil" />
             <Assurance icon={<Leaf />} title="No added preservatives" />
-            <Assurance icon={<Mountain />} title="Small batches, Himachal kitchen" />
+            <Assurance icon={<Mountain />} title={`Made in ${origin.place}`} />
             <Assurance icon={<Truck />} title="Prepaid, tracked delivery" />
           </ul>
         </div>
@@ -186,7 +173,7 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
                   <LabelRow term="Best before">{formatDate(product.currentBatch.expiryDate)}</LabelRow>
                 </>
               )}
-              <LabelRow term="Country of origin">India</LabelRow>
+              <LabelRow term="Country of origin">India ({origin.place})</LabelRow>
               <LabelRow term="Marketed by">
                 <PendingValue value={seller.legalName} label="Seller legal entity" />
               </LabelRow>

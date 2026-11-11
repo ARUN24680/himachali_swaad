@@ -1,0 +1,3 @@
+# Not the production site (staging / preview) - do not index.
+User-agent: *
+Disallow: /

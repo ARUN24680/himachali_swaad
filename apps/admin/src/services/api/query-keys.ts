@@ -1,6 +1,7 @@
 import type {
   AdminCustomersQuerySchema,
   AdminOrdersQuery,
+  AdminWaitlistQuery,
   AuditLogQuerySchema,
   BatchListQuery,
   ExpensesQuerySchema,
@@ -52,6 +53,11 @@ export const queryKeys = {
     all: ['admin', 'customers'] as const,
     list: (q: z.input<typeof AdminCustomersQuerySchema>) => ['admin', 'customers', 'list', q] as const,
     detail: (phone: string) => ['admin', 'customers', 'detail', phone] as const,
+  },
+  /** Audit 2026-11-03 (R-5): pre-launch waitlist sign-ups — ADMIN only, PII. */
+  waitlist: {
+    all: ['admin', 'waitlist'] as const,
+    list: (q: AdminWaitlistQuery) => ['admin', 'waitlist', 'list', q] as const,
   },
   settings: ['admin', 'settings'] as const,
   staff: ['admin', 'staff'] as const,

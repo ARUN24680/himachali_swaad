@@ -1,6 +1,6 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { mockAdminApi } from './support/admin-api';
-import { expectNoHorizontalOverflow } from './support/catalog-api';
+import { expectNoHorizontalOverflow, ORIGIN } from './support/catalog-api';
 import { evidenceShot } from './support/evidence';
 
 /**
@@ -242,7 +242,7 @@ test('loading skeleton, error state with retry, and empty state', async ({ page 
     route.fulfill({
       status: 500,
       contentType: 'application/json',
-      headers: { 'access-control-allow-origin': 'http://localhost:5173', 'access-control-allow-credentials': 'true' },
+      headers: { 'access-control-allow-origin': ORIGIN, 'access-control-allow-credentials': 'true' },
       body: JSON.stringify({
         success: false,
         data: null,

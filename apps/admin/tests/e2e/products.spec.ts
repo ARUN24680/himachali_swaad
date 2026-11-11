@@ -1,5 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { expectNoHorizontalOverflow, mockCatalogApi } from './support/catalog-api';
+import { expectNoHorizontalOverflow, mockCatalogApi, ORIGIN } from './support/catalog-api';
 
 /**
  * Phase 3 §3.7 — admin Products screens at 375 / 768 / 1440 (viewport projects), light + dark.
@@ -129,7 +129,7 @@ test('publish refused by the server (422) lists what is missing', async ({ page 
   await page.route(`**/admin/products/${trout?.id}/publish`, (route) =>
     route.fulfill({
       status: 422,
-      headers: { 'access-control-allow-origin': 'http://localhost:5173', 'access-control-allow-credentials': 'true' },
+      headers: { 'access-control-allow-origin': ORIGIN, 'access-control-allow-credentials': 'true' },
       contentType: 'application/json',
       body: JSON.stringify({
         success: false,

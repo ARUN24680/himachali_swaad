@@ -122,6 +122,7 @@ settings · webhook_events · invoice_sequences · admin_audit_log · push_subsc
 | `0006_settlements.sql` | `expenses`, `settlements`, `settlement_items` | Phase 9 |
 | `0007_performance_indexes.sql` | indexes only (orders created/confirmed/location+status, webhook errors, notifications recipient, expenses open/settlement) — D-57 e | Phase 10 |
 | `0008_demo_catalog.sql` | `demo_catalog_products`: optional development-fixture ownership and `cleared_at`; clear hides demos while preserving order references and append-only inventory/audit history. No fixture data is inserted by migration. | Development tooling |
+| `0009_waitlist.sql` | `waitlist_entries` — pre-launch waitlist from `/coming-soon` (phone and/or e-mail, explicit consent, IP stored only as HMAC) — D-64 g | Audit fixes (2026-11-03) |
 | *v2 backlog* | `coupons`, `reviews`, `carts` (abandoned cart), `ndr_actions`, COD fields | Post-launch |
 
 ---
@@ -748,6 +749,39 @@ CREATE TRIGGER trg_expenses_updated_at BEFORE UPDATE ON expenses FOR EACH ROW EX
 -- migrate:down
 DROP TABLE IF EXISTS expenses, settlement_items, settlements;
 DROP TYPE IF EXISTS settlement_status, expense_category;
+```
+
+---
+
+## 📝 `0009_waitlist.sql` (audit fixes, D-64 g)
+
+Public `POST /api/v1/waitlist` writes here (5 / 10 min per IP); a duplicate phone or e-mail is a silent no-op (`ON CONFLICT DO NOTHING`, response `alreadyJoined: true` — never a 409, so the list can't be probed). ADMIN reads it via `GET /api/v1/admin/waitlist` and `export.csv` (audited). PII: phone/e-mail are only shown to ADMIN; the visitor IP is never stored, only `ip_hash`.
+
+```sql
+-- Pre-launch waitlist (audit 2026-11-03, R-5): the public /coming-soon teaser collects a phone number
+-- and/or e-mail with explicit consent (DPDP) so launch traffic is not wasted. No login (D-18).
+-- Duplicate phone / e-mail is a no-op for the visitor (INSERT ... ON CONFLICT DO NOTHING).
+-- migrate:up
+CREATE TABLE waitlist_entries (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone       VARCHAR(16),                             -- E.164: +91XXXXXXXXXX
+  email       VARCHAR(254),                            -- lower-cased by the API
+  name        VARCHAR(80),
+  source      VARCHAR(20) NOT NULL CHECK (source IN ('coming-soon', 'storefront')),
+  consent_at  TIMESTAMPTZ NOT NULL,                    -- "notify me when the store opens"
+  ip_hash     CHAR(64),                                -- HMAC-SHA256 of the client IP, never the IP
+  user_agent  VARCHAR(300),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT waitlist_contact_required CHECK (phone IS NOT NULL OR email IS NOT NULL)
+);
+CREATE UNIQUE INDEX uq_waitlist_phone ON waitlist_entries(phone) WHERE phone IS NOT NULL;
+CREATE UNIQUE INDEX uq_waitlist_email ON waitlist_entries(email) WHERE email IS NOT NULL;
+CREATE INDEX idx_waitlist_created ON waitlist_entries(created_at DESC);
+CREATE TRIGGER trg_waitlist_updated_at BEFORE UPDATE ON waitlist_entries FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- migrate:down
+DROP TABLE IF EXISTS waitlist_entries;
 ```
 
 ---

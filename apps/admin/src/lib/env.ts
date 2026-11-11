@@ -12,6 +12,14 @@ const PublicEnvSchema = z.object({
   VITE_SENTRY_ENVIRONMENT: z.preprocess(emptyToUndefined, z.string().optional()),
   // Phase 10 §10.3: git SHA set by the deploy, matches the uploaded source maps
   VITE_RELEASE: z.preprocess(emptyToUndefined, z.string().optional()),
+  /**
+   * Audit 2026-11-03 (R-12 / M-8): ADMIN sessions end after this many minutes without activity in
+   * any admin tab (1–1440). Must match the server's idle limit so the client warning and the
+   * refresh refusal agree. KITCHEN_PARTNER desk sessions are never idle-logged-out.
+   */
+  VITE_ADMIN_IDLE_MINUTES: z
+    .preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(1440).optional())
+    .default(30),
 });
 
 /** Validate explicit API URLs; an omitted URL uses the current origin. */

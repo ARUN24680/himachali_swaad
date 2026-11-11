@@ -42,6 +42,34 @@ export const seller = {
   },
 } as const;
 
+/**
+ * Social profiles (audit 2026-11-03 §3.4). Each link renders only when its URL is set — a blank value
+ * hides the icon instead of shipping a dead link. Also feeds `sameAs` in the Organization JSON-LD.
+ */
+const socialUrl = (value: string | undefined): string | null => {
+  const url = v(value);
+  return url && /^https:\/\//i.test(url) ? url : null;
+};
+
+export const social = {
+  instagram: socialUrl(process.env.NEXT_PUBLIC_SOCIAL_INSTAGRAM_URL),
+  facebook: socialUrl(process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK_URL),
+  youtube: socialUrl(process.env.NEXT_PUBLIC_SOCIAL_YOUTUBE_URL),
+} as const;
+
+export type SocialNetwork = keyof typeof social;
+
+/** `[network, url]` pairs for the networks that are actually published. */
+export const publishedSocialLinks = (): [SocialNetwork, string][] =>
+  (Object.entries(social) as [SocialNetwork, string | null][]).filter((e): e is [SocialNetwork, string] => !!e[1]);
+
+/** Where the jars are made — a fixed brand fact (origin proof, R-7), not a seller identifier. */
+export const origin = {
+  place: 'Kangra, Himachal Pradesh',
+  region: 'Himachal Pradesh',
+  country: 'IN',
+} as const;
+
 /** Policy facts tied to open business questions. Text values, rendered verbatim when set. */
 export const policy = {
   /** Q-03 — e.g. "₹999" or "3 jars". Live progress in the cart always comes from the quote API. */

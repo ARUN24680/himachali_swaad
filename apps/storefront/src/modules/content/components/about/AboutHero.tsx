@@ -2,6 +2,7 @@ import { buttonVariants, cn } from '@pk/ui';
 import { ArrowDown, ArrowRight, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { AboutBackdrop } from './AboutBackdrop';
 
 /**
@@ -19,6 +20,7 @@ export function AboutHero() {
 
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-8 pb-16 sm:pb-20 md:grid-cols-12 md:gap-8 md:px-8 md:pt-14 md:pb-24 lg:gap-16 lg:pt-16 lg:pb-28">
         <div className="grid gap-5 md:col-span-7 md:gap-6">
+          <Breadcrumbs tone="inverse" className="-mt-3 md:-mt-6" items={[{ name: 'Our story', href: '/about' }]} />
           <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
             <MapPin className="size-3.5" aria-hidden="true" />
             Our story · Himachal Pradesh

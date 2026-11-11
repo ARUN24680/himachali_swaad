@@ -6,6 +6,7 @@ import { ConsentPreferencesButton } from '@/modules/analytics';
 import { CartButton, CartRoot } from '@/modules/cart';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { SiteHeader } from '@/components/layout/SiteHeader';
+import { TrustStrip } from '@/components/layout/TrustStrip';
 
 /**
  * Store chrome: skip link, header, main landmark, footer (legal links + seller details), cart drawer
@@ -25,6 +26,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       <main id="main" className="flex-1">
         {children}
       </main>
+      <TrustStrip />
       <SiteFooter consentControl={<ConsentPreferencesButton />} />
       <CartRoot />
       <JsonLd data={organizationJsonLd()} />

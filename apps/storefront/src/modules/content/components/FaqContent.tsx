@@ -1,6 +1,7 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@pk/ui';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import { SectionHeading } from '@/components/common/SectionHeading';
 
 export const FAQ_GROUPS: { title: string; items: { q: string; a: ReactNode; text: string }[] }[] = [
@@ -89,20 +90,23 @@ export const FAQ_GROUPS: { title: string; items: { q: string; a: ReactNode; text
 export function FaqContent() {
   return (
     <div className="mx-auto grid max-w-3xl gap-10 px-4 py-10 md:px-8 md:py-14">
-      <SectionHeading
-        as="h1"
-        eyebrow="Help"
-        title="Frequently asked questions"
-        lead={
-          <>
-            Can&rsquo;t find your answer?{' '}
-            <Link href="/contact" className="font-medium text-accent-foreground underline underline-offset-4">
-              Contact us
-            </Link>
-            .
-          </>
-        }
-      />
+      <div className="grid gap-6">
+        <Breadcrumbs items={[{ name: 'FAQ', href: '/faq' }]} />
+        <SectionHeading
+          as="h1"
+          eyebrow="Help"
+          title="Frequently asked questions"
+          lead={
+            <>
+              Can&rsquo;t find your answer?{' '}
+              <Link href="/contact" className="font-medium text-accent-foreground underline underline-offset-4">
+                Contact us
+              </Link>
+              .
+            </>
+          }
+        />
+      </div>
       {FAQ_GROUPS.map((group) => (
         <section key={group.title} aria-label={group.title} className="grid gap-2">
           <h2 className="font-serif text-2xl font-medium text-foreground">{group.title}</h2>

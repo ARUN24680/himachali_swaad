@@ -1,7 +1,8 @@
 'use client';
 
 import type { ProductCard as ProductCardData } from '@pk/shared';
-import { NonVegMark, ToggleGroup, ToggleGroupItem, cn } from '@pk/ui';
+import { Badge, NonVegMark, ToggleGroup, ToggleGroupItem, cn } from '@pk/ui';
+import { Hourglass } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { PriceTag } from '@/components/common/PriceTag';
@@ -23,8 +24,10 @@ const photoFor = (product: ProductCardData, variants: ProductCardData[]) =>
  * One product group (same recipe, 250 g ↔ 500 g jars). The weight pills swap price, stock, photo and
  * the link target in place; Add to cart is instant (local store).
  *
- * Anatomy: inset photo (framed like a jar label) → eyebrow + spice → title + description (height
- * reserved as one block) → hairline → price anchor + jar-size pills → Add to cart.
+ * Anatomy (audit §3.2): inset photo (non-veg mark, sold-out stamp) → eyebrow + spice → title +
+ * description (height reserved as one block) → hairline → jar-size pills → price for the selected jar
+ * (one unit: "₹449 · 250 g jar") + the stock line, always shown (In stock / Only N left / Sold out,
+ * with a "Limited batch" tag on low stock) → full-width primary Add to cart.
  *
  * `compact` (home quick-shop): 4:3 photo and a one-line description — same footer, shorter card.
  */
@@ -43,6 +46,8 @@ export function ProductCard({
   const product = variants.find((v) => v.id === selectedId) ?? variants[0]!;
   const href = `/products/${product.slug}`;
   const soldOut = product.stockBadge === 'SOLD_OUT';
+  const lowStock = product.stockBadge === 'LOW_STOCK';
+  const weight = formatWeight(product.netWeightG);
 
   return (
     <article
@@ -54,12 +59,13 @@ export function ProductCard({
         'has-[a:focus-visible]:border-ring',
       )}
       data-testid="product-card"
+      data-stock={product.stockBadge}
     >
       {/* The title link's ::after covers the whole card, so the photo needs no link of its own */}
       <div className="relative p-2 pb-0">
         <ProductImage
           src={photoFor(product, variants)}
-          alt=""
+          alt={`${product.title}, ${weight} jar`}
           sizes={sizes}
           priority={priority}
           zoomOnHover
@@ -69,12 +75,13 @@ export function ProductCard({
           <NonVegMark size="md" />
           <span aria-hidden="true">Non-veg</span>
         </span>
-        {product.stockBadge !== 'IN_STOCK' && (
-          <StockBadge
-            badge={product.stockBadge}
-            sellable={product.sellableStock}
-            className="absolute top-4 right-4 bg-card/95 shadow-float"
-          />
+        {soldOut && (
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-2 bottom-2 grid place-items-center rounded-b-lg bg-secondary/80 py-2 text-xs font-semibold tracking-[0.18em] text-secondary-foreground uppercase backdrop-blur-sm"
+          >
+            Sold out
+          </span>
         )}
       </div>
 
@@ -115,12 +122,32 @@ export function ProductCard({
         </div>
 
         <div className={cn('mt-auto grid gap-3 border-t border-border', compact ? 'pt-3' : 'pt-4')}>
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-            <PriceTag pricePaise={product.pricePaise} comparePricePaise={product.comparePricePaise} />
-            <SizeRow variants={variants} selected={product} onSelect={setSelectedId} />
+          <SizeRow variants={variants} selected={product} onSelect={setSelectedId} />
+
+          {/* Selected jar + its price read as one unit; the stock line sits right under them */}
+          <div className="grid gap-1.5">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <PriceTag pricePaise={product.pricePaise} comparePricePaise={product.comparePricePaise} />
+              <span className="text-sm text-muted-foreground tabular-nums">
+                <span aria-hidden="true">· </span>
+                <span className="sr-only">for the </span>
+                {weight} jar
+              </span>
+            </div>
+            <div className="flex min-h-6 flex-wrap items-center gap-2" data-testid="product-card-stock">
+              <StockBadge badge={product.stockBadge} sellable={product.sellableStock} />
+              {lowStock && (
+                <Badge tone="batch" className="gap-1">
+                  <Hourglass aria-hidden="true" className="size-3" />
+                  Limited batch
+                </Badge>
+              )}
+              {!compact && !soldOut && <span className="text-xs text-muted-foreground">MRP incl. of all taxes</span>}
+            </div>
           </div>
-          {product.stockBadge === 'IN_STOCK' && <span className="sr-only">In stock</span>}
+
           <AddToCartButton
+            size="lg"
             className="relative z-10 w-full"
             product={{
               productId: product.id,
@@ -141,8 +168,8 @@ const PILL_FRAME = 'inline-flex h-8 shrink-0 items-center rounded-full';
 
 /**
  * Jar size. Two or more jars → small segmented pills (Radix ToggleGroup: radios, arrow-key roving
- * focus); each pill is 32px to look light but its hit area extends to 44px (Rules §1.1). One jar →
- * a quiet outlined "250 g" chip in the same frame: a fact, not a control (no focus stop, no hover).
+ * focus) under a "Jar size" label; each pill is 32px to look light but its hit area extends to 44px
+ * (Rules §1.1). One jar → a quiet outlined "250 g" chip in the same frame: a fact, not a control.
  * The selected / only weight is the card's net-quantity declaration.
  */
 function SizeRow({
@@ -156,41 +183,47 @@ function SizeRow({
 }) {
   if (variants.length > 1) {
     return (
-      <ToggleGroup
-        type="single"
-        value={selected.id}
-        onValueChange={(id) => id && onSelect(id)}
-        aria-label={`Jar size for ${selected.title}`}
-        className={cn(PILL_FRAME, 'relative z-10 w-auto gap-0.5 border-border bg-muted p-0.5')}
-      >
-        {variants.map((v) => (
-          <ToggleGroupItem
-            key={v.id}
-            value={v.id}
-            aria-label={`${formatWeight(v.netWeightG)} jar`}
-            className={cn(
-              'relative min-h-0 flex-none self-stretch rounded-full px-3 text-xs',
-              // Invisible hit-area extension: 28px pill → 44px tap target
-              "before:absolute before:inset-x-0 before:-inset-y-2 before:content-['']",
-              'data-[state=on]:bg-card data-[state=on]:shadow-none data-[state=on]:ring-border',
-            )}
-          >
-            <span className="tabular-nums">{formatWeight(v.netWeightG)}</span>
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">Jar size</span>
+        <ToggleGroup
+          type="single"
+          value={selected.id}
+          onValueChange={(id) => id && onSelect(id)}
+          aria-label={`Jar size for ${selected.title}`}
+          className={cn(PILL_FRAME, 'relative z-10 w-auto gap-0.5 border-border bg-muted p-0.5')}
+        >
+          {variants.map((v) => (
+            <ToggleGroupItem
+              key={v.id}
+              value={v.id}
+              aria-label={`${formatWeight(v.netWeightG)} jar${v.stockBadge === 'SOLD_OUT' ? ', sold out' : ''}`}
+              className={cn(
+                'relative min-h-0 flex-none self-stretch rounded-full px-3 text-xs',
+                // Invisible hit-area extension: 28px pill → 44px tap target
+                "before:absolute before:inset-x-0 before:-inset-y-2 before:content-['']",
+                'data-[state=on]:bg-card data-[state=on]:shadow-none data-[state=on]:ring-border',
+                v.stockBadge === 'SOLD_OUT' && 'text-muted-foreground line-through decoration-muted-foreground/60',
+              )}
+            >
+              <span className="tabular-nums">{formatWeight(v.netWeightG)}</span>
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
     );
   }
 
   return (
-    // No z-10: a click on the static chip falls through to the title link's card-wide ::after.
-    <p
-      className={cn(PILL_FRAME, 'border border-border px-3 text-xs font-medium text-muted-foreground')}
-      data-testid="product-card-size"
-    >
-      <span className="sr-only">Jar size </span>
-      <span className="tabular-nums">{formatWeight(selected.netWeightG)}</span>
-      <span className="sr-only">, only size available</span>
-    </p>
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">Jar size</span>
+      {/* No z-10: a click on the static chip falls through to the title link's card-wide ::after. */}
+      <p
+        className={cn(PILL_FRAME, 'border border-border px-3 text-xs font-medium text-muted-foreground')}
+        data-testid="product-card-size"
+      >
+        <span className="tabular-nums">{formatWeight(selected.netWeightG)}</span>
+        <span className="sr-only">, only size available</span>
+      </p>
+    </div>
   );
 }

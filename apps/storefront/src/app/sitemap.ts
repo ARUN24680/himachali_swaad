@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { legalNav } from '@/config/navigation';
 import { absoluteUrl } from '@/lib/seo';
+import { BLOG_POSTS } from '@/modules/blog';
 import { catalogApi } from '@/modules/catalog';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -10,6 +11,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/about'), changeFrequency: 'monthly', priority: 0.5 },
     { url: absoluteUrl('/faq'), changeFrequency: 'monthly', priority: 0.5 },
     { url: absoluteUrl('/contact'), changeFrequency: 'yearly', priority: 0.4 },
+    { url: absoluteUrl('/blog'), changeFrequency: 'weekly', priority: 0.6 },
+    ...BLOG_POSTS.map((p) => ({
+      url: absoluteUrl(`/blog/${p.slug}`),
+      lastModified: p.updatedAt ?? p.publishedAt,
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+      images: [absoluteUrl(p.image.src)],
+    })),
     ...legalNav.map((l) => ({ url: absoluteUrl(l.href), changeFrequency: 'yearly' as const, priority: 0.2 })),
   ];
   try {

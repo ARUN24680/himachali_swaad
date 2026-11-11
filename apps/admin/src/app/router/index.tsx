@@ -31,6 +31,7 @@ import { OpsPage } from '@/modules/queues';
 import { SettingsPage } from '@/modules/settings';
 import { SettlementDetailPage, SettlementsListPage } from '@/modules/settlements';
 import { StaffListPage } from '@/modules/staff';
+import { WaitlistPage } from '@/modules/waitlist';
 
 const LoginPage = lazy(() => import('@/modules/auth/pages/LoginPage'));
 const AccountPage = lazy(() => import('@/modules/home/pages/AccountPage'));
@@ -125,6 +126,7 @@ export const router = createBrowserRouter(
                 gated('customers:read', [
                   { path: 'customers', element: <CustomersListPage /> },
                   { path: 'customers/:phone', element: <CustomerDetailPage /> },
+                  { path: 'waitlist', element: <WaitlistPage /> }, // audit 2026-11-03 R-5 (PII, ADMIN)
                 ]),
                 gated('settlements:manage', [
                   { path: 'settlements', element: <SettlementsListPage /> },

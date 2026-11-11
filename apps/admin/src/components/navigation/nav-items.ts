@@ -6,6 +6,7 @@ import {
   FileDown,
   HandCoins,
   LayoutDashboard,
+  ListPlus,
   Package,
   ReceiptIndianRupee,
   ScrollText,
@@ -44,6 +45,8 @@ const NAV_ITEMS: readonly NavItem[] = [
   },
   { to: '/orders', label: 'Orders', icon: ShoppingBag, capability: 'orders:all', group: 'Operations', primary: true },
   { to: '/customers', label: 'Customers', icon: Users, capability: 'customers:read', group: 'Operations' },
+  // Audit 2026-11-03 (R-5): coming-soon sign-ups, same PII gate as customers (ADMIN only)
+  { to: '/waitlist', label: 'Waitlist', icon: ListPlus, capability: 'customers:read', group: 'Operations' },
   { to: '/desk', label: 'Packing desk', icon: ClipboardCheck, capability: 'packing:operate', group: 'Operations' },
   { to: '/products', label: 'Products', icon: Package, capability: 'catalog:manage', group: 'Catalog & stock' },
   {

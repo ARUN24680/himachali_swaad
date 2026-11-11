@@ -1,6 +1,8 @@
 import type { ChangePasswordRequest, MeResponse, StaffLoginRequest } from '@pk/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { useNavigate } from 'react-router';
+import { loginUrl } from '@/lib/login-url';
 import { clearOfflineData } from '@/lib/offline-cache';
 import { isApiError } from '@/services/api/http';
 import { queryKeys } from '@/services/api/query-keys';
@@ -34,6 +36,26 @@ export function useSignOut({ everywhere = false }: { everywhere?: boolean } = {}
       if (isApiError(err, 'UNAUTHENTICATED')) done(); // already signed out server-side
     },
   });
+}
+
+/**
+ * Idle auto-logout (audit R-12 / M-8): end the session because the admin walked away. The logout
+ * call is best effort — the point is that THIS device forgets everything and lands on
+ * /login?reason=idle, which explains what happened. Runs at most once per call site.
+ */
+export function useIdleSignOut() {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  return useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      /* already signed out server-side, or offline — the client still signs out */
+    }
+    qc.clear();
+    void clearOfflineData();
+    void navigate(loginUrl({ idle: true }), { replace: true });
+  }, [qc, navigate]);
 }
 
 export function useTotpSetup() {

@@ -27,14 +27,20 @@ export function ProductGallery({ images, title }: { images: string[]; title: str
               <button
                 type="button"
                 onClick={() => setActive(i)}
-                aria-label={`Show photo ${i + 1}`}
+                aria-label={`Show photo ${i + 1} of ${images.length}`}
                 aria-current={i === active ? 'true' : undefined}
                 className={cn(
                   'relative block size-16 overflow-hidden rounded-md border-2 outline-none focus-visible:ring-2 focus-visible:ring-ring sm:size-20',
                   i === active ? 'border-primary' : 'border-transparent opacity-80 hover:opacity-100',
                 )}
               >
-                <Image src={resolveAssetUrl(img)} alt="" fill sizes="80px" className="object-cover" />
+                <Image
+                  src={resolveAssetUrl(img)}
+                  alt={`${title} — thumbnail ${i + 1} of ${images.length}`}
+                  fill
+                  sizes="80px"
+                  className="object-cover"
+                />
               </button>
             </li>
           ))}

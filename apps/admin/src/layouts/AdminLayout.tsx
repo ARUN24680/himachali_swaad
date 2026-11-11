@@ -3,23 +3,28 @@ import { cn } from '@pk/ui';
 import { ExternalLink, Store } from 'lucide-react';
 import { Suspense } from 'react';
 import { Link, Outlet } from 'react-router';
+import { IdleWarningDialog } from '@/components/common/IdleWarningDialog';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { Toaster } from '@/components/feedback/Toaster';
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { navItemsFor } from '@/components/navigation/nav-items';
 import { Sidebar } from '@/components/navigation/Sidebar';
+import { useIdleLogout } from '@/hooks/useIdleLogout';
 import { useMe } from '@/hooks/useMe';
 import { env } from '@/lib/env';
-import { UserMenu } from '@/modules/auth';
+import { useIdleSignOut, UserMenu } from '@/modules/auth';
 
 /**
  * Signed-in shell (Phase 3 §3.7): sidebar / icon rail on tablet+desktop, bottom nav on phones,
  * role-aware items. The partner Packing Desk gets its own PartnerLayout in Phase 7.
+ * ADMIN sessions are idle-logged-out from here (audit R-12 / M-8) — never the desk (offline for hours).
  */
 export function AdminLayout() {
   const me = useMe();
   const items = me.data ? navItemsFor(me.data.user.role) : [];
   const hasBottomNav = items.length >= 2;
+  const idleSignOut = useIdleSignOut();
+  const idle = useIdleLogout({ enabled: me.data?.user.role === 'ADMIN', onExpire: idleSignOut });
 
   return (
     <div className="flex min-h-dvh bg-background text-foreground">
@@ -79,6 +84,13 @@ export function AdminLayout() {
         </main>
       </div>
       <BottomNav items={items} />
+      <IdleWarningDialog
+        open={idle.warning}
+        secondsLeft={idle.secondsLeft}
+        limitMinutes={idle.limitMinutes}
+        onStay={idle.stay}
+        onSignOut={() => void idleSignOut()}
+      />
       <Toaster />
     </div>
   );

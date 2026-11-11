@@ -1,6 +1,5 @@
 import type { ProductListResponse } from '@pk/shared';
 import type { Metadata } from 'next';
-import { connection } from 'next/server';
 import { CatalogListing, CatalogUnavailable, catalogApi } from '@/modules/catalog';
 
 export const metadata: Metadata = {
@@ -9,12 +8,14 @@ export const metadata: Metadata = {
   alternates: { canonical: '/products' },
 };
 
+/** ISR, see the home page — static + 60 s revalidate instead of a permanent dynamic bail-out (M-3). */
+export const revalidate = 60;
+
 async function load(): Promise<ProductListResponse | null> {
   try {
     return await catalogApi.list();
   } catch {
-    await connection(); // never cache the failure
-    return null;
+    return null; // cached ≤ `revalidate` seconds, then re-rendered
   }
 }
 

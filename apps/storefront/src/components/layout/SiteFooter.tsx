@@ -1,23 +1,32 @@
 import { NonVegMark } from '@pk/ui';
 import { BrandLogo } from '@/components/common/BrandLogo';
-import { Mail, MessageCircle, Phone } from 'lucide-react';
+import { Camera, Clock, Mail, MapPin, MessageCircle, Phone, PlaySquare, ShieldCheck, ThumbsUp } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { PendingValue } from '@/components/common/PendingValue';
 import { legalNav, mainNav } from '@/config/navigation';
-import { seller, site } from '@/config/site';
+import { origin, publishedSocialLinks, seller, site, type SocialNetwork } from '@/config/site';
 
 const linkCls =
   'inline-flex min-h-11 items-center rounded-sm outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring md:min-h-9';
 
+const SOCIAL: Record<SocialNetwork, { label: string; icon: ReactNode }> = {
+  instagram: { label: 'Instagram', icon: <Camera /> },
+  facebook: { label: 'Facebook', icon: <ThumbsUp /> },
+  youtube: { label: 'YouTube', icon: <PlaySquare /> },
+};
+
 /**
- * Footer on every page: seller entity, address, FSSAI, GSTIN, customer care, grievance officer and
- * legal links (Consumer Protection (E-Commerce) Rules 2020 + Razorpay KYC). Undecided facts show "Pending".
- * `consentControl` is a slot so this layout component stays free of feature imports (D-44).
+ * Footer on every page: seller entity, address, FSSAI, GSTIN, customer care (phone / e-mail /
+ * WhatsApp / hours), social profiles, grievance officer and legal links (Consumer Protection
+ * (E-Commerce) Rules 2020 + Razorpay KYC). Undecided facts show "Pending". Social icons render only
+ * for networks with a URL (audit §3.4 — never a dead link). `consentControl` is a slot so this layout
+ * component stays free of feature imports (D-44).
  */
 export function SiteFooter({ consentControl }: { consentControl?: ReactNode }) {
   const year = new Date().getFullYear();
   const g = seller.grievanceOfficer;
+  const socials = publishedSocialLinks();
   return (
     <footer
       className="mt-auto border-t border-border bg-muted/50 text-sm text-muted-foreground"
@@ -33,10 +42,36 @@ export function SiteFooter({ consentControl }: { consentControl?: ReactNode }) {
             <BrandLogo size="lg" />
           </Link>
           <p className="max-w-sm leading-relaxed">{site.tagline}. Prepaid orders, shipped across India.</p>
-          <p className="flex items-center gap-2 text-foreground">
-            <NonVegMark size="md" />
-            All our products are non-vegetarian.
-          </p>
+          <ul className="grid gap-2 text-foreground">
+            <li className="flex items-center gap-2">
+              <MapPin aria-hidden="true" className="size-4 shrink-0 text-accent-foreground" />
+              Made in {origin.place}
+            </li>
+            <li className="flex items-center gap-2">
+              <NonVegMark size="md" />
+              All our products are non-vegetarian.
+            </li>
+          </ul>
+          {socials.length > 0 && (
+            <div className="grid gap-2" data-testid="footer-social">
+              <p className="text-xs font-semibold tracking-[0.12em] text-foreground uppercase">Follow the kitchen</p>
+              <ul className="flex flex-wrap gap-2">
+                {socials.map(([network, url]) => (
+                  <li key={network}>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`${site.name} on ${SOCIAL[network].label}`}
+                      className="inline-flex size-11 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors outline-none hover:border-primary hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-5"
+                    >
+                      {SOCIAL[network].icon}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3">
@@ -95,6 +130,13 @@ export function SiteFooter({ consentControl }: { consentControl?: ReactNode }) {
                 )}
               </PendingValue>
             </li>
+            <li className="flex min-h-9 items-start gap-2 pt-2">
+              <Clock aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              <span className="grid gap-0.5">
+                <span className="text-xs font-semibold tracking-[0.08em] text-foreground uppercase">Support hours</span>
+                <PendingValue value={seller.supportHours} label="Support hours" />
+              </span>
+            </li>
           </FooterCol>
         </div>
       </div>
@@ -141,7 +183,10 @@ export function SiteFooter({ consentControl }: { consentControl?: ReactNode }) {
           <p>
             © {year} {seller.legalName ?? site.name}. All prices are MRP inclusive of all taxes.
           </p>
-          <p>Prepaid orders only · UPI, cards &amp; netbanking</p>
+          <p className="flex items-center gap-1.5">
+            <ShieldCheck aria-hidden="true" className="size-3.5 text-success" />
+            Prepaid orders only · UPI, cards &amp; netbanking
+          </p>
         </div>
       </div>
     </footer>

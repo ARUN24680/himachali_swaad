@@ -4,7 +4,7 @@ import { expect, test, type Page, type Route } from '@playwright/test';
  * Admin sign-in, TOTP step, guards and silent refresh (Phase 2 §2.7). API mocked with page.route.
  */
 const API = 'http://localhost:4000/api/v1';
-const ORIGIN = 'http://localhost:5173';
+const ORIGIN = process.env.PK_E2E_ORIGIN ?? 'http://localhost:5173';
 const EMAIL = 'asha@pahadikhatki.in';
 const PASSWORD = 'correct horse battery staple';
 

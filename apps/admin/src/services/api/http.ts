@@ -41,6 +41,15 @@ export const isApiError = (err: unknown, code?: ClientErrorCode): err is ApiRequ
 export const isTotpEnrollmentRequired = (err: unknown): err is ApiRequestError =>
   isApiError(err, 'FORBIDDEN') && err.details?.reason === 'TOTP_ENROLLMENT_REQUIRED';
 
+/**
+ * Audit 2026-11-03 (R-12 / M-8): the refresh endpoint refuses an ADMIN session that sat idle longer
+ * than the server limit with 401 UNAUTHENTICATED + `details.reason = 'idle_timeout'`. The client
+ * surfaces it as a calm "signed out after N minutes" notice instead of a plain "please sign in".
+ */
+export const IDLE_TIMEOUT_REASON = 'idle_timeout';
+export const isIdleTimeout = (err: unknown): err is ApiRequestError =>
+  isApiError(err, 'UNAUTHENTICATED') && err.details?.reason === IDLE_TIMEOUT_REASON;
+
 export interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
@@ -60,9 +69,13 @@ export interface HttpOptions {
  */
 const NO_REFRESH = ['/auth/refresh', '/auth/staff/login', '/auth/logout', '/auth/otp/send', '/auth/otp/verify'];
 
-// ── Auth-failure hook (wired in main.tsx so this file stays free of router/query imports) ──
-let onAuthFailure: (() => void) | null = null;
-export function setAuthFailureHandler(handler: () => void) {
+// ── Auth-failure hook (wired in bootstrap.tsx so this file stays free of router/query imports) ──
+export interface AuthFailure {
+  /** The server ended the session for inactivity (idle_timeout) rather than expiry/revocation. */
+  idle: boolean;
+}
+let onAuthFailure: ((failure: AuthFailure) => void) | null = null;
+export function setAuthFailureHandler(handler: (failure: AuthFailure) => void) {
   onAuthFailure = handler;
 }
 
@@ -136,8 +149,11 @@ async function parse<T>(res: ApiResponse): Promise<T> {
   });
 }
 
-/** `network`: the refresh call never got an answer (offline) — that is NOT a dead session. */
-type RefreshOutcome = 'refreshed' | 'race' | 'failed' | 'network';
+/**
+ * `network`: the refresh call never got an answer (offline) — that is NOT a dead session.
+ * `idle`: the server refused the refresh because the ADMIN session was idle too long.
+ */
+type RefreshOutcome = 'refreshed' | 'race' | 'failed' | 'idle' | 'network';
 let refreshInFlight: Promise<RefreshOutcome> | null = null;
 
 /** Single-flight: every request that hits 401 at the same moment shares ONE POST /auth/refresh. */
@@ -150,6 +166,7 @@ function refreshSession(): Promise<RefreshOutcome> {
       // `race`: another tab rotated the token first and already set fresh cookies — just retry
       if (isApiError(err) && err.details?.reason === 'race') return 'race';
       if (isApiError(err, 'NETWORK_ERROR')) return 'network';
+      if (isIdleTimeout(err)) return 'idle';
       return 'failed';
     }
   })().finally(() => {
@@ -172,12 +189,12 @@ function notifyTotpRequired() {
 }
 
 let lastAuthFailureAt = 0;
-function notifyAuthFailure() {
+function notifyAuthFailure(idle = false) {
   // Many parallel queries fail together when a session dies — redirect once
   const now = Date.now();
   if (now - lastAuthFailureAt < 2000) return;
   lastAuthFailureAt = now;
-  onAuthFailure?.();
+  onAuthFailure?.({ idle });
 }
 
 /**
@@ -204,12 +221,22 @@ async function request<T>(path: string, options: HttpOptions): Promise<T> {
   // Lost the connection mid-refresh: report "offline" (the desk can run from cache), never "signed out"
   if (outcome === 'network')
     throw new ApiRequestError({ code: 'NETWORK_ERROR', message: 'You seem to be offline.', status: 0 });
-  if (outcome !== 'failed') {
+  if (outcome === 'refreshed' || outcome === 'race') {
     const retried = await rawRequest(path, options);
     if (retried.status !== 401) return parse<T>(retried);
     if (redirectOnAuthFailure) notifyAuthFailure();
     return parse<T>(retried);
   }
-  if (redirectOnAuthFailure) notifyAuthFailure();
+  if (redirectOnAuthFailure) notifyAuthFailure(outcome === 'idle');
+  if (outcome === 'idle') {
+    // Surface the server's reason on the error the caller sees (useMe/AuthGuard pass
+    // redirectOnAuthFailure: false and route to /login themselves).
+    throw new ApiRequestError({
+      code: 'UNAUTHENTICATED',
+      message: 'You were signed out after a period of inactivity.',
+      status: 401,
+      details: { reason: IDLE_TIMEOUT_REASON },
+    });
+  }
   return parse<T>(res);
 }
