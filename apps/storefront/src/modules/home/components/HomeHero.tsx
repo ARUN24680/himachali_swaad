@@ -210,28 +210,26 @@ export function HomeHero({
   return (
     <section
       aria-labelledby="hero-title"
-      /* Pulled up under the floating header (76px / 80px) so the pill sits on the sage band, no ivory strip */
-      className="relative isolate -mt-19 overflow-hidden bg-secondary pt-19 text-secondary-foreground md:-mt-20 md:pt-20"
+      className="relative isolate overflow-hidden bg-secondary text-secondary-foreground"
     >
       <HeroBackdrop />
 
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-8 pb-16 sm:pb-20 md:grid-cols-12 md:gap-8 md:px-8 md:pt-14 md:pb-24 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-16 lg:pt-16 lg:pb-28">
         {/* Left Column: Authentic Brand Headline, Story & CTAs (Clean & Stable) */}
         <div className="grid gap-5 md:col-span-7 md:gap-6 lg:col-span-1">
-          <p className="inline-flex w-fit items-center gap-2 rounded-full border border-secondary-foreground/10 bg-card/45 px-3.5 py-1.5 text-[0.6875rem] font-semibold tracking-[0.2em] text-primary uppercase shadow-sm backdrop-blur-sm dark:bg-secondary-foreground/5">
+          <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
             <MapPin className="size-3.5" aria-hidden="true" />
             Small-batch · Himachal Pradesh
           </p>
 
           <h1
             id="hero-title"
-            className="font-serif text-4xl leading-[1.05] font-medium tracking-tight text-balance text-secondary-foreground sm:text-5xl md:text-[2.75rem] lg:text-6xl"
+            className="font-serif text-4xl leading-[1.06] font-medium tracking-tight text-balance sm:text-5xl md:text-4xl lg:text-5xl"
           >
-            Taste the mountains,{' '}
-            <span className="mt-1 block font-normal text-primary italic">slow-cooked in small batches.</span>
+            Taste the mountains, <span className="block text-primary">slow-cooked in small batches.</span>
           </h1>
 
-          <p className="max-w-md text-base leading-relaxed text-pretty text-secondary-foreground/85 md:text-lg lg:max-w-lg">
+          <p className="max-w-md text-base leading-relaxed text-pretty text-secondary-foreground/80 md:text-lg lg:max-w-lg">
             Chicken, mutton and trout pickles simmered in cold-pressed mustard oil with hand-pounded Pahadi spices —
             sealed in glass.
           </p>
@@ -264,7 +262,7 @@ export function HomeHero({
           <ul className="mt-1 grid max-w-lg grid-cols-2 gap-x-3 gap-y-2.5 border-t border-secondary-foreground/10 pt-5 text-xs text-secondary-foreground/80 sm:gap-x-6 sm:text-sm md:gap-x-4 md:text-xs lg:gap-x-6 lg:text-sm">
             {TRUST.map((t) => (
               <li key={t} className="flex items-start gap-1.5 sm:gap-2">
-                <span className="mt-px grid size-4 shrink-0 place-items-center rounded-full bg-card/70 ring-1 ring-primary/20 sm:mt-0.5 dark:bg-primary/15">
+                <span className="mt-px grid size-4 shrink-0 place-items-center rounded-full bg-primary/15 sm:mt-0.5">
                   <Check className="size-3 text-primary" strokeWidth={3} aria-hidden="true" />
                 </span>
                 {t}
@@ -286,11 +284,11 @@ export function HomeHero({
           {/* Warm ambient aura behind the rectangle card */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -inset-6 -z-10 rounded-[2.5rem] bg-radial from-card/60 via-card/15 to-transparent blur-2xl dark:from-primary/20 dark:via-primary/5"
+            className="pointer-events-none absolute -inset-4 -z-10 rounded-3xl bg-radial from-primary/20 via-primary/5 to-transparent blur-xl"
           />
 
           {/* Unified Aesthetic Rectangle Card */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-3xl border-4 border-card/60 bg-secondary-foreground/5 shadow-2xl shadow-primary/25 backdrop-blur-sm dark:border dark:border-primary/30">
+          <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-primary/30 bg-secondary-foreground/5 shadow-2xl backdrop-blur-sm">
             {/* Sliding Track */}
             {transitionState !== null && targetSlideData ? (
               /* Active dual-slide translation window (guaranteed 100% visible, zero blank gap) */
@@ -324,7 +322,7 @@ export function HomeHero({
                   />
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 bg-linear-to-t from-secondary-foreground/35 via-transparent to-transparent"
+                    className="pointer-events-none absolute inset-0 bg-linear-to-t from-secondary/85 via-transparent to-secondary/20"
                   />
                 </div>
                 {/* Second slot */}
@@ -338,7 +336,7 @@ export function HomeHero({
                   />
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 bg-linear-to-t from-secondary-foreground/35 via-transparent to-transparent"
+                    className="pointer-events-none absolute inset-0 bg-linear-to-t from-secondary/85 via-transparent to-secondary/20"
                   />
                 </div>
               </div>
@@ -355,7 +353,7 @@ export function HomeHero({
                 />
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 bg-linear-to-t from-secondary-foreground/35 via-transparent to-transparent"
+                  className="pointer-events-none absolute inset-0 bg-linear-to-t from-secondary/85 via-transparent to-secondary/20"
                 />
               </div>
             )}
@@ -399,7 +397,9 @@ export function HomeHero({
                     <span
                       className={cn(
                         'block h-1.5 rounded-full transition-all duration-300',
-                        isActive ? 'w-6 bg-card shadow-sm' : 'w-1.5 bg-card/55 hover:bg-card/80',
+                        isActive
+                          ? 'w-6 bg-primary shadow-sm shadow-primary/50'
+                          : 'w-1.5 bg-secondary-foreground/35 hover:bg-secondary-foreground/60',
                       )}
                     />
                   </button>
@@ -410,16 +410,14 @@ export function HomeHero({
 
           {/* Showcase Badge Below the Card */}
           <p
-            className="relative z-10 mx-auto mt-3.5 grid w-fit max-w-[95%] justify-items-center gap-0.5 rounded-full border border-secondary-foreground/10 bg-card/75 px-5 py-2 text-center text-xs text-muted-foreground shadow-float backdrop-blur-md transition-all duration-300 dark:bg-secondary/85 dark:text-secondary-foreground/80"
+            className="relative z-10 mx-auto mt-3.5 grid w-fit max-w-[95%] justify-items-center gap-0.5 rounded-2xl border border-secondary-foreground/15 bg-secondary/85 px-4 py-2 text-center text-xs text-secondary-foreground/80 shadow-float backdrop-blur-md transition-all duration-300"
             data-testid="current-batch"
           >
             <span className="flex items-center justify-center gap-1.5">
               <span className="size-1.5 shrink-0 rounded-full bg-success ring-2 ring-success/25" aria-hidden="true" />
-              <span className="font-semibold text-foreground dark:text-secondary-foreground">
-                {displaySlide.badgeTitle}
-              </span>
+              <span className="font-semibold text-secondary-foreground">{displaySlide.badgeTitle}</span>
             </span>
-            <span className="text-balance">{displaySlide.badgeDetail}</span>
+            <span className="text-balance text-secondary-foreground/75">{displaySlide.badgeDetail}</span>
           </p>
         </div>
       </div>
