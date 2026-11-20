@@ -33,7 +33,7 @@ export function StayInTouch() {
             Hear it from the hills
             <span className="block text-primary italic">before anyone else.</span>
           </h2>
-          <p className="mx-auto max-w-md text-sm leading-relaxed text-pretty text-secondary-foreground/75 md:text-base">
+          <p className="mx-auto max-w-md text-sm leading-relaxed text-pretty text-secondary-foreground/80 md:text-base">
             Leave a number or an e-mail and we will send exactly one message on the day it opens. Nothing before,
             nothing after.
           </p>
@@ -43,7 +43,7 @@ export function StayInTouch() {
 
         {(wa || email) && (
           <div className="grid gap-3 border-t border-secondary-foreground/10 pt-6 text-center">
-            <p className="text-xs font-semibold tracking-[0.18em] text-secondary-foreground/60 uppercase">
+            <p className="text-xs font-semibold tracking-[0.18em] text-secondary-foreground/80 uppercase">
               Or just say hello
             </p>
             <div className="flex flex-col justify-center gap-3 sm:flex-row">

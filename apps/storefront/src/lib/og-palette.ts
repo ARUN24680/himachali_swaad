@@ -4,13 +4,13 @@
  * This is the storefront's ONLY colour-literal file besides <meta theme-color> (Rules §1.4 escape hatch).
  */
 export const ogPalette = {
-  pine: '#121a16', // pk-allow-color  --secondary (light)
-  ivory: '#f8f5ef', // pk-allow-color  --background / --secondary-foreground
-  gold: '#d4a359', // pk-allow-color  --primary
-  charcoal: '#211d1a', // pk-allow-color  --foreground
-  terracotta: '#964824', // pk-allow-color  --tertiary
-  mist: 'rgba(248, 245, 239, 0.12)', // pk-allow-color  ridge layers
-  mistStrong: 'rgba(248, 245, 239, 0.75)', // pk-allow-color  secondary text on pine
+  forest: '#364335', // pk-allow-color  --cta / --primary (light) — OG cards stay dark for feed contrast
+  ivory: '#e5e8ce', // pk-allow-color  --background / --secondary-foreground
+  sage: '#9eb294', // pk-allow-color  --primary
+  ink: '#181e17', // pk-allow-color  --primary-foreground
+  tertiary: '#485946', // pk-allow-color  --tertiary
+  mist: 'rgba(229, 232, 206, 0.12)', // pk-allow-color  ridge layers
+  mistStrong: 'rgba(229, 232, 206, 0.75)', // pk-allow-color  secondary text on forest
   nonveg: '#7b2c1c', // pk-allow-color  --nonveg
 } as const;
 

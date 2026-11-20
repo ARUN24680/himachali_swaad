@@ -18,6 +18,7 @@ const SWATCHES = [
   ['bg-background text-foreground', 'background'],
   ['bg-card text-card-foreground', 'card'],
   ['bg-primary text-primary-foreground', 'primary'],
+  ['bg-cta text-cta-foreground', 'cta'],
   ['bg-secondary text-secondary-foreground', 'secondary'],
   ['bg-tertiary text-tertiary-foreground', 'tertiary'],
   ['bg-muted text-muted-foreground', 'muted'],

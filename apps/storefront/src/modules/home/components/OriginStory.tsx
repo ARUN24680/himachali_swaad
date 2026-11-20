@@ -27,14 +27,17 @@ export function OriginStory() {
           />
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-t from-secondary/60 via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-transparent lg:to-secondary/40"
+            className="absolute inset-0 bg-gradient-to-t from-secondary-foreground/25 via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-transparent lg:to-secondary/40 dark:from-secondary/60"
           />
         </div>
 
         <div className="grid content-center gap-5 p-6 sm:p-8 lg:p-12">
-          <p className="text-xs font-semibold tracking-[0.16em] text-primary uppercase">Our story</p>
+          <p className="inline-flex w-fit items-center gap-2 rounded-full border border-secondary-foreground/10 bg-card/45 px-3.5 py-1.5 text-[0.6875rem] font-semibold tracking-[0.2em] text-primary uppercase shadow-sm backdrop-blur-sm dark:bg-secondary-foreground/5">
+            Our story
+          </p>
           <h2 id="origin-title" className="font-serif text-3xl leading-tight font-medium text-balance md:text-4xl">
-            &ldquo;Khatki&rdquo; is what the mountains call a pickle with bite.
+            &ldquo;Khatki&rdquo; is what the mountains call{' '}
+            <span className="font-normal text-primary italic">a pickle with bite.</span>
           </h2>
           <p className="text-base leading-relaxed text-secondary-foreground/85">
             Hill families cooked meat down in mustard oil with garlic and sun-dried chillies to last the long Himachal
@@ -66,7 +69,7 @@ export function OriginStory() {
                 </span>
                 <div className="grid gap-0.5 pt-0.5">
                   <h3 className="text-sm font-semibold text-secondary-foreground">{s.title}</h3>
-                  <p className="text-sm text-secondary-foreground/75">{s.line}</p>
+                  <p className="text-sm text-secondary-foreground/80">{s.line}</p>
                 </div>
               </li>
             ))}

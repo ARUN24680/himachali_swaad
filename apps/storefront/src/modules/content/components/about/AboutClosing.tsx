@@ -16,22 +16,24 @@ export function AboutClosing() {
       >
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-10 bg-radial-[ellipse_at_85%_60%] from-primary/20 via-primary/5 via-35% to-transparent to-65%"
+          className="absolute inset-0 -z-10 bg-radial-[ellipse_at_85%_60%] from-card/45 via-card/10 via-35% to-transparent to-65% dark:from-primary/20 dark:via-primary/5"
         />
 
         <div className="grid gap-5 md:col-span-8 lg:col-span-7">
-          <p className="text-xs font-semibold tracking-[0.16em] text-primary uppercase">From our kitchen to yours</p>
+          <p className="inline-flex w-fit items-center gap-2 rounded-full border border-secondary-foreground/10 bg-card/45 px-3.5 py-1.5 text-[0.6875rem] font-semibold tracking-[0.2em] text-primary uppercase shadow-sm backdrop-blur-sm dark:bg-secondary-foreground/5">
+            From our kitchen to yours
+          </p>
           <h2 id="about-cta-title" className="font-serif text-3xl leading-tight font-medium text-balance md:text-4xl">
-            Taste the mountains.
+            Taste the <span className="font-normal text-primary italic">mountains.</span>
           </h2>
-          <p className="max-w-md text-base leading-relaxed text-secondary-foreground/80">
+          <p className="max-w-md text-base leading-relaxed text-secondary-foreground/85">
             Chicken, mutton and fish pickles in 250 g and 500 g jars — prepaid, with tracked delivery.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link
               href="/products"
               className={cn(
-                buttonVariants({ size: 'lg' }),
+                buttonVariants({ size: 'lg', variant: 'band' }),
                 'group px-7 shadow-lg shadow-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-secondary active:scale-[0.98] motion-reduce:active:scale-100',
               )}
             >
@@ -51,7 +53,7 @@ export function AboutClosing() {
               Read the FAQ
             </Link>
           </div>
-          <p className="flex items-center gap-2 text-sm text-secondary-foreground/75">
+          <p className="flex items-center gap-2 text-sm text-secondary-foreground/80">
             <NonVegMark size="md" />
             All our products are non-vegetarian.
           </p>

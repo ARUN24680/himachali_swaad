@@ -17,16 +17,16 @@ export default function TeaserOpengraphImage() {
         alignItems: 'center',
         justifyContent: 'center',
         paddingBottom: 120,
-        background: c.pine,
+        background: c.forest,
         color: c.ivory,
         position: 'relative',
       }}
     >
       <svg width="1200" height="630" viewBox="0 0 1200 630" style={{ position: 'absolute', left: 0, top: 0 }}>
-        <circle cx="600" cy="430" r="80" fill={c.gold} />
+        <circle cx="600" cy="430" r="80" fill={c.sage} />
         <path d={OG_RIDGE} fill={c.mist} />
       </svg>
-      <div style={{ fontSize: 26, letterSpacing: 8, color: c.gold, textTransform: 'uppercase' }}>Coming soon</div>
+      <div style={{ fontSize: 26, letterSpacing: 8, color: c.sage, textTransform: 'uppercase' }}>Coming soon</div>
       <div style={{ fontSize: 76, fontWeight: 700, marginTop: 20, textAlign: 'center', maxWidth: 1000 }}>
         Something is coming from the mountains
       </div>

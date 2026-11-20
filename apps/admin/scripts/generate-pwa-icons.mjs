@@ -9,9 +9,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons');
-const PINE = '#121a16'; // pk-allow-color --secondary (light)
-const GOLD = '#d4a359'; // pk-allow-color --primary (light)
-const IVORY = '#f8f5ef'; // pk-allow-color --background (light)
+const FOREST = '#364335'; // pk-allow-color --cta / --primary (light)
+const SAGE = '#789575'; // pk-allow-color --primary (light)
+const IVORY = '#e5e8ce'; // pk-allow-color --background (light)
 
 /** Mountain mark on a 512 grid; `scale` shrinks it into the maskable safe zone. */
 const mark = (fill, cap, scale = 1) => {
@@ -23,8 +23,8 @@ const mark = (fill, cap, scale = 1) => {
 };
 
 const svg = ({ rounded, scale, mono }) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  ${mono ? '' : `<rect width="512" height="512" ${rounded ? 'rx="112"' : ''} fill="${PINE}"/>`}
-  ${mono ? mark('#fff', null, scale) /* pk-allow-color — badge is alpha-only */ : mark(GOLD, IVORY, scale)}
+  ${mono ? '' : `<rect width="512" height="512" ${rounded ? 'rx="112"' : ''} fill="${FOREST}"/>`}
+  ${mono ? mark('#fff', null, scale) /* pk-allow-color — badge is alpha-only */ : mark(SAGE, IVORY, scale)}
 </svg>`;
 
 const ICONS = [

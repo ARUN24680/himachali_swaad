@@ -8,8 +8,9 @@ export function AboutBackdrop() {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
       {/* Warm key light from the photo side + a cool lift top-left */}
-      <div className="absolute inset-0 bg-radial-[ellipse_at_80%_45%] from-primary/15 via-primary/5 via-35% to-transparent to-65%" />
-      <div className="absolute inset-0 bg-radial-[ellipse_at_0%_0%] from-secondary-foreground/8 to-transparent to-55%" />
+      <div className="absolute inset-0 bg-radial-[ellipse_at_80%_45%] from-card/40 via-card/10 via-35% to-transparent to-65% dark:from-primary/15 dark:via-primary/5" />
+      <div className="absolute inset-0 bg-radial-[ellipse_at_0%_0%] from-card/35 to-transparent to-55% dark:from-secondary-foreground/8" />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-primary/10 to-transparent dark:hidden" />
 
       {/* Film grain, coloured by the text token via currentColor */}
       <svg className="absolute inset-0 size-full text-secondary-foreground opacity-[0.07] mix-blend-soft-light">
@@ -29,7 +30,7 @@ export function AboutBackdrop() {
       >
         <path
           d="M0 140 C 120 120 200 70 300 82 S 460 150 560 124 S 720 44 820 60 S 980 136 1080 112 S 1240 52 1320 70 S 1410 104 1440 98 V220 H0 Z"
-          className="fill-secondary-foreground/4 dark:fill-secondary-foreground/3"
+          className="fill-primary/10 dark:fill-secondary-foreground/3"
         />
       </svg>
 

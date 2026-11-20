@@ -123,7 +123,7 @@ export function WaitlistForm({ source = 'coming-soon', className }: { source?: W
 
   const busy = join.isPending;
   const fieldCls =
-    'h-12 border-secondary-foreground/30 bg-secondary-foreground/5 text-secondary-foreground placeholder:text-secondary-foreground/45 focus-visible:border-primary focus-visible:ring-primary/30 aria-invalid:border-destructive';
+    'h-12 border-secondary-foreground/30 bg-secondary-foreground/5 text-secondary-foreground placeholder:text-secondary-foreground/80 focus-visible:border-primary focus-visible:ring-primary/30 aria-invalid:border-destructive';
 
   return (
     <form
@@ -162,14 +162,14 @@ export function WaitlistForm({ source = 'coming-soon', className }: { source?: W
               {fieldError}
             </p>
           ) : (
-            <p id={`${contactId}-hint`} className="text-xs text-secondary-foreground/60">
+            <p id={`${contactId}-hint`} className="text-xs text-secondary-foreground/80">
               Indian mobile numbers get one SMS or WhatsApp message; e-mails get one e-mail.
             </p>
           )}
         </div>
         <div className="grid content-start gap-2">
           <Label htmlFor={nameId} className="text-secondary-foreground">
-            First name <span className="font-normal text-secondary-foreground/60">(optional)</span>
+            First name <span className="font-normal text-secondary-foreground/80">(optional)</span>
           </Label>
           <Input
             id={nameId}
@@ -239,6 +239,7 @@ export function WaitlistForm({ source = 'coming-soon', className }: { source?: W
         <Button
           type="submit"
           size="lg"
+          variant="band"
           disabled={busy || rateLimited}
           className="w-full shadow-lg shadow-primary/25 focus-visible:ring-offset-secondary sm:w-auto sm:px-8"
         >
@@ -251,7 +252,7 @@ export function WaitlistForm({ source = 'coming-soon', className }: { source?: W
           )}
           {busy ? 'Sending…' : problem ? 'Try again' : 'Tell me first'}
         </Button>
-        <p className="flex items-center gap-1.5 text-xs text-secondary-foreground/60">
+        <p className="flex items-center gap-1.5 text-xs text-secondary-foreground/80">
           <Sparkles aria-hidden="true" className="size-3.5 text-primary" />
           One message. Then silence until the hills say so.
         </p>

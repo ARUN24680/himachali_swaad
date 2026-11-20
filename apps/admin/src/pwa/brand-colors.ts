@@ -6,13 +6,13 @@
  */
 export const PWA_COLORS = {
   light: {
-    /** --secondary (Deep Pine) — the desk's app bar, so the phone status bar continues it. */
-    secondary: '#121a16', // pk-allow-color
-    /** --background (Warm Ivory) — splash screen background. */
-    background: '#f8f5ef', // pk-allow-color
+    /** --secondary (Sage band) — the desk's app bar, so the phone status bar continues it. */
+    secondary: '#9eb294', // pk-allow-color
+    /** --background (Pale Sage Ivory) — splash screen background. */
+    background: '#e5e8ce', // pk-allow-color
   },
   dark: {
-    secondary: '#2c3b34', // pk-allow-color
-    background: '#0e1411', // pk-allow-color
+    secondary: '#263025', // pk-allow-color
+    background: '#131813', // pk-allow-color
   },
 } as const;

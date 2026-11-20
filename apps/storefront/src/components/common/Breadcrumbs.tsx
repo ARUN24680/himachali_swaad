@@ -26,7 +26,7 @@ export function Breadcrumbs({
     <>
       <nav
         aria-label="Breadcrumb"
-        className={cn('text-sm', inverse ? 'text-secondary-foreground/70' : 'text-muted-foreground', className)}
+        className={cn('text-sm', inverse ? 'text-secondary-foreground/80' : 'text-muted-foreground', className)}
         data-testid="breadcrumbs"
       >
         <ol className="flex flex-wrap items-center gap-1">

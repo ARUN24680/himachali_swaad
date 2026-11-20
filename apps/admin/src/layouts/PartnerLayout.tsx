@@ -60,7 +60,7 @@ function PartnerShell() {
             {/* Tablet: the top tabs need the room — logo mark only */}
             <span className="grid min-w-0 leading-tight md:hidden lg:grid">
               <span className="truncate font-serif text-lg font-semibold">{t('common.appName')}</span>
-              <span className="truncate text-xs tracking-[0.12em] text-secondary-foreground/75 uppercase">
+              <span className="truncate text-xs tracking-[0.12em] text-secondary-foreground/80 uppercase">
                 {t('common.brand')}
               </span>
             </span>

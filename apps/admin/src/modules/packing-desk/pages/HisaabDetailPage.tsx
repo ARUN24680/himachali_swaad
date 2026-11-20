@@ -110,7 +110,7 @@ export default function HisaabDetailPage() {
           <span className="text-3xl font-semibold tabular-nums">{formatINR(s.partnerPayoutPaise)}</span>
         </span>
         {d.statementAvailable && (
-          <Button variant="primary" onClick={() => void openPdf()} disabled={pdfBusy}>
+          <Button variant="band" onClick={() => void openPdf()} disabled={pdfBusy}>
             {pdfBusy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <FileText aria-hidden="true" />}
             {t('hisaab.pdf')}
           </Button>

@@ -5,7 +5,7 @@ import { FeaturedProductsSkeleton } from '@/modules/home';
 export default function Loading() {
   return (
     <div role="status" aria-label="Loading">
-      <div className="bg-secondary">
+      <div className="-mt-19 bg-secondary pt-19 md:-mt-20 md:pt-20">
         <div className="mx-auto grid max-w-6xl items-center gap-6 px-4 pt-8 pb-14 md:grid-cols-2 md:gap-10 md:px-8 md:pt-10 md:pb-20">
           <div className="grid gap-5 md:gap-6">
             <Skeleton className="h-3 w-48 bg-secondary-foreground/15" />

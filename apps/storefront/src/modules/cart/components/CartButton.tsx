@@ -15,7 +15,7 @@ export function CartButton() {
 
   return (
     <Button
-      variant="ghost"
+      variant="primary"
       size="icon"
       className="relative"
       aria-label={shown === 0 ? 'Cart, empty' : `Cart, ${shown} ${shown === 1 ? 'jar' : 'jars'}`}
@@ -27,7 +27,7 @@ export function CartButton() {
         <span
           key={pulse}
           aria-hidden="true"
-          className="absolute top-1 right-0.5 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.6875rem] leading-5 font-bold text-primary-foreground tabular-nums motion-safe:animate-in motion-safe:duration-300 motion-safe:zoom-in-50"
+          className="absolute top-1 right-0.5 grid min-w-5 place-items-center rounded-full bg-secondary px-1 text-[0.6875rem] leading-5 font-bold text-secondary-foreground tabular-nums ring-2 ring-card motion-safe:animate-in motion-safe:duration-300 motion-safe:zoom-in-50"
         >
           {shown > 99 ? '99+' : shown}
         </span>

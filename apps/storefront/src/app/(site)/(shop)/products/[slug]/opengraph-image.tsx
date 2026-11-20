@@ -19,7 +19,7 @@ export default async function ProductOgImage({ params }: { params: Promise<{ slu
         width: '100%',
         height: '100%',
         display: 'flex',
-        background: c.pine,
+        background: c.forest,
         color: c.ivory,
         position: 'relative',
       }}
@@ -43,7 +43,7 @@ export default async function ProductOgImage({ params }: { params: Promise<{ slu
             gap: 14,
             fontSize: 26,
             letterSpacing: 4,
-            color: c.gold,
+            color: c.sage,
             textTransform: 'uppercase',
           }}
         >
@@ -67,9 +67,7 @@ export default async function ProductOgImage({ params }: { params: Promise<{ slu
         </div>
         {product && (
           <div style={{ display: 'flex', gap: 24, marginTop: 28, fontSize: 36, alignItems: 'center' }}>
-            <div
-              style={{ background: c.gold, color: c.charcoal, padding: '8px 22px', borderRadius: 12, fontWeight: 700 }}
-            >
+            <div style={{ background: c.sage, color: c.ink, padding: '8px 22px', borderRadius: 12, fontWeight: 700 }}>
               {formatINR(product.pricePaise, { trimZeroPaise: true })}
             </div>
             <div style={{ color: c.mistStrong }}>{formatWeight(product.netWeightG)} jar · MRP incl. taxes</div>
@@ -82,7 +80,7 @@ export default async function ProductOgImage({ params }: { params: Promise<{ slu
             src={image}
             width={420}
             height={420}
-            style={{ borderRadius: 210, border: `6px solid ${c.gold}`, objectFit: 'cover' }}
+            style={{ borderRadius: 210, border: `6px solid ${c.sage}`, objectFit: 'cover' }}
             alt=""
           />
         </div>

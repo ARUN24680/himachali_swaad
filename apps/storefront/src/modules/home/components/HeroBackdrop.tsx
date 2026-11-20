@@ -7,8 +7,11 @@ export function HeroBackdrop() {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
       {/* Light: a warm key light from the jar side + a cool lift top-left, so the band has volume */}
-      <div className="absolute inset-0 bg-radial-[ellipse_at_78%_42%] from-primary/15 via-primary/5 via-35% to-transparent to-65%" />
-      <div className="absolute inset-0 bg-radial-[ellipse_at_0%_0%] from-secondary-foreground/8 to-transparent to-55%" />
+      {/* Light theme: soft ivory light pooling behind the jar + a morning glow top-left, so the sage reads airy */}
+      <div className="absolute inset-0 bg-radial-[ellipse_at_78%_42%] from-card/40 via-card/10 via-35% to-transparent to-65% dark:from-primary/15 dark:via-primary/5" />
+      <div className="absolute inset-0 bg-radial-[ellipse_at_0%_0%] from-card/35 to-transparent to-55% dark:from-secondary-foreground/8" />
+      {/* Deeper sage settling at the foot of the band, giving it weight above the curve */}
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-primary/10 to-transparent dark:hidden" />
 
       {/* Film grain — breaks up the flat fill; coloured by the text token via currentColor */}
       <svg className="absolute inset-0 size-full text-secondary-foreground opacity-[0.07] mix-blend-soft-light">
@@ -28,7 +31,7 @@ export function HeroBackdrop() {
       >
         <path
           d="M0 150 C 90 132 150 96 230 104 S 360 150 450 128 S 600 58 700 74 S 860 140 960 118 S 1120 40 1220 56 S 1380 120 1440 108 V220 H0 Z"
-          className="fill-secondary-foreground/4 dark:fill-secondary-foreground/3"
+          className="fill-primary/10 dark:fill-secondary-foreground/3"
         />
       </svg>
 

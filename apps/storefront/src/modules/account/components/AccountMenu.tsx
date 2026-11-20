@@ -39,7 +39,7 @@ export function AccountMenu() {
       <div
         role="status"
         aria-label="Loading your account"
-        className="h-11 w-11 animate-pulse rounded-md bg-muted motion-reduce:animate-none sm:w-28"
+        className="h-11 w-11 animate-pulse rounded-full bg-muted motion-reduce:animate-none sm:w-28"
       />
     );
   } else if (session.data?.user) {

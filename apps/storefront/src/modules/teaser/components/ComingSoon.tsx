@@ -17,6 +17,7 @@ import { cn } from '@pk/ui';
 import type { ReactNode } from 'react';
 import Image from 'next/image';
 import logoHorizontal from '@pk/ui/brand/logo-horizontal-dark.png';
+import logoHorizontalLight from '@pk/ui/brand/logo-horizontal-light.png';
 import { HimalayaRange } from './HimalayaRange';
 import { StayInTouch } from './StayInTouch';
 
@@ -52,9 +53,20 @@ function Hero() {
     <section aria-labelledby="teaser-title" className="relative flex min-h-dvh flex-col">
       <NightSky />
 
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 pt-4 text-[0.6875rem] font-semibold tracking-[0.28em] text-secondary-foreground/70 uppercase md:px-8 md:pt-6">
-        {/* The hero sky is dark in both themes, so the cream "dark-background" logo is always the right one */}
-        <Image src={logoHorizontal} alt="Pahadi Khatki" priority className="h-14 w-auto shrink-0 md:h-20" />
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 pt-4 text-[0.6875rem] font-semibold tracking-[0.28em] text-secondary-foreground/80 uppercase md:px-8 md:pt-6">
+        {/* Light theme: sage sky (D-65) → dark-ink logo; dark theme: night sky → cream logo */}
+        <Image
+          src={logoHorizontalLight}
+          alt="Pahadi Khatki"
+          priority
+          className="h-14 w-auto shrink-0 md:h-20 dark:hidden"
+        />
+        <Image
+          src={logoHorizontal}
+          alt="Pahadi Khatki"
+          priority
+          className="hidden h-14 w-auto shrink-0 md:h-20 dark:block"
+        />
         <span
           aria-hidden="true"
           className="h-px flex-1 bg-linear-to-r from-transparent via-primary/40 to-transparent"
@@ -178,7 +190,7 @@ function Story() {
           />
           <p className="border-l border-primary/50 pl-6 font-serif text-4xl leading-[1.15] font-medium italic sm:text-5xl md:pl-8">
             Slow.
-            <span className="block text-secondary-foreground/70">Honest.</span>
+            <span className="block text-secondary-foreground/80">Honest.</span>
             <span className="block text-primary">Of the hills.</span>
           </p>
         </div>
@@ -237,7 +249,7 @@ function Values() {
                 {v.icon}
               </span>
               <h3 className="font-serif text-2xl font-medium">{v.title}</h3>
-              <p className="text-sm leading-relaxed text-secondary-foreground/75 md:text-base">{v.line}</p>
+              <p className="text-sm leading-relaxed text-secondary-foreground/80 md:text-base">{v.line}</p>
             </li>
           ))}
         </ol>
@@ -261,7 +273,7 @@ function Valleys() {
           <span className="font-serif text-5xl leading-none font-medium text-primary italic sm:text-6xl md:text-7xl">
             Kangra
           </span>
-          <span className="flex items-center gap-3 text-xs font-semibold tracking-[0.3em] text-secondary-foreground/75 uppercase sm:text-sm">
+          <span className="flex items-center gap-3 text-xs font-semibold tracking-[0.3em] text-secondary-foreground/80 uppercase sm:text-sm">
             <span aria-hidden="true" className="h-px w-8 bg-primary/50 sm:w-12" />
             Himachal Pradesh
             <span aria-hidden="true" className="h-px w-8 bg-primary/50 sm:w-12" />
@@ -350,7 +362,7 @@ function Making() {
                 </span>
               </div>
               <h3 className="self-center font-serif text-2xl font-medium lg:self-auto">{step.title}</h3>
-              <p className="col-start-2 text-sm leading-relaxed text-pretty text-secondary-foreground/75 md:text-base lg:col-start-1">
+              <p className="col-start-2 text-sm leading-relaxed text-pretty text-secondary-foreground/80 md:text-base lg:col-start-1">
                 {step.line}
               </p>
             </li>
@@ -467,7 +479,7 @@ function WhatWeCanSay() {
         <dl className="grid divide-y divide-secondary-foreground/10 overflow-hidden rounded-2xl border border-secondary-foreground/10 md:grid-cols-3 md:divide-x md:divide-y-0">
           {QA.map((item) => (
             <div key={item.q} className="grid gap-2 bg-secondary-foreground/5 p-6 text-center md:p-10">
-              <dt className="text-xs font-semibold tracking-[0.2em] text-secondary-foreground/60 uppercase">
+              <dt className="text-xs font-semibold tracking-[0.2em] text-secondary-foreground/80 uppercase">
                 {item.q}
               </dt>
               <dd className="font-serif text-3xl font-medium text-primary italic md:text-4xl">{item.a}</dd>
@@ -500,13 +512,13 @@ function Closing() {
         <Pill>Unveiling soon</Pill>
         <a
           href="#notify"
-          className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-secondary-foreground/75 underline-offset-4 outline-none hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-primary"
+          className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-secondary-foreground/80 underline-offset-4 outline-none hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-primary"
         >
           Or let us tell you the moment it opens
         </a>
       </div>
 
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 border-t border-secondary-foreground/10 pt-6 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-[0.6875rem] tracking-[0.24em] text-secondary-foreground/60 uppercase sm:flex-row">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 border-t border-secondary-foreground/10 pt-6 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-[0.6875rem] tracking-[0.24em] text-secondary-foreground/80 uppercase sm:flex-row">
         <span>Himachal Pradesh, India</span>
         <a
           href="#top"

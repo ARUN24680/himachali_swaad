@@ -14,26 +14,27 @@ export function AboutHero() {
   return (
     <section
       aria-labelledby="about-title"
-      className="relative isolate overflow-hidden bg-secondary text-secondary-foreground"
+      /* Pulled up under the floating header (76px / 80px), same as the home hero */
+      className="relative isolate -mt-19 overflow-hidden bg-secondary pt-19 text-secondary-foreground md:-mt-20 md:pt-20"
     >
       <AboutBackdrop />
 
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-8 pb-16 sm:pb-20 md:grid-cols-12 md:gap-8 md:px-8 md:pt-14 md:pb-24 lg:gap-16 lg:pt-16 lg:pb-28">
         <div className="grid gap-5 md:col-span-7 md:gap-6">
           <Breadcrumbs tone="inverse" className="-mt-3 md:-mt-6" items={[{ name: 'Our story', href: '/about' }]} />
-          <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
+          <p className="inline-flex w-fit items-center gap-2 rounded-full border border-secondary-foreground/10 bg-card/45 px-3.5 py-1.5 text-[0.6875rem] font-semibold tracking-[0.2em] text-primary uppercase shadow-sm backdrop-blur-sm dark:bg-secondary-foreground/5">
             <MapPin className="size-3.5" aria-hidden="true" />
             Our story · Himachal Pradesh
           </p>
 
           <h1
             id="about-title"
-            className="font-serif text-4xl leading-[1.06] font-medium tracking-tight text-balance sm:text-5xl md:text-4xl lg:text-5xl"
+            className="font-serif text-4xl leading-[1.05] font-medium tracking-tight text-balance text-secondary-foreground sm:text-5xl md:text-[2.75rem] lg:text-6xl"
           >
-            A Himachal kitchen, <span className="block text-primary">a jar at a time.</span>
+            A Himachal kitchen, <span className="mt-1 block font-normal text-primary italic">a jar at a time.</span>
           </h1>
 
-          <p className="max-w-md text-base leading-relaxed text-pretty text-secondary-foreground/80 md:text-lg lg:max-w-lg">
+          <p className="max-w-md text-base leading-relaxed text-pretty text-secondary-foreground/85 md:text-lg lg:max-w-lg">
             Pahadi Khatki starts from the meat pickles Himachali families make before winter closes the passes — cooked
             slow, sealed under mustard oil, made in small batches.
           </p>
@@ -42,7 +43,7 @@ export function AboutHero() {
             <Link
               href="/products"
               className={cn(
-                buttonVariants({ size: 'lg' }),
+                buttonVariants({ size: 'lg', variant: 'band' }),
                 'group px-5 shadow-lg shadow-primary/25 transition-[transform,box-shadow] hover:shadow-xl hover:shadow-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-secondary active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 sm:px-7',
               )}
             >
@@ -69,9 +70,9 @@ export function AboutHero() {
         <figure className="relative mx-auto w-full max-w-60 sm:max-w-72 md:col-span-5 md:max-w-sm">
           <div
             aria-hidden="true"
-            className="absolute -inset-[14%] -z-10 bg-radial from-primary/25 via-primary/8 via-40% to-transparent to-70%"
+            className="absolute -inset-[14%] -z-10 bg-radial from-card/60 via-card/15 via-40% to-transparent to-70% dark:from-primary/25 dark:via-primary/8"
           />
-          <div className="rounded-t-full border border-primary/30 p-2">
+          <div className="rounded-t-full border border-card/70 bg-card/25 p-2 shadow-2xl shadow-primary/20 backdrop-blur-sm dark:border-primary/30 dark:bg-transparent dark:shadow-none">
             <div className="relative aspect-4/5 overflow-hidden rounded-t-full rounded-b-lg">
               <Image
                 src="/home/jar-elevated-spices.webp"
@@ -84,11 +85,11 @@ export function AboutHero() {
               />
               <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-linear-to-t from-secondary/55 via-transparent to-transparent"
+                className="absolute inset-0 bg-linear-to-t from-secondary-foreground/30 via-transparent to-transparent dark:from-secondary/55"
               />
             </div>
           </div>
-          <figcaption className="mt-3 text-center text-xs text-secondary-foreground/70">
+          <figcaption className="mx-auto mt-3.5 w-fit rounded-full border border-secondary-foreground/10 bg-card/70 px-4 py-1.5 text-center text-xs text-muted-foreground shadow-float backdrop-blur-md dark:bg-secondary/85 dark:text-secondary-foreground/80">
             Garlic, sun-dried chillies, mustard oil — the hill pantry.
           </figcaption>
         </figure>

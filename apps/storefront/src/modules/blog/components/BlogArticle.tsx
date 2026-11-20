@@ -81,18 +81,21 @@ export function BlogArticle({ post, related }: { post: BlogPost; related: readon
 
       <section
         aria-labelledby="post-cta-title"
-        className="mt-14 grid gap-5 rounded-2xl bg-secondary p-6 text-secondary-foreground sm:p-8 md:mt-20 md:grid-cols-[1fr_auto] md:items-center md:p-10"
+        className="relative isolate mt-14 grid gap-5 overflow-hidden rounded-2xl bg-secondary bg-radial-[ellipse_at_90%_20%] from-card/40 to-transparent to-60% p-6 text-secondary-foreground sm:p-8 md:mt-20 md:grid-cols-[1fr_auto] md:items-center md:p-10 dark:from-primary/15"
       >
         <div className="grid gap-2">
           <h2 id="post-cta-title" className="font-serif text-2xl font-medium text-balance md:text-3xl">
-            Taste the batch that&rsquo;s shipping now
+            Taste the batch that&rsquo;s <span className="font-normal text-primary italic">shipping now</span>
           </h2>
           <p className="text-secondary-foreground/80">
             Small batches, sealed under mustard oil, with the batch code and dates on every jar.
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
-          <Link href="/products" className={cn(buttonVariants({ size: 'lg' }), 'focus-visible:ring-offset-secondary')}>
+          <Link
+            href="/products"
+            className={cn(buttonVariants({ size: 'lg', variant: 'band' }), 'focus-visible:ring-offset-secondary')}
+          >
             Shop pickles
             <ArrowRight aria-hidden="true" />
           </Link>

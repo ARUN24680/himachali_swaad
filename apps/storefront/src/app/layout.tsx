@@ -32,8 +32,8 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
   // Browser chrome colour must be a literal; keep in sync with --background in packages/ui globals.css
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f8f5ef' }, // pk-allow-color
-    { media: '(prefers-color-scheme: dark)', color: '#0e1411' }, // pk-allow-color
+    { media: '(prefers-color-scheme: light)', color: '#e5e8ce' }, // pk-allow-color
+    { media: '(prefers-color-scheme: dark)', color: '#131813' }, // pk-allow-color
   ],
 };
 

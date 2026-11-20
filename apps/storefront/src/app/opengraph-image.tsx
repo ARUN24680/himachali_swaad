@@ -16,16 +16,16 @@ export default function OpengraphImage() {
         flexDirection: 'column',
         justifyContent: 'center',
         padding: 80,
-        background: c.pine,
+        background: c.forest,
         color: c.ivory,
         position: 'relative',
       }}
     >
       <svg width="1200" height="630" viewBox="0 0 1200 630" style={{ position: 'absolute', left: 0, top: 0 }}>
-        <circle cx="960" cy="200" r="70" fill={c.gold} />
+        <circle cx="960" cy="200" r="70" fill={c.sage} />
         <path d={OG_RIDGE} fill={c.mist} />
       </svg>
-      <div style={{ fontSize: 28, letterSpacing: 6, color: c.gold, textTransform: 'uppercase' }}>
+      <div style={{ fontSize: 28, letterSpacing: 6, color: c.sage, textTransform: 'uppercase' }}>
         From a Himachal kitchen
       </div>
       <div style={{ fontSize: 92, fontWeight: 700, marginTop: 16 }}>{site.name}</div>

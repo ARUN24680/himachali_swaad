@@ -28,7 +28,7 @@
   * ❌ Ad-hoc inline CSS ya raw random external CSS files strictly banned hain.
 
 ### 1.3 Aesthetics, Theme & Branding
-* **Mountain Artisanal Aesthetic:** Visual tone pure, organic, aur mountain-rooted hona chahiye (Earthy forest tones, slate darks, warm terracotta, sun-gold accents, cream/off-white text).
+* **Mountain Artisanal Aesthetic:** Visual tone calm, editorial, organic aur mountain-rooted. **Two-hue brand palette (D-65):** Pale Sage Ivory `#E5E8CE` (surfaces) + Muted Forest Sage `#789575` (brand accent) — har surface/text/line token inhi dono ke tints/shades se banta hai; sirf status tokens + FSSAI non-veg mark exception hain.
 * **Theme Adaptability (Light & Dark Mode):** Dono apps system preference follow karenge + manual toggle (D-14).
   * Semantic color utility tokens use karo (`bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-primary`).
   * Never hardcode static colors like `bg-[#000]` or `text-black` directly on core components.
@@ -39,24 +39,25 @@
 ### 1.4 🎨 Generic Global Theme Palette System (Single Source of Truth — Tailwind v4)
 > **MANDATORY RULE:** Kisi bhi component (Button, Card, Badge, Modal, Input, Text, Border, Background) me color hardcode nahi kiya jayega. Poore project ka rang-roop ek single file (`packages/ui/src/styles/globals.css`) se control hoga. Palette me ek variable change karte hi poore project ke buttons, cards, headings aur accents instant update ho jayenge.
 
-* **Token values ka single source:** [`packages/ui/src/styles/globals.css`](../packages/ui/src/styles/globals.css) (Tailwind v4 CSS-first, `@theme inline` mapping, `.dark` overrides). Palette = Stitch "The Himalayan Pantry" se derived, **har pair WCAG AA contrast-checked** light + dark dono me (D-46). Values yahan copy mat karo — wahi file padho.
+* **Token values ka single source:** [`packages/ui/src/styles/globals.css`](../packages/ui/src/styles/globals.css) (Tailwind v4 CSS-first, `@theme inline` mapping, `.dark` overrides). Palette = two-hue sage/ivory (D-65, supersedes D-46 values), **har pair WCAG AA contrast-checked** light + dark dono me. Values yahan copy mat karo — wahi file padho.
 * **Token map (intent → utility):**
 
   | Token | Light | Dark | Kahan use |
   | :--- | :--- | :--- | :--- |
-  | `background` / `foreground` | Warm Ivory `#F8F5EF` / Charcoal `#211D1A` | Pine-night `#0E1411` / `#F1ECE2` | Page canvas, body text |
-  | `card` / `popover` | White `#FFFFFF` | `#161E1A` | Cards, drawers, modals, dropdowns |
-  | `primary` / `-foreground` | Mountain Gold `#D4A359` / **Charcoal** | `#D9AA62` / `#1A1510` | Main CTA (Add to cart, Pay), verified seals |
-  | `secondary` / `-foreground` | Deep Pine `#121A16` / Ivory | `#2C3B34` / `#F1ECE2` | Secondary CTA, editorial bands, nav shell |
-  | `tertiary` / `-foreground` | Terracotta `#964824` / White | `#D98560` / `#1A1510` | Harvest/batch stamps, highlight badges |
-  | `muted` / `muted-foreground` | Sandstone `#EAE3D2` / Granite `#5F574F` | `#202A25` / `#B3AA9D` | Nested sections, chips, steppers / metadata text |
-  | `accent` / `accent-foreground` | `#F3EBDC` / Dark gold `#7A5414` | `#26302B` / `#E6BC74` | Hover/selected bg / **gold-coloured text** |
-  | `border` | Hairline `#E5DED2` | `#2A3530` | Dividers, card strokes (decorative) |
-  | `input` | `#8E8478` | `#6F7A73` | Form control borders (≥ 3:1) |
-  | `ring` | `#9A6B1F` | `#D9AA62` | Focus ring (≥ 3:1) |
-  | `success` · `warning` · `info` · `destructive` | `#2F6B4A` · `#8F5A0B` · `#2B5F86` · `#B3261E` | `#6CC395` · `#E9B05A` · `#7DB6E0` · `#F08A80` | Status (D-13) |
-  | `nonveg` | Madder brown `#7B2C1C` | `#C2664D` | FSSAI non-veg mark only |
-  | `overlay`, `shadow-float` | Pine dim 45% / mist shadow | Black 60% / deeper shadow | Modal backdrop / drawers, sticky bars |
+  | `background` / `foreground` | Pale Sage Ivory `#E5E8CE` / Deep Forest `#2A3429` | Forest-night `#131813` / Ivory `#E5E8CE` | Page canvas, body text |
+  | `card` / `popover` | Lifted ivory `#F2F4E7` | `#191F19` | Cards, drawers, modals, dropdowns |
+  | `cta` / `-foreground` | Deep forest `#364335` / Ivory `#E5E8CE` | `#93AA8B` / `#131813` | Main pill button fill (Button `primary`) |
+  | `primary` / `-foreground` | Deep forest `#364335` (= `cta`) / Ivory `#E5E8CE` | `#93AA8B` / `#131813` | Main CTA (Add to cart, Pay), verified seals, accent text on dark bands |
+  | `secondary` / `-foreground` | Sage band `#9EB294` (tint of brand `#789575`) / Near-black forest `#181E17` | `#263025` / `#E5E8CE` | Secondary CTA, editorial bands, nav shell |
+  | `tertiary` / `-foreground` | Dark sage `#485946` / `#F2F4E7` | `#A9BA9D` / `#131813` | Harvest/batch stamps, highlight badges |
+  | `muted` / `muted-foreground` | `#DAE0C5` / Sage shade `#4A5C49` | `#1F271E` / `#C4CFB3` | Nested sections, chips, steppers / metadata text |
+  | `accent` / `accent-foreground` | `#CFD7BC` / Dark sage `#425240` | `#293328` / `#AFBFA2` | Hover/selected bg / **sage-coloured text** |
+  | `border` | Hairline `#C4CFB3` | `#2E392C` | Dividers, card strokes (decorative) |
+  | `input` | `#667F63` | `#667F63` | Form control borders (≥ 3:1) |
+  | `ring` | `#546852` | `#93AA8B` | Focus ring (≥ 3:1) |
+  | `success` · `warning` · `info` · `destructive` | `#3F6544` · `#73571B` · `#3D5C66` · `#9B3B30` | `#9CC79C` · `#D9B872` · `#94B9C4` · `#E0958A` | Status (D-13) — desaturated, the one hue exception |
+  | `nonveg` | Madder brown `#7B2C1C` | `#C2664D` | FSSAI non-veg mark only (brown = labelling requirement) |
+  | `overlay`, `shadow-float` | Forest dim 45% / soft shadow | Black 60% / deeper shadow | Modal backdrop / drawers, sticky bars |
   | `radius` | `0.75rem` → `rounded-lg` 12px (cards, inputs), `rounded-md` 10px (buttons), `rounded-sm` 6px (badges, batch tags) | | |
   | `font-serif` / `font-sans` | Playfair Display (headings) / Inter (body, prices) | | |
 
@@ -64,10 +65,10 @@
   > Fonts `next/font` (storefront) / `@fontsource` (admin) se self-host honge — Google Fonts runtime link nahi. Prices, weights, quantities aur batch numbers par `tabular-nums`.
 
 * **Standard Usage Rule for Developers/Agents:**
-  * **Buttons:** `bg-primary text-primary-foreground hover:bg-primary/90 rounded-md active:scale-[0.98]`
-  * **Secondary Buttons (Deep Pine):** `bg-secondary text-secondary-foreground hover:bg-secondary/90`
+  * **Buttons (pill, D-65):** shared `Button` / `buttonVariants` only — `primary` = `bg-cta text-cta-foreground rounded-full` (deep-forest pill, ivory text), `outline` = thin `border-foreground/35` pill, `band` = sage `bg-primary` pill for CTAs on dark `bg-secondary` bands.
+  * **Secondary Buttons (Deep Forest):** `bg-secondary text-secondary-foreground hover:bg-secondary/90`
   * **Outline / Subtle Buttons:** `border border-border bg-transparent text-foreground hover:bg-accent`
-  * **Gold text (links, highlights):** `text-accent-foreground` — ❌ `text-primary` light background par text ke liye banned (gold on ivory ≈ 2:1 contrast, AA fail).
+  * **Sage text (links, highlights):** `text-accent-foreground` — ❌ `text-primary` light background par text ke liye banned (sage `#789575` on ivory ≈ 2.6:1, AA fail). `text-primary` (deep forest) ab ivory aur sage band dono par readable hai (8.3:1 / 4.6:1). Band par chhota faded text ≥ `text-secondary-foreground/80`.
   * **Batch / harvest tags:** `bg-tertiary/15 text-tertiary border border-tertiary/30 rounded-sm`
   * **Cards & Containers:** `bg-card text-card-foreground border border-border rounded-lg` (depth tonal layers + hairline se — heavy shadows nahi)
   * **Headings:** `text-foreground font-serif`

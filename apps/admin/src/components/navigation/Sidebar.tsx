@@ -36,7 +36,7 @@ export function Sidebar({ items }: { items: NavItem[] }) {
           <div className="grid gap-4">
             {groups.map(([group, groupItems]) => (
               <div key={group} className="grid gap-1">
-                <span className="hidden px-2 text-[0.6875rem] font-semibold tracking-[0.14em] text-secondary-foreground/50 uppercase lg:block">
+                <span className="hidden px-2 text-[0.6875rem] font-semibold tracking-[0.14em] text-secondary-foreground/80 uppercase lg:block">
                   {group}
                 </span>
                 <ul className="grid gap-0.5">
@@ -52,7 +52,7 @@ export function Sidebar({ items }: { items: NavItem[] }) {
                           cn(
                             'group flex min-h-11 items-center justify-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary lg:justify-start',
                             isActive
-                              ? 'bg-secondary-foreground/10 text-primary' /* Mountain Gold on Deep Pine (AA in both themes) */
+                              ? 'bg-primary text-primary-foreground' /* Deep pill on the sage band (AA in both themes, D-65) */
                               : 'text-secondary-foreground/80 hover:bg-secondary-foreground/5 hover:text-secondary-foreground',
                           )
                         }

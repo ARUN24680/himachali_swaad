@@ -10,14 +10,14 @@
 
 | Design intent | Reference (light) | Token |
 | :--- | :--- | :--- |
-| Warm Ivory paper canvas | `#F8F5EF` | `--background` |
-| Mountain Gold CTA (charcoal text) | `#D4A359` | `--primary` / `--primary-foreground` |
-| Deep Pine secondary CTA, nav shell, editorial bands | `#121A16` | `--secondary` |
-| Terracotta harvest / batch stamps | `#964824` | `--tertiary` |
-| Sandstone nested surfaces, chips | `#EAE3D2` | `--muted` |
-| Pine-night dark mode base | `#0E1411` | `--background` (dark) |
+| Pale Sage Ivory canvas (brand) | `#E5E8CE` | `--background` |
+| Deep forest pill CTA (ivory text), everywhere | `#364335` | `--primary` / `--primary-foreground` |
+| Sage band (tint of brand sage), nav shell, editorial bands | `#9EB294` | `--secondary` |
+| Dark sage harvest / batch stamps | `#485946` | `--tertiary` |
+| Ivory-sage nested surfaces, chips | `#DAE0C5` | `--muted` |
+| Forest-night dark mode base | `#131813` | `--background` (dark) |
 
-> Full token map + usage rules: `Rules/00-project-rules.md` §1.4 · values: `packages/ui/src/styles/globals.css` (D-46).
+> Full token map + usage rules: `Rules/00-project-rules.md` §1.4 · values: `packages/ui/src/styles/globals.css` (D-65, supersedes D-46 values).
 
 * **Typography:** `font-serif` (Playfair Display) for headings + `font-sans` (Inter) for body — `next/font` se self-hosted.
 
